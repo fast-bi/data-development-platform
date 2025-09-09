@@ -1,0 +1,125 @@
+## Fast.BI Data Management Platform - All in One
+
+### Product Overview
+
+**Product Name:** fast.bi  
+**Description:**
+- **One-liner:** A single-page application (SPA) architecture, cloud-agnostic, microservices-based, data-driven solution enabling companies to interact with business data and extract business insights by focusing only on data modeling.
+- **Detail:** Fast.BI - “One Data Analysis Platform” is a microservices-based solution encapsulating data-driven services into one place. Its core is a single-page application (SPA) architecture, allowing customers to quickly start working with data modeling without spending time on infrastructure development and delivery from different compartments inside the business. 
+
+Fast.BI Platform, designed with cutting-edge microservices architecture and an array of powerful open-source tools, meets all business data replication, transformation, and visualisation needs. Fast.BI Platform boasts a suite of top-rated open-source tools, including:
+- **dbt Labs** for Data Transformation, equipped with premier add-ons for advanced data processing.
+- **VsCodeIDE** for Data Modeling, equipped with premier add-ons for easy data model creation (extensions dbt PowerTools, dbt Turntable)
+- **Airbyte** for Data Replication, enhanced with Fast.BI's unique touch.
+- **Airflow** for Data Orchestration , enhanced with Fast.BI's unique touch for data pipeline visualization and orchestration.
+- **DataHub** for Data Governance, enhanced with Fast.BI's unique touch for data metadata collection.
+- **Lightdash**/**Superset**/**Metabase**/**Looker** for base BI/BA Visualization, augmented with Fast.BI's auto model creation capabilities.
+
+In addition, Fast.BI’s Platform encompasses data quality, data assurance layers, ensuring data accuracy, consistency, and compliance throughout your data journey. With full automation, the platform streamlines your data operations and requires minimal effort from your Data Engineer, allowing them to focus on modeling your data according to your business needs.
+
+### Key Features and Benefits
+
+**As a SaaS System, Fast.BI:**
+- Provides a consolidated platform for modern data-driven workflow.
+- Simplifies the journey of extracting business data insights.
+- Minimizes the infrastructure and data platform delivery time.
+- Allows scaling as the business grows.
+- Does not lock in business in the selection of cloud vendors.
+- Allows users to choose from all existing Cloud Data Warehouse solutions (supported by dbt Labs).
+
+### Current Status and Readiness
+
+**Customer Ready:**
+
+1. **Customer Vault (secrets for customer tenant services):** Fully automated with Infisical open-source service, secrets auto generated in the Main fast.bi tenant.
+2. **Infrastructure Layer:** Supports main market cloud providers: Google Cloud, AWS Cloud, Azure Cloud, and on-premise deployments.
+    - **Google Cloud:** 100% readiness.
+        - Infrastructure deployment is fully ready with consolidated Terraform Module and Terragrunt Service on top.
+        - Two layers of templates (basic and advanced) for customer infrastructure deployment.
+    - **AWS Cloud:** 35-40% readiness. Predicted deadline for 100% readiness is August 2024.
+        - Mainly manual infrastructure setup currently, separate Terraform Modules and Terragrunt service on top.
+    - **Azure Cloud:** 0% readiness. Predicted deadline for 100% readiness is December 2024.
+        - Fully manual setup currently.
+    - **On-Premises:** Infrastructure should be prepared upfront based on customer and fast.bi tenant requirements.
+3. **Kubernetes Cluster Deployments - Infrastructure Services:**
+    - Quarterly release with fully tested open-source infrastructure products.
+    - Fast.BI Kubernetes Cluster Infrastructure Services Deployment Pack v1.0.0 - 100% readiness for all clouds.
+        - Includes Infisical Operator, Cert-Manager, External-DNS, Traefik, IDP SSO Manager, Prometheus, minIO, Grafana, Cluster Cleaner, PVC Autoscaler, ArgoCD Workload (partially ready).
+4. **Kubernetes Cluster Deployments - Data Management Services:**
+    - Services can be enabled/disabled by customer choice.
+    - **Key Services:**
+        - dbt Core Framework: 100% ready.
+        - Data Replication (Airbyte): 100% ready.
+        - Data Orchestration (Airflow): 100% ready.
+        - Data Governance (DataHub): Automation pending, manual configuration required. Deadline end of 2024.
+        - Data Modeling (VS Code & JupyterHub): 100% ready.
+        - Data Catalog (DBT Docs): 100% ready.
+        - Data Quality (Re_data for dbt core): 100% ready.
+        - CI/CD Workload Runner (GitLab): 100% ready.
+        - User Console (Fast.BI Python Flask): Various functionalities at different readiness levels.
+        - Data Analysis (Lightdash, Superset, Metabase, Looker): Varying readiness levels.
+5. **Fast.BI Automation - CI/CD Workload:**
+    - Supports main market repository providers (GitLab, GitHub, Bitbucket).
+    - **Current Automation Readiness:**
+        - GitLab CI/CD: 100% ready for jobs, 0% for ArgoCD integration. Deadline August 2024.
+        - GitHub CI/CD: 30% readiness. Deadline January 2025.
+        - Bitbucket CI/CD: 5% readiness. Deadline March 2025.
+
+### Current Offering for Customers
+
+- **Google Cloud Platform:** Full functionality available with BigQuery or Snowflake as Data Warehouse and GitLab as Data Repository. Delivery time: 3-4 hours.
+- **AWS Cloud:** Partial functionality with manual setup for infrastructure. Supported Data Warehouses: Redshift, Snowflake. Delivery time: 2-3 days.
+- **Azure Cloud:** Similar to AWS with manual setup for infrastructure. Supported Data Warehouses: Synapsis, Snowflake. Delivery time: 2-3 days.
+- **Other Cloud Providers + (GitHub/Bitbucket):** Services deployment without Fast.BI automation.
+
+---
+```
++------------------+--------------------+--------------------+---------------------+
+| Phase            | Milestones         | Deadline           | Status              |
++------------------+--------------------+--------------------+---------------------+
+| Infrastructure   | Google Cloud       | Complete           | 100% Ready          |
+| Setup            | AWS Cloud          | August 2024        | 35-40% Ready        |
+|                  | Azure Cloud        | December 2024      | 0% Ready            |
+|                  | On-Premises        | Ongoing            | Pre-prepared        |
++------------------+--------------------+--------------------+---------------------+
+| Kubernetes       | Infrastructure     | December 2024      | 70% Ready           |
+| Cluster          | Services           |                    |                     |
+| Deployment       | Data Management    | December 2024      | 70% Ready           |
+|                  | Services           |                    |                     |
++------------------+--------------------+--------------------+---------------------+
+| Service          | Data Services      | Ongoing            | 70% Ready           |
+| Readiness &      | Automation         | January 2025       | 30% Ready           |
+| Automation       |                    |                    |                     |
++------------------+--------------------+--------------------+---------------------+
+| Customer         | Google Cloud       | Ongoing            | Ready to Deploy     |
+| Deployment       | AWS Cloud          | Ongoing            | 2-3 Days            |
+| & Use Cases      | Azure Cloud        | Ongoing            | 2-3 Days            |
+|                  | Custom Solutions   | Ongoing            | Flexible            |
++------------------+--------------------+--------------------+---------------------+
+```
+---
+### Roadmap
+
+**2024:**
+- **August:** AWS Cloud full readiness, GitLab ArgoCD integration.
+- **September:** Superset 100% readiness.
+- **October:** Looker 100% readiness.
+- **November:** Metabase 100% readiness.
+- **December:** Azure Cloud full readiness, Data Governance automation, ArgoCD Workload 100%, External-DNS for AWS/Azure, ArgoCD for GitLab.
+
+**2025:**
+- **January:** GitHub CI/CD full readiness.
+- **March:** Bitbucket CI/CD full readiness, Data Project Management.
+- **Mar:** Data Platform Stats.
+
+### Diagrams and Schemas
+
+To visualize the roadmap and platform architecture, diagrams will be included to highlight:
+- **Platform Architecture:** Showing SPA architecture, cloud-agnostic features, microservices.
+- **Infrastructure Layer Readiness:** Timeline for readiness of Google Cloud, AWS, Azure, On-Premises.
+- **Kubernetes Cluster Services:** Layers and readiness levels.
+- **Data Management Services:** Key services and their status.
+- **CI/CD Integration:** Current and future states with GitLab, GitHub, Bitbucket.
+
+
+

@@ -1,0 +1,105 @@
+# -----------------------------------------------------------------------------
+# TEMPLATE: Airflow DAG Validation CI Pipeline for Bitbucket Pipelines
+# -----------------------------------------------------------------------------
+# PURPOSE:
+#   This pipeline validates Airflow DAG files for syntax errors, import errors,
+#   and checks for cyclic dependencies before deployment.
+#
+# HOW TO USE:
+#   1. Copy this file to `bitbucket-pipelines.yml` in your repository root
+#   2. Configure the variables section below in the script section
+#   3. Customize the Python version if needed
+#   4. Adjust the DAG directory path if different from 'dags/'
+#
+# REQUIREMENTS:
+#   - Bitbucket repository with Airflow DAGs
+#   - Python 3.8+ environment
+#
+# CUSTOMIZATION POINTS:
+#   - PYTHON_VERSION: Change to match your Airflow environment (in image name)
+#   - DAG_DIRECTORY: Change if your DAGs are not in 'dags/'
+#   - AIRFLOW_VERSION: Specify to match your production environment
+# -----------------------------------------------------------------------------
+
+# UNCOMMENT THESE SECTIONS AND REMOVE "trigger: manual" TO ENABLE AUTOMATIC EXECUTION:
+# pipelines:
+#   pull-requests:
+#     '**':
+#       - step:
+#           name: Validate DAGs
+#           script:
+#             - export PYTHON_VERSION='3.9'
+#             - export DAG_DIRECTORY='dags/'
+#             - export AIRFLOW_VERSION='2.5.1'
+#             - [THE SCRIPT BELOW]
+#   branches:
+#     main:
+#       - step:
+#           name: Validate DAGs
+#           script:
+#             - export PYTHON_VERSION='3.9'
+#             - export DAG_DIRECTORY='dags/'
+#             - export AIRFLOW_VERSION='2.5.1'
+#             - [THE SCRIPT BELOW]
+#     develop:
+#       - step:
+#           name: Validate DAGs
+#           script:
+#             - export PYTHON_VERSION='3.9'
+#             - export DAG_DIRECTORY='dags/'
+#             - export AIRFLOW_VERSION='2.5.1'
+#             - [THE SCRIPT BELOW]
+
+# CURRENTLY CONFIGURED FOR MANUAL EXECUTION ONLY:
+pipelines:
+  custom:
+    validate-dags:
+      - step:
+          name: Validate Airflow DAGs
+          image: python:3.9
+          script:
+            # ⚠️ CUSTOMIZE THESE VARIABLES ⚠️
+            - export PYTHON_VERSION='3.9'
+            - export DAG_DIRECTORY='dags/'
+            - export AIRFLOW_VERSION='2.5.1'
+            
+            - pip install --upgrade pip
+            - pip install apache-airflow==${AIRFLOW_VERSION}
+            # Add your custom dependencies here
+            # - pip install -r requirements.txt
+            
+            - |
+              python -c "
+              import logging
+              import os
+              from airflow.models import DagBag
+              
+              # Setup logging
+              logging.basicConfig(level=logging.INFO)
+              logger = logging.getLogger()
+              
+              # Path to DAGs
+              dag_folder = os.environ['DAG_DIRECTORY'] 
+              
+              # Validate DAGs
+              logger.info(f'Validating DAGs in {dag_folder}')
+              dag_bag = DagBag(dag_folder=dag_folder, include_examples=False)
+              
+              # Check for import errors
+              if dag_bag.import_errors:
+                  logger.error('DAG import errors:')
+                  for file, error in dag_bag.import_errors.items():
+                      logger.error(f'File: {file}, Error: {error}')
+                  exit(1)
+              else:
+                  logger.info(f'Successfully loaded {len(dag_bag.dags)} DAGs')
+              
+              # Check for DAG cycles
+              for dag_id, dag in dag_bag.dags.items():
+                  logger.info(f'Checking DAG: {dag_id}')
+                  if dag.test_cycle():
+                      logger.error(f'Cycle detected in DAG: {dag_id}')
+                      exit(1)
+              
+              logger.info('All DAGs validated successfully')
+              "

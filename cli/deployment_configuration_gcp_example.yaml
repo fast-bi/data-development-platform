@@ -1,0 +1,112 @@
+# Fast.BI Deployment Configuration Template
+# Required fields are marked with *
+
+# Basic Configuration (Phase 1)
+basic:
+  customer: "*mycompany"  # * Customer tenant name (1-64 chars)
+  user_email: "*admin@mycompany.com"  # * Admin email
+  cloud_provider: "*gcp"  # * Options: gcp, aws, azure, onprem
+  project_region: "*us-central1"  # * Cloud region
+  domain_name: "*mycompany.com"  # * Domain name
+
+# Infrastructure Configuration (Phase 1)
+infrastructure_deployment:
+  # GCP Configuration
+  gcp:
+    deployment_type: "basic"  # Options: basic, advanced
+    billing_account_id: "*01A393-2D8A12-EXAMPLE"  # * GCP billing account ID (example)
+    parent_folder: "*123456EXAMPLE"  # * GCP parent folder ID (example)
+    whitelisted_ips: "*xx.xx.xx.xx/24"  # * Whitelisted IP addresses (comma-separated)
+    
+    # State Management Configuration
+    terraform_state: "local"  # Options: local, remote
+    # Remote state configuration (only required if terraform_state=remote)
+    state_project: ""  # GCP project ID for remote state bucket (required if terraform_state=remote)
+    state_location: ""  # GCS bucket location for remote state (required if terraform_state=remote)
+    state_bucket: ""  # GCS bucket name for remote state (required if terraform_state=remote)
+    
+    # GKE Deployment Configuration
+    gke_deployment_type: "zonal"  # Options: zonal, multizone
+    
+    # CONFIGURATION GUIDE:
+    # 
+    # STATE BACKEND:
+    #   LOCAL: Infrastructure files saved locally (no Fast.BI dependencies)
+    #          IMPORTANT: Keep files safe! terraform destroy --all may not work later
+    #   REMOTE: Infrastructure files saved in GCS bucket (team collaboration)
+    #
+    # GKE DEPLOYMENT TYPE:
+    #   ZONAL: Single zone deployment (cheaper, faster, good for demos/development)
+    #          Lower cost (no master node charges), faster deployment/teardown
+    #   MULTIZONE: Multi-zone deployment (production-ready)
+    #              Better for production, scales better with spot instances
+    #              Higher cost (master node charges apply), higher availability
+
+# Secrets Configuration (Phase 2)
+secrets:
+  vault_method: "*local_vault"  # * Options: local_vault, external_infisical
+  data_analysis_platform: "*superset"  # * Options: lightdash, superset, metabase, looker
+  data_warehouse_platform: "bigquery"  # * Options: bigquery, snowflake, redshift
+  orchestrator_platform: "*Airflow"  # * Options: Airflow, Composer
+  git_provider: "*fastbi"  # * Options: github, gitlab, bitbucket, fastbi
+  dag_repo_url: "*https://github.com/mycompany/data-orchestration-dags.git"
+  data_repo_url: "*https://github.com/mycompany/dbt-data-models.git"
+  data_repo_main_branch: "*master"  # * Data repository main branch
+  repo_access_method: "*deploy_keys"  # * Options: access_token, deploy_keys(ssh_keys) 
+  git_provider_access_token: "ghp_example_token"  # Git provider access token
+  
+  # BigQuery specific parameters (only required if data_warehouse_platform is bigquery)
+  bigquery_project_id: "your-bigquery-project-id"  # Required for BigQuery
+  bigquery_region: "us-central1"  # Required for BigQuery
+  # Service account credentials (file paths that will be automatically base64 encoded)
+  # Only required if data_warehouse_platform is bigquery
+  data_platform_sa_file: "/path/to/gcp-service-account-data-platform.json"  # Required for BigQuery
+  data_analysis_sa_file: "/path/to/gcp-service-account-data-analysis.json"  # Required for BigQuery
+  # Note: Files will be automatically encoded to base64 when loaded
+  # SMTP Configuration (Optional)
+  smtp_host: "smtp.example.com"
+  smtp_port: "587"
+  smtp_username: "noreply@mycompany.com"
+  smtp_password: "your-smtp-password"
+
+# Repository Configuration (Phase 3)
+repositories:
+  # Uses values from secrets configuration by default
+  # Can be overridden if needed
+  dag_repo_url: ""  # Leave empty to use from secrets
+  data_repo_url: ""  # Leave empty to use from secrets
+  data_repo_main_branch: ""  # Leave empty to use from secrets
+
+# Infrastructure Services Configuration (Phase 4)
+infrastructure_services:
+  # external_ip: Auto-read from terraform output (04-external-ip-traefik/external_ip_traefik.txt)
+  # Can be overridden by providing a custom value
+  whitelisted_environment_ips: "*xx.xx.xx.xx/24"  # * Whitelisted IPs for Traefik
+  external_dns_domain_filters: "*mycompany.com"  # * External DNS domain filters
+
+# Data Services Configuration (Phase 5)
+data_services:
+  git_provider: ""  # Leave empty to use from secrets
+  git_runner_access_token: "*ghr_example_token"  # * Git runner token for CICD
+  data_replication_default_destination_type: ""  # Leave empty to use from secrets
+  bi_system: ""  # Leave empty to use from secrets
+  vault_secrets: ""  # Leave empty for auto-retrieval from K8s
+  tsb_fastbi_web_core_image_version: "*v0.1.0"  # * Web core image version
+  tsb_dbt_init_core_image_version: "*v0.1.0"  # * DBT init core image version
+
+# Finalization Configuration (Phase 6)
+finalization:
+  git_provider: ""  # Leave empty to use from secrets
+  git_access_token: ""  # Leave empty to use from secrets
+  git_repo_url: "*https://github.com/mycompany/data-platform-deployment-files.git"  # * Repository for deployment files
+
+# Deployment Options
+deployment:
+  # Phase execution control
+  phases_to_run: "all"  # Options: all, 1, 2, 3, 4, 5, 6, or comma-separated list
+  # Interactive mode control
+  interactive: false  # Set to true for interactive mode, false for non-interactive
+  # Confirmation settings - IMPORTANT: Keep confirmations even in non-interactive mode
+  skip_confirmations: false  # Keep confirmations for critical steps (Keycloak, etc.)
+  # State file location
+  state_file: "cli/state/deployment_state.json"

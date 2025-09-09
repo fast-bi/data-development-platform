@@ -1,0 +1,136 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+#
+---
+{% if cloud_provider == "gcp" %}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: lets-encrypt-issuer
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: lets-encrypt-key
+    email: "{{ user_email }}"
+    solvers:
+    - dns01:
+        cloudDNS:
+          project: "{{ project_id }}"
+{% endif %}
+---
+{% if cloud_provider == "aws" %}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: lets-encrypt-issuer
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: lets-encrypt-key
+    email: "{{ user_email }}"
+    solvers:
+    - dns01:
+        route53:
+          region: "{{ aws_region }}"
+          accessKeyIDSecretRef:
+            name: fastbi-aws-route53-credentials
+            key: AWS_ACCESS_KEY_ID
+          secretAccessKeySecretRef:
+            name: fastbi-aws-route53-credentials
+            key: AWS_SECRET_ACCESS_KEY
+---
+{% if method == "external_infisical" %}
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-fastbi-aws-route53-credentials
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/aws-cloud-dwh-service-accounts/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: fastbi-aws-route53-credentials
+          secretNamespace: cert-manager
+{% endif %}
+{% if method == "local_vault" %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-fastbi-aws-route53-credentials
+  namespace: cert-manager
+spec:
+  refreshInterval: 15s
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: fastbi-aws-route53-credentials
+  dataFrom:
+    - extract:
+        key: "data-platform-runner/aws-cloud-dwh-service-accounts/"
+{% endif %}
+{% endif %}
+---
+{% if cloud_provider == "azure" %}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: lets-encrypt-issuer
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: lets-encrypt-key
+    email: "{{ user_email }}"
+    solvers:
+    - dns01:
+        cloudDNS:
+          project: "{{ project_id }}"
+{% endif %}
+---
+{% if cloud_provider == "self-managed" %}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ customer }}-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: {{ customer }}-ca
+  secretName: {{ customer }}-ca-key-pair
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ customer }}-ca-issuer
+spec:
+  ca:
+    secretName: {{ customer }}-ca-key-pair
+{% endif %}
+---

@@ -1,0 +1,198 @@
+# FastBI CLI Project Documentation
+
+## Project Overview
+FastBI CLI is a command-line interface tool for deploying and managing FastBI environments, similar to minikube's functionality. This tool aims to provide a seamless experience for setting up data platforms with various configurations.
+
+## Project Structure
+
+```
+fastbi/
+├── setup.py
+├── README.md
+├── fastbi/
+│ ├── init.py
+│ ├── cli.py
+│ ├── commands/
+│ │ ├── init.py
+│ │ ├── start.py
+│ │ ├── stop.py
+│ │ └── status.py
+│ ├── services/
+│ │ ├── init.py
+│ │ ├── vault.py
+│ │ ├── infrastructure.py
+│ │ └── deployment.py
+│ └── utils/
+│ ├── init.py
+│ └── config.py
+```
+## Key Features
+- Interactive configuration mode
+- Command-line arguments support
+- Progress tracking and visual feedback
+- Profile management
+- Service management
+- Configuration management
+
+## Development Guide
+
+### Setting Up Development Environment
+1. Clone the repository
+2. Create a virtual environment
+3. Install in development mode:
+```bash
+pip install -e .
+```
+
+### Key Dependencies
+- click: For CLI interface
+- questionary: For interactive prompts
+- PyYAML: For configuration management
+
+## AI Assistance Prompts
+
+When seeking help from AI, use these template prompts for better assistance:
+
+### For General Implementation Help
+I'm working on the FastBI CLI tool (similar to minikube). I need help with [specific component].
+Current implementation:
+[paste relevant code]
+What I want to achieve:
+[describe goal]
+Additional context:
+This is part of the FastBI deployment tool
+Using Click for CLI
+Need to maintain similar UX to minikube
+
+
+### For Command Implementation
+
+I need help implementing the 'fastbi [command]' command.
+Command purpose: [describe what the command should do]
+Expected behavior: [describe expected behavior]
+Current code:
+[paste relevant code]
+How should I implement this to maintain consistency with the existing commands?
+
+### For Interactive Prompts
+
+I need help with the interactive configuration for [feature].
+Current implementation:
+[paste relevant code]
+Required fields:
+[list required fields and validations]
+How can I improve the user experience while collecting this information?
+
+### For Error Handling
+
+I need help with error handling for [specific scenario].
+Current implementation:
+[paste relevant code]
+What are the best practices for handling these errors while maintaining good UX?
+
+## Command Reference
+
+### Basic Commands
+```bash
+fastbi start              # Start new deployment
+fastbi stop               # Stop environment
+fastbi status            # Check environment status
+fastbi dashboard         # Open dashboard
+```
+
+### Configuration Commands
+```bash
+fastbi config set        # Set configuration
+fastbi config view       # View configuration
+fastbi profile list      # List profiles
+```
+
+### Service Management
+```bash
+fastbi services list     # List available services
+fastbi services enable   # Enable a service
+fastbi services disable  # Disable a service
+```
+
+## Implementation Checklist
+
+- [ ] Basic CLI structure
+- [ ] Interactive configuration
+- [ ] Command implementations
+  - [ ] start
+  - [ ] stop
+  - [ ] status
+  - [ ] config
+  - [ ] profile
+  - [ ] services
+- [ ] Error handling
+- [ ] Progress tracking
+- [ ] Configuration management
+- [ ] Profile management
+- [ ] Service management
+- [ ] Documentation
+- [ ] Tests
+
+## Best Practices
+
+1. Use consistent command naming
+2. Provide clear error messages
+3. Show progress for long-running operations
+4. Validate input before execution
+5. Maintain state information
+6. Provide command help documentation
+7. Support both interactive and non-interactive modes
+
+## Testing Guidelines
+
+1. Test each command independently
+2. Test input validation
+3. Test error scenarios
+4. Test configuration management
+5. Test interactive mode
+6. Test non-interactive mode
+
+## Future Enhancements
+
+1. Add support for multiple environments
+2. Implement backup/restore functionality
+3. Add monitoring capabilities
+4. Implement logging system
+5. Add plugin support
+
+## Troubleshooting Guide
+
+Common issues and solutions:
+1. Configuration issues
+2. Deployment failures
+3. Service startup problems
+4. Network connectivity
+5. Authentication issues
+
+## Notes for Contributors
+
+1. Follow the existing command pattern
+2. Update documentation
+3. Add tests for new features
+4. Maintain consistent error handling
+5. Use type hints
+6. Follow PEP 8 guidelines
+
+---
+
+                           ┌─────────────────┐
+                           │   Core Logic    │
+                           │  (Class Files)  │
+                           └────────┬────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+             ┌──────┴──────┐               ┌──────┴──────┐
+             │     CLI     │               │     API     │
+             │  Interface  │               │  Interface  │
+             └──────┬──────┘               └──────┬──────┘
+                    │                             │
+            ┌───────┴────────┐             ┌─────┴───────┐
+            │  Local Usage   │             │   Frontend  │
+            │(Your Laptop)   │             │(Web Browser)│
+            └────────────────┘             └─────────────┘

@@ -1,0 +1,155 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+#
+
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: data-modeling
+{%- if method == "external_infisical" %}
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-modeling-database-secrets
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-modeling/database-secrets/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-modeling-ide-hub-db-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-modeling-group-repo-access-secrets
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-platform-runner/ci-access-tokens/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-modeling-group-repo-access-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-modeling-repo-urls
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-platform-runner/git_provider_repo_urls/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-modeling-repo-urls
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-modeling-group-repo-deploy-keys
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-platform-runner/ssh-keys-data-model-repo/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-modeling-group-repo-deploy-keys
+        secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- if method == "local_vault" %}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-modeling-database-secrets
+  namespace: "{{ namespace }}"
+spec: 
+  refreshInterval: 24h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-modeling-ide-hub-db-secrets
+  dataFrom:
+    - extract:
+        key: "data-modeling/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-modeling-group-repo-access-secrets
+  namespace: "{{ namespace }}"
+spec: 
+  refreshInterval: 24h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-modeling-group-repo-access-secrets
+  dataFrom:
+    - extract:
+        key: "data-platform-runner/ci-access-tokens"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-modeling-repo-urls
+  namespace: "{{ namespace }}"
+spec: 
+  refreshInterval: 24h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-modeling-repo-urls
+  dataFrom:
+    - extract:
+        key: "data-platform-runner/git_provider_repo_urls"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-modeling-group-repo-deploy-keys
+  namespace: "{{ namespace }}"
+spec: 
+  refreshInterval: 24h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-modeling-group-repo-deploy-keys
+  dataFrom:
+    - extract:
+        key: "data-platform-runner/ssh-keys-data-model-repo"
+{%- endif %}

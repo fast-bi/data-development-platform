@@ -1,0 +1,1088 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+{% raw %}
+## Override the deployment namespace
+##
+namespaceOverride: ""
+
+# Force the target Kubernetes version (it uses Helm `.Capabilities` if not set).
+# This is especially useful for `helm template` as capabilities are always empty
+# due to the fact that it doesn't query an actual cluster
+kubeVersion:
+
+# Oauth client configuration specifics
+config:
+  # Add config annotations
+  annotations: {}
+  # OAuth client ID
+  clientID: ""
+  # OAuth client secret
+  clientSecret: ""
+  # Create a new secret with the following command
+  # openssl rand -base64 32 | head -c 32 | base64
+  # Use an existing secret for OAuth2 credentials (see secret.yaml for required fields)
+  # Example:
+  existingSecret: airbyte-auth-service-sso-secrets
+  cookieSecret: ""
+  # The name of the cookie that oauth2-proxy will create
+  # If left empty, it will default to the release name
+  cookieName: "_ab4oauth2_proxy"
+  google: {}
+  # Default configuration, to be overridden
+  configFile: |-
+      upstream_timeout = "1h"
+
+  # Custom configuration file: oauth2_proxy.cfg
+  # configFile: |-
+  #   pass_basic_auth = false
+  #   pass_access_token = true
+  # Use an existing config map (see configmap.yaml for required fields)
+  # Example:
+  # existingConfig: config
+
+alphaConfig:
+  enabled: false
+  # Add config annotations
+  annotations: {}
+  # Arbitrary configuration data to append to the server section
+  serverConfigData: {}
+  # Arbitrary configuration data to append to the metrics section
+  metricsConfigData: {}
+  # Arbitrary configuration data to append
+  configData: {}
+  # Arbitrary configuration to append
+  # This is treated as a Go template and rendered with the root context
+  configFile: ""
+  # Use an existing config map (see secret-alpha.yaml for required fields)
+  existingConfig: ~
+  # Use an existing secret
+  existingSecret: ~
+
+image:
+  repository: "quay.io/oauth2-proxy/oauth2-proxy"
+  # appVersion is used by default
+  tag: ""
+  pullPolicy: "IfNotPresent"
+
+# Optionally specify an array of imagePullSecrets.
+# Secrets must be manually created in the namespace.
+# ref: https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod
+# imagePullSecrets:
+  # - name: myRegistryKeySecretName
+
+# Set a custom containerPort if required.
+# This will default to 4180 if this value is not set and the httpScheme set to http
+# This will default to 4443 if this value is not set and the httpScheme set to https
+# containerPort: 4180
+
+extraArgs: {}
+{% endraw %}
+extraEnv:
+  - name: OAUTH2_PROXY_PASS_HOST_HEADER
+    value: "false"
+  - name: OAUTH2_PROXY_ALLOWED_ROLES
+    value: "Admin,User"
+  - name: OAUTH2_PROXY_ALLOWED_GROUP
+    value: "</Data Platform Services/Data_Replication>"
+  - name: OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST
+    value: "true"
+  - name: OAUTH2_PROXY_COOKIE_CSRF_EXPIRE
+    value: "30m"
+  - name: OAUTH2_PROXY_COOKIE_EXPIRE
+    value: "30m"
+  - name: OAUTH2_PROXY_COOKIE_REFRESH
+    value: "30s"
+  - name: OAUTH2_PROXY_COOKIE_DOMAINS
+    value: ".{{ customer_root_domain }}"
+  - name: OAUTH2_PROXY_COOKIE_SECURE
+    value: "true"
+  - name: OAUTH2_PROXY_EMAIL_DOMAINS
+    value: "*"
+  - name: OAUTH2_PROXY_LOGIN_URL
+    value: "{{ oauth_auth_url }}"
+  - name: OAUTH2_PROXY_OIDC_ISSUER_URL
+    value: "{{ oauth_realm_url }}"
+  - name: OAUTH2_PROXY_OIDC_JWKS_URL
+    value: "{{ oauth_certs_url }}"
+  - name: OAUTH2_PROXY_PASS_ACCESS_TOKEN
+    value: "false"
+  - name: OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER
+    value: "false"
+  - name: OAUTH2_PROXY_PROVIDER
+    value: "keycloak-oidc"
+  - name: OAUTH2_PROXY_PROVIDER_DISPLAY_NAME
+    value: "Keycloak"
+  - name: OAUTH2_PROXY_REDEEM_URL
+    value: "{{ oauth_token_url }}"
+  - name: OAUTH2_PROXY_REDIRECT_URL
+    value: "{{ oauth_callback_url }}"
+  - name: OAUTH2_PROXY_REVERSE_PROXY
+    value: "false"
+  - name: OAUTH2_PROXY_SCOPE
+    value: "profile openid email groups"
+  - name: OAUTH2_PROXY_SET_AUTHORIZATION_HEADER
+    value: "true"
+  - name: OAUTH2_PROXY_SET_XAUTHREQUEST
+    value: "false"
+  - name: OAUTH2_PROXY_SKIP_AUTH_STRIP_HEADERS
+    value: "false"
+  - name: OAUTH2_PROXY_SKIP_OIDC_DISCOVERY
+    value: "true"
+  - name: OAUTH2_PROXY_SKIP_PROVIDER_BUTTON
+    value: "true"
+  - name: OAUTH2_PROXY_UPSTREAMS
+    value: "http://data-replication-airbyte-webapp-svc.{{ namespace }}.svc.cluster.local"
+  - name: OAUTH2_PROXY_WHITELIST_DOMAINS
+    value: ".{{ customer_root_domain }}"
+  - name: OAUTH2_PROXY_SKIP_AUTH_PREFLIGHT
+    value: "true"
+  - name: OAUTH2_PROXY_SKIP_AUTH_ROUTES
+    value: "/manifest.json"
+
+{% raw %}
+# -- Custom labels to add into metadata
+customLabels: {}
+
+# To authorize individual email addresses
+# That is part of extraArgs but since this needs special treatment we need to do a separate section
+authenticatedEmailsFile:
+  enabled: false
+  # Defines how the email addresses file will be projected, via a configmap or secret
+  persistence: configmap
+  # template is the name of the configmap what contains the email user list but has been configured without this chart.
+  # It's a simpler way to maintain only one configmap (user list) instead changing it for each oauth2-proxy service.
+  # Be aware the value name in the extern config map in data needs to be named to "restricted_user_access" or to the
+  # provided value in restrictedUserAccessKey field.
+  template: ""
+  # The configmap/secret key under which the list of email access is stored
+  # Defaults to "restricted_user_access" if not filled-in, but can be overridden to allow flexibility
+  restrictedUserAccessKey: ""
+  # One email per line
+  # example:
+  # restricted_access: |-
+  #   name1@domain
+  #   name2@domain
+  # If you override the config with restricted_access it will configure a user list within this chart what takes care of the
+  # config map resource.
+  restricted_access: ""
+  annotations: {}
+  # helm.sh/resource-policy: keep
+
+service:
+  type: ClusterIP
+  # when service.type is ClusterIP ...
+  # clusterIP: 192.0.2.20
+  # when service.type is LoadBalancer ...
+  # loadBalancerIP: 198.51.100.40
+  # loadBalancerSourceRanges: 203.0.113.0/24
+  # when service.type is NodePort ...
+  # nodePort: 80
+  portNumber: 80
+  # Protocol set on the service
+  appProtocol: http
+  annotations: {}
+  # foo.io/bar: "true"
+
+## Create or use ServiceAccount
+serviceAccount:
+  ## Specifies whether a ServiceAccount should be created
+  enabled: true
+  ## The name of the ServiceAccount to use.
+  ## If not set and create is true, a name is generated using the fullname template
+  name:
+  automountServiceAccountToken: true
+  annotations: {}
+{% endraw %}
+ingress:
+  enabled: true
+  className: traefik
+  path: /
+  # Only used if API capabilities (networking.k8s.io/v1) allow it
+  pathType: ImplementationSpecific
+  # Used to create an Ingress record.
+  hosts:
+    - {{ ingress_host }}
+  labels: {}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ ingress_host }}
+    #cert-manager.io/cluster-issuer: lets-encrypt-issuer
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-ingress-redirect-https@kubernetescrd
+  tls: {}  # Using Fast.BI WildCard Certificate namespace traefik-ingress
+    # - secretName: airbyte-tls-cert
+    #   hosts:
+    #     - {{ ingress_host }}
+{%- raw %}
+resources:
+  limits: {}
+  requests:
+    cpu: 100m
+    memory: 300Mi
+{%- endraw %}
+{%- if cloud_provider == "self-managed" %}
+extraVolumes:
+  - name: ca-certs
+    csi:
+      driver: csi.cert-manager.io
+      readOnly: true
+      volumeAttributes:
+        # This enables the trust functionality
+        csi.cert-manager.io/issuer-name: {{ customer }}-ca-issuer
+        csi.cert-manager.io/issuer-kind: ClusterIssuer
+        csi.cert-manager.io/fs-group: "2000"  # Set to match oauth2-proxy group ID
+        # Important: This enables trust mode specifically
+        csi.cert-manager.io/mount-as: trusted-ca
+extraVolumeMounts:
+  - name: ca-certs
+    mountPath: /etc/ssl/certs
+    readOnly: false
+{%- else %}
+extraVolumes: []
+  # - name: ca-bundle-cert
+  #   secret:
+  #     secretName: <secret-name>
+
+extraVolumeMounts: []
+  # - mountPath: /etc/ssl/certs/
+  #   name: ca-bundle-cert
+{%- endif %}
+{%- raw %}
+# Additional containers to be added to the pod.
+extraContainers: []
+  #  - name: my-sidecar
+  #    image: nginx:latest
+
+priorityClassName: ""
+
+# hostAliases is a list of aliases to be added to /etc/hosts for network name resolution
+hostAliases: []
+# - ip: "10.xxx.xxx.xxx"
+#   hostnames:
+#     - "auth.example.com"
+# - ip: 127.0.0.1
+#   hostnames:
+#     - chart-example.local
+#     - example.local
+
+# [TopologySpreadConstraints](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/) configuration.
+# Ref: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
+# topologySpreadConstraints: []
+
+# Affinity for pod assignment
+# Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+# affinity: {}
+
+# Tolerations for pod assignment
+# Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+tolerations: []
+
+# Node labels for pod assignment
+# Ref: https://kubernetes.io/docs/user-guide/node-selection/
+nodeSelector: {}
+
+# Whether to use secrets instead of environment values for setting up OAUTH2_PROXY variables
+proxyVarsAsSecrets: true
+
+# Configure Kubernetes liveness and readiness probes.
+# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/
+# Disable both when deploying with Istio 1.0 mTLS. https://istio.io/help/faq/security/#k8s-health-checks
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  timeoutSeconds: 1
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  timeoutSeconds: 5
+  periodSeconds: 10
+  successThreshold: 1
+
+# Configure Kubernetes security context for container
+# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+securityContext:
+  enabled: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 2000
+  runAsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+deploymentAnnotations: {}
+podAnnotations: {}
+podLabels: {}
+replicaCount: 1
+revisionHistoryLimit: 10
+strategy: {}
+
+## PodDisruptionBudget settings
+## ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Configure Kubernetes security context for pod
+# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+podSecurityContext: {}
+
+# whether to use http or https
+httpScheme: http
+
+initContainers:
+  # if the redis sub-chart is enabled, wait for it to be ready
+  # before starting the proxy
+  # creates a role binding to get, list, watch, the redis master pod
+  # if service account is enabled
+  waitForRedis:
+    enabled: false
+    image:
+      repository: "docker.io/bitnami/kubectl"
+      pullPolicy: "IfNotPresent"
+    # uses the kubernetes version of the cluster
+    # the chart is deployed on, if not set
+    kubectlVersion: ""
+    securityContext:
+      enabled: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 65534
+      runAsGroup: 65534
+      seccompProfile:
+        type: RuntimeDefault
+    timeout: 180
+    resources: {}
+      # limits:
+      #   cpu: 100m
+      #   memory: 300Mi
+      # requests:
+      #   cpu: 100m
+      #   memory: 300Mi
+
+# Additionally authenticate against a htpasswd file. Entries must be created with "htpasswd -B" for bcrypt encryption.
+# Alternatively supply an existing secret which contains the required information.
+htpasswdFile:
+  enabled: false
+  existingSecret: ""
+  entries: []
+  # One row for each user
+  # example:
+  # entries:
+  #  - testuser:$2y$05$gY6dgXqjuzFhwdhsiFe7seM9q9Tile4Y3E.CBpAZJffkeiLaC21Gy
+
+# Configure the session storage type, between cookie and redis
+sessionStorage:
+  # Can be one of the supported session storage cookie|redis
+  type: redis
+  redis:
+    # Name of the Kubernetes secret containing the redis & redis sentinel password values (see also `sessionStorage.redis.passwordKey`)
+    existingSecret: "airbyte-auth-service-redis"
+    # Redis password value. Applicable for all Redis configurations. Taken from redis subchart secret if not set. `sessionStorage.redis.existingSecret` takes precedence
+    password: ""
+    # Key of the Kubernetes secret data containing the redis password value
+    passwordKey: "redis-password"
+    # Can be one of standalone|cluster|sentinel
+    clientType: "standalone"
+    standalone:
+      # URL of redis standalone server for redis session storage (e.g. `redis://HOST[:PORT]`). Automatically generated if not set
+      connectionUrl: ""
+    cluster:
+      # List of Redis cluster connection URLs (e.g. `["redis://127.0.0.1:8000", "redis://127.0.0.1:8000"]`)
+      connectionUrls: []
+    sentinel:
+      # Name of the Kubernetes secret containing the redis sentinel password value (see also `sessionStorage.redis.sentinel.passwordKey`). Default: `sessionStorage.redis.existingSecret`
+      existingSecret: "airbyte-auth-service-redis"
+      # Redis sentinel password. Used only for sentinel connection; any redis node passwords need to use `sessionStorage.redis.password`
+      password: ""
+      # Key of the Kubernetes secret data containing the redis sentinel password value
+      passwordKey: "redis-sentinel-password"
+      # Redis sentinel master name
+      masterName: ""
+      # List of Redis sentinel connection URLs (e.g. `["redis://127.0.0.1:8000", "redis://127.0.0.1:8000"]`)
+      connectionUrls: []
+
+# Enables and configure the automatic deployment of the redis subchart
+redis:
+  # provision an instance of the redis sub-chart
+  enabled: true
+  architecture: standalone
+  # Redis specific helm chart settings, please see:
+  # https://github.com/bitnami/charts/tree/master/bitnami/redis#parameters
+  redisPort: 6379
+  auth:
+    existingSecret: "airbyte-auth-service-redis"
+    existingSecretPasswordKey: "redis-password"
+  cluster:
+    enabled: false
+    slaveCount: 1
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+  # authKey: "redis-password"
+  # existingSecret: "airbyte-auth-service-redis"
+  # auth: true
+  # replicas: 1
+  # redis:
+  #   port: 6379
+  # persistentVolume:
+  #   size: 1Gi
+
+# Enables apiVersion deprecation checks
+checkDeprecation: true
+
+# Allows graceful shutdown
+# terminationGracePeriodSeconds: 65
+# lifecycle:
+#   preStop:
+#     exec:
+#       command: [ "sh", "-c", "sleep 60" ]
+
+metrics:
+  # Enable Prometheus metrics endpoint
+  enabled: false
+  # Serve Prometheus metrics on this port
+  port: 44180
+  # when service.type is NodePort ...
+  # nodePort: 44180
+  # Protocol set on the service for the metrics port
+  service:
+    appProtocol: http
+  serviceMonitor:
+    # Enable Prometheus Operator ServiceMonitor
+    enabled: false
+    # Define the namespace where to deploy the ServiceMonitor resource
+    namespace: ""
+    # Prometheus Instance definition
+    prometheusInstance: default
+    # Prometheus scrape interval
+    interval: 60s
+    # Prometheus scrape timeout
+    scrapeTimeout: 30s
+    # Add custom labels to the ServiceMonitor resource
+    labels: {}
+
+    ## scheme: HTTP scheme to use for scraping. Can be used with `tlsConfig` for example if using istio mTLS.
+    scheme: ""
+
+    ## tlsConfig: TLS configuration to use when scraping the endpoint. For example if using istio mTLS.
+    ## Of type: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#tlsconfig
+    tlsConfig: {}
+
+    ## bearerTokenFile: Path to bearer token file.
+    bearerTokenFile: ""
+
+    ## Used to pass annotations that are used by the Prometheus installed in your cluster to select Service Monitors to work with
+    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+    annotations: {}
+
+    ## Metric relabel configs to apply to samples before ingestion.
+    ## [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs)
+    metricRelabelings: []
+    # - action: keep
+    #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
+    #   sourceLabels: [__name__]
+
+    ## Relabel configs to apply to samples before ingestion.
+    ## [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config)
+    relabelings: []
+    # - sourceLabels: [__meta_kubernetes_pod_node_name]
+    #   separator: ;
+    #   regex: ^(.*)$
+    #   targetLabel: nodename
+    #   replacement: $1
+    #   action: replace
+{% endraw %}
+# Extra K8s manifests to deploy
+extraObjects:
+{%- if method == "external_infisical" %}
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-replication-buckets-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-replication/buckets-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: airbyte-global-minio-secrets
+          secretNamespace: "{{ namespace }}"
+{%- if local_postgresql != "true" %}
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-replication-database-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-replication/database-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: airbyte-postgresql
+          secretNamespace: "{{ namespace }}"
+{%- endif %}
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-replication-sso-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-replication/sso-clients-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: airbyte-auth-service-sso-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-replication-sso-cache-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-replication/sso-cache-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: airbyte-auth-service-redis
+          secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- if method == "local_vault" %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-replication-buckets-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 15s
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name:  airbyte-global-minio-secrets
+    dataFrom:
+      - extract:
+          key: "data-replication/buckets-secrets"
+{%- if local_postgresql != "true" %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-replication-database-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 15s
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: airbyte-postgresql
+    dataFrom:
+      - extract:
+          key: "data-replication/database-secrets"
+{%- endif %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-replication-sso-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 15s
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: airbyte-auth-service-sso-secrets
+    dataFrom:
+      - extract:
+          key: "data-replication/sso-clients-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-replication-sso-cache-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 15s
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: airbyte-auth-service-redis
+    dataFrom:
+      - extract:
+          key: "data-replication/sso-cache-secrets"
+{%- endif %}
+{%- if local_postgresql != "true" %}
+# Service Account
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: secret-copy-sa
+    namespace: data-replication
+# Role for source namespace (global-postgresql)
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: secret-reader
+    namespace: global-postgresql
+  rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["fastbi-global-psql-ssl"]
+    verbs: ["get"]
+# Role for destination namespace (data-replication)
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: secret-creator
+    namespace: data-replication
+  rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "update", "patch", "get"]
+# RoleBinding for source namespace
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: read-secrets
+    namespace: global-postgresql
+  subjects:
+  - kind: ServiceAccount
+    name: secret-copy-sa
+    namespace: data-replication
+  roleRef:
+    kind: Role
+    name: secret-reader
+    apiGroup: rbac.authorization.k8s.io
+# RoleBinding for destination namespace
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: create-secrets
+    namespace: data-replication
+  subjects:
+  - kind: ServiceAccount
+    name: secret-copy-sa
+    namespace: data-replication
+  roleRef:
+    kind: Role
+    name: secret-creator
+    apiGroup: rbac.authorization.k8s.io
+# Job to copy the secret
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: copy-postgresql-secret
+    namespace: data-replication
+  spec:
+    ttlSecondsAfterFinished: 86400  # Auto-delete the job after 1 day
+    template:
+      spec:
+        serviceAccountName: secret-copy-sa
+        containers:
+        - name: kubectl
+          image: bitnami/kubectl:latest
+          command:
+          - /bin/bash
+          - -c
+          - |
+            # Log start of execution
+            echo "Starting secret copy job..."
+            
+            # Get the secret data directly using jsonpath
+            echo "Fetching secret data from global-postgresql/fastbi-global-psql-ssl..."
+            
+            # Get each field separately to preserve exactly what's in the original
+            TLS_CRT=$(kubectl get secret fastbi-global-psql-ssl -n global-postgresql -o jsonpath='{.data.tls\.crt}' | base64 --decode)
+            TLS_KEY=$(kubectl get secret fastbi-global-psql-ssl -n global-postgresql -o jsonpath='{.data.tls\.key}' | base64 --decode)
+            
+            # Get the secret type
+            SECRET_TYPE=$(kubectl get secret fastbi-global-psql-ssl -n global-postgresql -o jsonpath='{.type}')
+            
+            if [ -z "$TLS_CRT" ] || [ -z "$TLS_KEY" ]; then
+              echo "ERROR: Could not retrieve TLS certificate data!"
+              exit 1
+            fi
+            
+            # Create the new secret directly with the same data
+            echo "Creating/updating secret data-replication-db-psql-crt..."
+            kubectl create secret generic data-replication-db-psql-crt \
+              -n data-replication \
+              --from-literal=tls.crt="$TLS_CRT" \
+              --from-literal=tls.key="$TLS_KEY" \
+              --type="$SECRET_TYPE" \
+              --dry-run=client -o yaml | kubectl apply -f -
+            
+            # Verify the secret was created
+            echo "Verifying the secret was created..."
+            kubectl get secret data-replication-db-psql-crt -n data-replication
+            
+            if [ $? -eq 0 ]; then
+              echo "✓ Secret successfully copied to data-replication/data-replication-db-psql-crt!"
+              exit 0
+            else
+              echo "✗ ERROR: Failed to verify secret creation!"
+              exit 1
+            fi
+        restartPolicy: OnFailure
+        # Add a reasonable timeout to avoid hung jobs
+        activeDeadlineSeconds: 600  # 10 minutes
+{%- endif %}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: airbyte-db-schema-restore-job
+  spec:
+    template:
+      spec:
+        serviceAccountName: airbyte-admin
+        containers:
+        - name: airbyte-default-destination
+          image: 4fastbi/data-replication-destinations-job:0.1.0
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: DATA_SYNC_BASE_API_URL
+            value: "{{ data_replication_service_base_api_url }}"
+          - name: DATA_SYNC_V1_BASE_API_URL
+            value: "{{ data_replication_service_base_webapp_url }}"
+          - name: CUSTOMER
+            value: "{{ customer }}"
+          - name: DESTINATION_TYPE
+            value: "{{ data_replication_default_destination_type }}"
+          - name: GCP_PROJECT_REGION
+            value: "{{ gcp_project_region }}"
+            optional: true
+          - name: GCP_PROJECT_ID
+            value: "{{ gcp_project_id }}"
+            optional: true
+          - name: GCP_DATA_REPLICATION_SA_NAME
+            value: "{{ data_replication_k8s_sa }}"
+            optional: true
+        initContainers:
+        - name: wait-for-airbyte
+          image: curlimages/curl:latest
+          command:
+          - /bin/sh
+          - -c
+          - |
+            echo "Waiting for Airbyte server to be available..."
+            start_time=$(date +%s)
+            timeout=900  # 15 minutes in seconds
+            
+            while true; do
+              current_time=$(date +%s)
+              elapsed=$((current_time - start_time))
+              
+              if [ $elapsed -ge $timeout ]; then
+                echo "ERROR: Timed out waiting for Airbyte server after 15 minutes"
+                exit 1
+              fi
+              
+              echo "Checking Airbyte health endpoint (elapsed time: ${elapsed}s)..."
+              if curl -s http://data-replication-airbyte-server-svc.data-replication.svc.cluster.local:8001/api/v1/health | grep -q '"available":true'; then
+                echo "Airbyte server is available! Proceeding with job..."
+                exit 0
+              fi
+              
+              remaining=$((timeout - elapsed))
+              echo "Airbyte server not available yet. Will retry in 10s. Timeout in ${remaining}s"
+              sleep 10
+            done
+        - name: db-operations
+          image: 4fastbi/data-replication-monitoring:0.1.0
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e;
+              export PGPASSWORD=${PGROOTPASSWORD}
+              
+              # Grant privileges to the regular user
+              psql -h ${PGHOST} -U ${PGROOTUSER} -d ${PGDATABASE} -c "GRANT EXECUTE ON FUNCTION pg_ls_waldir() TO ${PGUSER};"
+              
+              # Check if replication user exists before granting privileges
+              repl_user_exists=$(psql -h ${PGHOST} -U ${PGROOTUSER} -d ${PGDATABASE} -t -A -c "SELECT 1 FROM pg_roles WHERE rolname = '${PGREPLUSER}';" | tr -d '[:space:]')
+              if [[ "$repl_user_exists" == "1" ]]; then
+                  echo "Replication user exists. Granting privileges..."
+                  psql -h ${PGHOST} -U ${PGROOTUSER} -d ${PGDATABASE} -c "GRANT EXECUTE ON FUNCTION pg_ls_waldir() TO ${PGREPLUSER};"
+              else
+                  echo "Replication user does not exist. Skipping grant."
+              fi
+              
+              # Check if the schema exists
+              schema_exists=$(psql -h ${PGHOST} -U ${PGROOTUSER} -d ${PGDATABASE} -t -A -c "SELECT 1 FROM information_schema.schemata WHERE schema_name = 'public_staging';" | tr -d '[:space:]')
+              # Set User password
+              export PGPASSWORD=${PGUSERPASSWORD}
+              if [[ "$schema_exists" != "1" ]]; then
+                  echo "Schema does not exist. Starting restoration process..."
+                  psql -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} -v ON_ERROR_STOP=0 -f /fastbi/monitoring_schema/public_staging.sql
+                  psql -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} -v ON_ERROR_STOP=0 -f /fastbi/monitoring_schema/public_core.sql
+                  psql -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} -v ON_ERROR_STOP=0 -f /fastbi/monitoring_schema/public_mart.sql
+              else
+                  echo "Schema already exists. No restoration needed."
+              fi
+              
+              # Check if email is not null in the public.workspace table
+              email_exists=$(psql -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} -t -A -c "SELECT 1 FROM public.workspace WHERE email IS NOT NULL;" | tr -d '[:space:]')
+              if [[ "$email_exists" != "1" ]]; then
+                  echo "Email is null. Updating records..."
+                  psql -h ${PGHOST} -U ${PGUSER} -d ${PGDATABASE} -c "
+                  BEGIN;
+                  UPDATE public.workspace 
+                  SET email='{{ data_services_admin_email }}', 
+                      initial_setup_complete=true, 
+                      anonymous_data_collection=false, 
+                      send_newsletter=false, 
+                      send_security_updates=true,
+                      display_setup_wizard=false;
+                  
+                  UPDATE public.\"user\" 
+                  SET default_workspace_id=(SELECT id FROM public.workspace), 
+                      company_name='{{ customer }}', 
+                      email='{{ data_services_admin_email }}', 
+                      news=false;
+                  COMMIT;"
+              else
+                  echo "Email is already set. No update needed."
+              fi
+          env:
+{%- if local_postgresql == "true" %}
+          - name: PGHOST
+            value: "data-replication-db-psql.data-replication.svc.cluster.local"
+{%- else %}
+          - name: PGHOST
+            value: "fastbi-global-psql.global-postgresql.svc.cluster.local"
+{%- endif %}
+          - name: PGROOTUSER
+            value: "postgres"
+          - name: PGROOTPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: airbyte-postgresql
+                key: postgresPassword
+          - name: PGUSER
+            valueFrom:
+              secretKeyRef:
+                name: airbyte-postgresql
+                key: username
+          - name: PGREPLUSER
+            valueFrom:
+              secretKeyRef:
+                name: airbyte-postgresql
+                key: replicationUsername
+          - name: PGUSERPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: airbyte-postgresql
+                key: password
+          - name: PGDATABASE
+            valueFrom:
+              secretKeyRef:
+                name: airbyte-postgresql
+                key: database
+        restartPolicy: OnFailure
+    backoffLimit: 4
+    ttlSecondsAfterFinished: 120
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    name: airbyte-refresh-materialized-views
+  spec:
+    schedule: "*/5 * * * *"
+    concurrencyPolicy: Forbid
+    jobTemplate:
+      spec:
+        template:
+          spec:
+            initContainers:
+            - name: wait-for-airbyte
+              image: curlimages/curl:latest
+              command:
+              - /bin/sh
+              - -c
+              - |
+                echo "Waiting for Airbyte server to be available..."
+                start_time=$(date +%s)
+                timeout=900  # 15 minutes in seconds
+                
+                while true; do
+                  current_time=$(date +%s)
+                  elapsed=$((current_time - start_time))
+                  
+                  if [ $elapsed -ge $timeout ]; then
+                    echo "ERROR: Timed out waiting for Airbyte server after 15 minutes"
+                    exit 1
+                  fi
+                  
+                  echo "Checking Airbyte health endpoint (elapsed time: ${elapsed}s)..."
+                  if curl -s http://data-replication-airbyte-server-svc.data-replication.svc.cluster.local:8001/api/v1/health | grep -q '"available":true'; then
+                    echo "Airbyte server is available! Proceeding with job..."
+                    exit 0
+                  fi
+                  
+                  remaining=$((timeout - elapsed))
+                  echo "Airbyte server not available yet. Will retry in 10s. Timeout in ${remaining}s"
+                  sleep 10
+                done
+            containers:
+            - name: refresh-materialized-views
+              image: 4fastbi/data-replication-monitoring:0.1.0
+              imagePullPolicy: IfNotPresent
+              command: ["/fastbi/monitoring_schema/run_refresh.sh"]
+              env:
+{%- if local_postgresql == "true" %}
+              - name: DB_HOST
+                value: "data-replication-db-psql.data-replication.svc.cluster.local"
+{%- else %}
+              - name: DB_HOST
+                value: "fastbi-global-psql.global-postgresql.svc.cluster.local"
+{%- endif %}
+              - name: DB_PORT
+                value: "5432"
+              - name: PGUSER
+                valueFrom:
+                  secretKeyRef:
+                    name: airbyte-postgresql
+                    key: username
+              - name: PGPASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: airbyte-postgresql
+                    key: password
+              - name: PGDATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: airbyte-postgresql
+                    key: database
+            restartPolicy: OnFailure
+        ttlSecondsAfterFinished: 60
+    successfulJobsHistoryLimit: 0
+    failedJobsHistoryLimit: 1
+{%- if otel_enabled == "true" %}
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: data-replication-otel-collector-conf
+    labels: 
+      app: otel-collector
+  data:
+    otel-collector-config: |
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: "0.0.0.0:4317"
+            http:
+              endpoint: "0.0.0.0:4318"
+      processors:
+        batch:
+        memory_limiter:
+          limit_mib: 1500
+          spike_limit_mib: 512
+          check_interval: 60s
+      exporters:
+        prometheus:
+          endpoint: "0.0.0.0:8889"
+          namespace: "data-replication"
+      service:
+        pipelines:
+          metrics:
+            receivers: [otlp]
+            processors: [memory_limiter, batch]
+            exporters: [prometheus]
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: data-replication-airbyte-otel-collector
+    labels:
+          app: otel-collector
+  spec:
+    selector:
+      matchLabels: 
+          app: otel-collector
+    replicas: 1
+    template:
+      metadata:
+        labels: 
+          app: otel-collector
+      spec:
+        containers:
+        - command:
+            - "/otelcol"
+            - "--config=/conf/otel-collector-config.yaml"
+          image: "otel/opentelemetry-collector:latest"
+          name: otel-collector
+          ports:
+          - containerPort: 4317
+          - containerPort: 4318
+          - containerPort: 8889
+          volumeMounts:
+          - name: config
+            mountPath: /conf
+        volumes:
+          - configMap:
+              name: data-replication-otel-collector-conf
+              items:
+                - key: otel-collector-config
+                  path: otel-collector-config.yaml
+            name: config
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: data-replication-otel-collector
+    labels: 
+      app: otel-collector
+  spec:
+    ports:
+    - name: otlp-grpc
+      port: 4317
+      protocol: TCP
+      targetPort: 4317
+    - name: otlp-http
+      port: 4318
+      protocol: TCP
+      targetPort: 4318
+    - name: prometheus
+      port: 8889
+    selector: 
+      app: otel-collector
+  commonAnnotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-1"
+  metrics:
+    enabled: true
+{% endif %}

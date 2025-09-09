@@ -1,0 +1,502 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+
+nameOverride: "{{ data_dbt_server_deployment_name }}"
+namespace: "{{ namespace }}"
+image:
+  name: "{{ data_dbt_server_app_name }}"
+  tag: "{{ data_dbt_server_app_version }}"
+
+manifests:
+# Secrets for Data DBT Server - Synchronized
+{%- if method == "external_infisical" %}
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-fastbi-dbt-server-git-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/ci-access-tokens/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: fastbi-dbt-server-git-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-fastbi-dbt-server-git-deploy-key
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/ssh-keys-data-model-repo/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: fastbi-dbt-server-git-deploy-key
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-warehouse-bigquery-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/gcp-cloud-dwh-service-accounts/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-warehouse-bigquery-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-warehouse-snowflake-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/snowflake-cloud-dwh-service-accounts/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-warehouse-snowflake-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-warehouse-redshift-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/aws-cloud-dwh-service-accounts/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-warehouse-redshift-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-warehouse-fabric-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/azure-cloud-dwh-service-accounts/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-warehouse-fabric-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-orchestration-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-orchestration/root-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-orchestration-secrets
+          secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- if method == "local_vault" %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-fastbi-user-console-git-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: fastbi-user-console-git-secrets
+    dataFrom:
+      - extract:
+          key: "/data-platform-runner/ci-access-tokens/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-fastbi-dbt-server-git-deploy-key
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: fastbi-dbt-server-git-deploy-key
+    dataFrom:
+      - extract:
+          key: "/data-platform-runner/ssh-keys-data-model-repo/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-warehouse-bigquery-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-warehouse-bigquery-secrets
+    dataFrom:
+      - extract:
+          key: "data-platform-runner/gcp-cloud-dwh-service-accounts/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-warehouse-snowflake-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-warehouse-snowflake-secrets
+    dataFrom:
+      - extract:
+          key: "data-platform-runner/snowflake-cloud-dwh-service-accounts/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-warehouse-redshift-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-warehouse-redshift-secrets
+    dataFrom:
+      - extract:
+          key: "data-platform-runner/aws-cloud-dwh-service-accounts/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-warehouse-fabric-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-warehouse-fabric-secrets
+    dataFrom:
+      - extract:
+          key: "data-platform-runner/azure-cloud-dwh-service-accounts/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-orchestration-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-orchestration-secrets
+    dataFrom:
+      - extract:
+          key: "data-orchestration/root-secrets/"
+{%- endif %}
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: dag-status-checker
+    namespace: "{{ namespace }}"
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: statefulset-scaler
+    namespace: "{{ namespace }}"
+  rules:
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get", "patch", "list"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets/scale"]
+    verbs: ["get", "patch"]
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: dag-status-checker-binding
+    namespace: "{{ namespace }}"
+  subjects:
+  - kind: ServiceAccount
+    name: dag-status-checker
+    namespace: "{{ namespace }}"
+  roleRef:
+    kind: Role
+    name: statefulset-scaler
+    apiGroup: rbac.authorization.k8s.io
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    name: dag-status-checker
+    namespace: "{{ namespace }}"
+  spec:
+    schedule: "*/5 * * * *"  # Every 5 minutes
+    concurrencyPolicy: Replace
+    jobTemplate:
+      spec:
+        template:
+          spec:
+            serviceAccountName: dag-status-checker
+            initContainers:
+            - name: kubectl-jq-installer
+              image: alpine:3.19
+              command:
+              - /bin/sh
+              - -c
+              - |
+                # Install kubectl
+                wget -O /kubectl https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl && \
+                chmod +x /kubectl && \
+                mv /kubectl /shared-bin/
+                
+                # Install jq for JSON parsing
+                wget -O /jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64 && \
+                chmod +x /jq && \
+                mv /jq /shared-bin/
+              volumeMounts:
+              - name: shared-bin
+                mountPath: /shared-bin
+            containers:
+            - name: dag-status-checker
+              image: curlimages/curl:latest
+              env:
+              - name: AIRFLOW_API_URL
+                value: "http://data-orchestration-webserver.data-orchestration.svc.cluster.local/api/v1"
+              - name: AIRFLOW_USERNAME
+                valueFrom:
+                  secretKeyRef:
+                    name: data-orchestration-secrets
+                    key: username
+              - name: AIRFLOW_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: data-orchestration-secrets
+                    key: password
+              - name: PATH
+                value: "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/shared-bin"
+              volumeMounts:
+              - name: shared-bin
+                mountPath: /shared-bin
+              command:
+              - /bin/sh
+              - -c
+              - |
+                # Function to extract release name from DAG description
+                extract_release_name() {
+                    local description=$1
+                    local release_name
+                    
+                    # Use grep and sed instead of bash regex
+                    release_name=$(echo "$description" | grep -o "Release: [^ ]*" | sed 's/Release: //')
+                    
+                    if [ -n "$release_name" ]; then
+                        echo "$release_name"
+                    else
+                        echo ""
+                    fi
+                }
+
+                # Get all DAGs with api_operator_dbt tag
+                echo "Fetching DAGs with api_operator_dbt tag..."
+                response=$(curl -s -u "${AIRFLOW_USERNAME}:${AIRFLOW_PASSWORD}" \
+                "${AIRFLOW_API_URL}/dags?limit=100&tags=api_operator_dbt&only_active=true" \
+                -H 'accept: application/json')
+
+                # Parse response to extract DAG information
+                dags=$(echo "$response" | /shared-bin/jq -r '.dags[] | {dag_id: .dag_id, is_paused: .is_paused, description: .description}')
+                echo "Found DAGs: $dags"
+
+                # Process each DAG
+                echo "$dags" | /shared-bin/jq -c '.' | while read -r dag; do
+                    dag_id=$(echo "$dag" | /shared-bin/jq -r '.dag_id')
+                    is_paused=$(echo "$dag" | /shared-bin/jq -r '.is_paused')
+                    description=$(echo "$dag" | /shared-bin/jq -r '.description')
+
+                    # Extract release name from description
+                    release_name=$(extract_release_name "$description")
+                    
+                    if [ -z "$release_name" ]; then
+                        echo "Warning: Could not extract release name from description for DAG $dag_id"
+                        continue
+                    fi
+
+                    statefulset_name="dbt-server-${release_name}"
+                    echo "Processing DAG: $dag_id -> StatefulSet: $statefulset_name"
+
+                    # Check if StatefulSet exists
+                    if /shared-bin/kubectl get statefulset -n dbt-server "$statefulset_name" &>/dev/null; then
+                        # Scale based on pause status
+                        if [ "$is_paused" = "true" ]; then
+                            echo "DAG $dag_id is paused, scaling $statefulset_name down to 0"
+                            /shared-bin/kubectl -n dbt-server patch statefulset "$statefulset_name" \
+                            --type='json' \
+                            -p='[{"op": "replace", "path": "/spec/replicas", "value":0}]'
+                        else
+                            echo "DAG $dag_id is active, scaling $statefulset_name up to 1"
+                            /shared-bin/kubectl -n dbt-server patch statefulset "$statefulset_name" \
+                            --type='json' \
+                            -p='[{"op": "replace", "path": "/spec/replicas", "value":1}]'
+                        fi
+                    else
+                        echo "Warning: StatefulSet $statefulset_name not found in namespace dbt-server"
+                    fi
+                done
+            volumes:
+            - name: shared-bin
+              emptyDir: {}
+            restartPolicy: OnFailure
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: dbt-api-service-controller
+    namespace: "{{ namespace }}"
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: dbt-api-service-controller
+    namespace: "{{ namespace }}"
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "services", "secrets", "configmaps", "persistentvolumeclaims", "serviceaccounts"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["apps"]
+      resources: ["statefulsets"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["networking.k8s.io"]
+      resources: ["ingresses"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["rbac.authorization.k8s.io"]
+      resources: ["roles", "rolebindings"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: dbt-api-service-controller
+    namespace: "{{ namespace }}"
+  subjects:
+    - kind: ServiceAccount
+      name: dbt-api-service-controller
+      namespace: "{{ namespace }}"
+  roleRef:
+    kind: Role
+    name: dbt-api-service-controller
+    apiGroup: rbac.authorization.k8s.io
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: dbt-api-service-controller
+    namespace: "{{ namespace }}"
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: dbt-api-service-controller
+    template:
+      metadata:
+        labels:
+          app: dbt-api-service-controller
+      spec:
+        serviceAccountName: dbt-api-service-controller
+        containers:
+          - name: dbt-api-service
+            image: 4fastbi/dbt-api-service-controller:0.1.0
+            imagePullPolicy: IfNotPresent
+            ports:
+              - containerPort: 6798
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                cpu: 200m
+                memory: 256Mi
+            env:
+              - name: FLASK_ENV
+                value: "production"
+              - name: SECRET_KEY
+                valueFrom:
+                  secretKeyRef:
+                    name: data-orchestration-secrets
+                    key: webserver-secret-key
+              - name: KUBERNETES_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: AIRFLOW_URL
+                value: "http://data-orchestration-webserver.data-orchestration.svc.cluster.local"
+              - name: AIRFLOW_USER
+                valueFrom:
+                  secretKeyRef:
+                    name: data-orchestration-secrets
+                    key: username
+              - name: AIRFLOW_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: data-orchestration-secrets
+                    key: password
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: dbt-api-service-controller
+    namespace: "{{ namespace }}"
+  spec:
+    selector:
+      app: dbt-api-service-controller
+    ports:
+      - protocol: TCP
+        port: 80
+        targetPort: 6798
+    type: ClusterIP

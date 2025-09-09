@@ -1,0 +1,419 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+
+nameOverride: "{{ data_governance_deployment_name }}"
+namespace: "{{ namespace }}"
+image:
+  name: "{{ data_governance_app_name }}"
+  tag: "{{ data_governance_app_version }}"
+
+manifests:
+{%- if method == "external_infisical" %}
+{%- if local_postgresql != true %}
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-governance-database-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-governance/database-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-governance-postgresql-secrets
+            secretNamespace: "{{ namespace }}"
+{%- endif %}
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-governance-sso-clients-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-governance/sso-clients-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-governance-sso-clients-secrets
+            secretNamespace: "{{ namespace }}"
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-governance-neo4j-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-governance/neo4j-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-governance-neo4j-secrets
+            secretNamespace: "{{ namespace }}"
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-governance-datahub-encryption-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-governance/datahub-encryption-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-governance-datahub-encryption-secrets
+            secretNamespace: "{{ namespace }}"
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-governance-datahub-auth-secrets
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-governance/datahub-auth-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-governance-datahub-auth-secrets
+            secretNamespace: "{{ namespace }}"
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-governance-datahub-root-secrets
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-governance/root-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-governance-datahub-root-secrets
+            secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- if method == "local_vault" %}
+{%- if local_postgresql != true %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-governance-database-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-governance-postgresql-secrets
+    dataFrom:
+      - extract:
+          key: "data-governance/database-secrets"
+{%- endif %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-governance-sso-clients-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-governance-sso-clients-secrets
+    dataFrom:
+      - extract:
+          key: "data-governance/sso-clients-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-governance-neo4j-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-governance-neo4j-secrets
+    dataFrom:
+      - extract:
+          key: "data-governance/neo4j-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-governance-datahub-encryption-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-governance-datahub-encryption-secrets
+    dataFrom:
+      - extract:
+          key: "data-governance/datahub-encryption-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-governance-datahub-auth-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-governance-datahub-auth-secrets
+    dataFrom:
+      - extract:
+          key: "data-governance/datahub-auth-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-governance-datahub-root-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-governance-datahub-root-secrets
+    dataFrom:
+      - extract:
+          key: "data-governance/root-secrets"
+{%- endif %}
+{%- if cloud_provider == "self-managed" %}
+# Step 1: Create a job to transform the certificate into a Java truststore
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: create-java-truststore
+    namespace: "{{ namespace }}"
+  spec:
+    ttlSecondsAfterFinished: 3600
+    template:
+      spec:
+        initContainers:
+        - name: generate-truststore
+          image: adoptopenjdk/openjdk11:alpine
+          command:
+          - /bin/sh
+          - -c
+          - |
+            # Create directory for work
+            mkdir -p /tmp/certs
+            
+            # Generate Java truststore from CA certificate
+            echo "Creating Java truststore from CA certificate..."
+            keytool -import -trustcacerts -file /etc/ssl/certs/ca.crt -alias devriv-ca -keystore /tmp/certs/truststore.jks -storepass $SSL_TRUSTSTORE_SECRET -noprompt
+            
+            # Verify the truststore
+            echo "Verifying Java truststore contents:"
+            keytool -list -keystore /tmp/certs/truststore.jks -storepass $SSL_TRUSTSTORE_SECRET
+            
+            echo "Truststore created at /tmp/certs/truststore.jks"
+          volumeMounts:
+          - name: ca-certs
+            mountPath: /etc/ssl/certs
+          - name: truststore-volume
+            mountPath: /tmp/certs
+          env:
+          - name: SSL_TRUSTSTORE_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: data-governance-datahub-auth-secrets
+                key: token_service_signing_key
+        containers:
+        - name: create-secret
+          image: bitnami/kubectl:latest
+          command:
+          - /bin/sh
+          - -c
+          - |
+            echo "Creating Java truststore..."
+            kubectl create secret generic data-governance-datahub-java-truststore \
+              --from-file=/truststore/truststore.jks \
+              --dry-run=client -o yaml | kubectl apply -f -
+            echo "Truststore created and stored in 'java-truststore' secret"
+          volumeMounts:
+          - name: truststore-volume
+            mountPath: /truststore
+        volumes:
+        - name: ca-certs
+          csi:
+            driver: csi.cert-manager.io
+            readOnly: true
+            volumeAttributes:
+              csi.cert-manager.io/issuer-name: {{ customer }}-ca-issuer
+              csi.cert-manager.io/issuer-kind: ClusterIssuer
+              csi.cert-manager.io/mount-as: trusted-ca
+        - name: truststore-volume
+          emptyDir: {}
+        restartPolicy: OnFailure
+        serviceAccountName: truststore-creator  # This SA needs permission to create/update secrets
+# Service account with permissions to create/update secrets
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: truststore-creator
+    namespace: "{{ namespace }}"
+# Role with permissions to manage secrets
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: secret-manager
+    namespace: "{{ namespace }}"
+  rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "update", "patch"]
+# RoleBinding to associate the role with the service account
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: truststore-creator-can-manage-secrets
+    namespace: "{{ namespace }}"
+  subjects:
+  - kind: ServiceAccount
+    name: truststore-creator
+    namespace: "{{ namespace }}"
+  roleRef:
+    kind: Role
+    name: secret-manager
+    apiGroup: rbac.authorization.k8s.io
+{%- endif %}
+# Post-deploy job to run after the deployment
+{%- if method == "local_vault" %}
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: data-governance-post-deploy-vault-secrets
+    namespace: "{{ namespace }}"
+    labels:
+      app: data-governance
+      component: post-deploy
+  type: Opaque
+  stringData:
+    vault.json: "{{ vault_secrets }}"
+{%- endif %}
+# Service account with permissions to create/update secrets
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: data-governance-post-deploy-sa
+    namespace: "{{ namespace }}"
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: data-governance-post-deploy
+    namespace: "{{ namespace }}"
+    labels:
+      app: data-governance
+      component: post-deploy
+  spec:
+    ttlSecondsAfterFinished: 600
+    backoffLimit: 10
+    template:
+      metadata:
+        labels:
+          app: data-governance
+          component: post-deploy
+      spec:
+        initContainers:
+        - name: init-wait
+          image: busybox
+          command: ['sh', '-c', 'echo "Waiting for 600 seconds before starting the job..." && sleep 600']
+        containers:
+        - name: data-governance-post-deploy
+          image: 4fastbi/data-governance-hub-job:0.1.0
+          imagePullPolicy: IfNotPresent
+          env:
+          # DataHub URL Configuration
+          - name: DATAHUB_URL
+            value: "http://data-governance-datahub-frontend.{{ namespace }}.svc.cluster.local"
+          - name: DATAHUB_GSM_URL
+            value: "http://data-governance-datahub-gms.{{ namespace }}.svc.cluster.local:8080"
+          # Required parameters
+          - name: BI_SYSTEM
+            value: "{{ bi_system }}"
+          - name: DATA_REPLICATION_DEFAULT_DESTINATION_TYPE
+            value: "{{ data_replication_default_destination_type }}"
+          - name: METHOD
+            value: "{{ method }}"
+          # Optional parameters for external vault
+          - name: EXTERNAL_INFISICAL_HOST
+            value: "{{ external_infisical_host | default('-') }}"
+          - name: SLUG
+            value: "{{ slug | default('-') }}"
+          - name: CLIENT_ID
+            value: "{{ client_id | default('-') }}"
+          - name: CLIENT_SECRET
+            value: "{{ client_secret | default('-') }}"
+          - name: VAULT_PROJECT_ID
+            value: "{{ vault_project_id | default('-') }}"
+          # Optional parameters for local vault
+          - name: SECRET_FILE
+            value: "/vault/secrets/vault.json"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          volumeMounts:
+          # Mount for vault secrets
+          - name: vault-secrets
+            mountPath: /vault/secrets
+            readOnly: true
+          # Mount for DataHub user credentials
+          - name: datahub-user-creds
+            mountPath: /var/run/secrets/kubernetes.io/data-governance/data-governance-datahub-auth-secrets
+            readOnly: true
+        volumes:
+        # Volume for vault secrets
+        - name: vault-secrets
+          secret:
+            secretName: data-governance-post-deploy-vault-secrets
+        # Volume for DataHub user credentials
+        - name: datahub-user-creds
+          secret:
+            secretName: data-governance-user-secret
+            items:
+            - key: user.props
+              path: user.props
+        restartPolicy: OnFailure
+        serviceAccountName: data-governance-post-deploy-sa

@@ -1,0 +1,993 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+#
+{% if method == "local_vault" %}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: idp-sso-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: idp-sso-database-secrets
+  dataFrom:
+    - extract:
+        key: "idp-sso/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: data-replication-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-replication-database-secrets
+  dataFrom:
+    - extract:
+        key: "data-replication/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: data-orchestration-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-orchestration-database-secrets
+  dataFrom:
+    - extract:
+        key: "data-orchestration/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: data-modeling-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-modeling-database-secrets
+  dataFrom:
+    - extract:
+        key: "data-modeling/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: data-dcdq-meta-collect-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-dcdq-meta-collect-database-secrets
+  dataFrom:
+    - extract:
+        key: "data-dcdq-meta-collect/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: data-governance-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-governance-database-secrets
+  dataFrom:
+    - extract:
+        key: "data-governance/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: data-analysis-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-analysis-database-secrets
+  dataFrom:
+    - extract:
+        key: "data-analysis/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: user-console-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: user-console-database-secrets
+  dataFrom:
+    - extract:
+        key: "user-console/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: data-cicd-workflows-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-cicd-workflows-database-secrets
+  dataFrom:
+    - extract:
+        key: "data-cicd-workflows/database-secrets"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: minio-data-fast-bi-bucket-admin
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: minio-data-fast-bi-bucket-admin
+  dataFrom:
+    - extract:
+        key: "data-platform-storage/root-buckets-secrets/data-fast-bi-bucket-admin/"
+{% endif %}
+{% if method == "external_infisical" %}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: universal-auth-credentials
+  namespace: "{{ namespace }}"
+type: Opaque
+stringData:
+  clientId: "{{ secret_manager_client_id }}"
+  clientSecret: "{{ secret_manager_client_secret }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: idp-sso-database-secrets
+spec:
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/idp-sso/root-secrets/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: idp-sso-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: data-replication-database-secrets
+spec:
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/data-replication/database-secrets"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: data-replication-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: data-orchestration-database-secrets
+spec:
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}" 
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/data-orchestration/database-secrets"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: data-orchestration-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: data-modeling-database-secrets
+spec:
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}" 
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/data-modeling/database-secrets"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: data-modeling-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: data-dcdq-meta-collect-database-secrets
+spec:
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}" 
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/data-dcdq-meta-collect/database-secrets"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: data-dcdq-meta-collect-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: data-governance-database-secrets
+spec:
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}" 
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/data-governance/database-secrets"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: data-governance-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: data-analysis-database-secrets
+spec:
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}" 
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/data-analysis/database-secrets"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: data-analysis-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: user-console-database-secrets
+spec:
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}" 
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/user-console/database-secrets"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: user-console-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: data-cicd-workflows-database-secrets
+spec: 
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}" 
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/data-cicd-workflows/database-secrets"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: data-cicd-workflows-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: minio-data-fast-bi-bucket-admin
+spec:
+    resyncInterval: 15
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-platform-storage/root-buckets-secrets/data-fast-bi-bucket-admin/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: minio-data-fast-bi-bucket-admin
+        secretNamespace: "{{ namespace }}"
+{% endif %}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-database-init-script
+  namespace: "{{ namespace }}"
+spec:
+  template:
+    spec:
+      serviceAccountName: database-init-script-sa
+      containers:
+      - name: create-script
+        image: bitnami/kubectl:latest
+        command: ["/bin/sh", "-c"]
+        env:
+        - name: IDP_SSO_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: idp-sso-database-secrets
+              key: database
+        - name: IDP_SSO_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: idp-sso-database-secrets
+              key: username
+        - name: IDP_SSO_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: idp-sso-database-secrets
+              key: password
+        - name: DATA_REPLICATION_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: data-replication-database-secrets
+              key: database
+        - name: DATA_REPLICATION_TEMPORAL_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: data-replication-database-secrets
+              key: database_temporal
+        - name: DATA_REPLICATION_VISIBILITY_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: data-replication-database-secrets
+              key: database_visibility
+        - name: DATA_REPLICATION_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: data-replication-database-secrets
+              key: username
+        - name: DATA_REPLICATION_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: data-replication-database-secrets
+              key: password
+        - name: DATA_ORCHESTRATION_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: data-orchestration-database-secrets
+              key: database
+        - name: DATA_ORCHESTRATION_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: data-orchestration-database-secrets
+              key: username
+        - name: DATA_ORCHESTRATION_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: data-orchestration-database-secrets
+              key: password
+        - name: DATA_MODELING_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: data-modeling-database-secrets
+              key: database
+        - name: DATA_MODELING_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: data-modeling-database-secrets
+              key: username
+        - name: DATA_MODELING_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: data-modeling-database-secrets
+              key: password
+        - name: DATA_DCDQ_META_COLLECT_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: data-dcdq-meta-collect-database-secrets
+              key: database
+        - name: DATA_DCDQ_META_COLLECT_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: data-dcdq-meta-collect-database-secrets
+              key: username
+        - name: DATA_DCDQ_META_COLLECT_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: data-dcdq-meta-collect-database-secrets
+              key: password
+        - name: DATA_GOVERNANCE_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: data-governance-database-secrets
+              key: database
+        - name: DATA_GOVERNANCE_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: data-governance-database-secrets
+              key: username
+        - name: DATA_GOVERNANCE_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: data-governance-database-secrets
+              key: password
+        - name: DATA_ANALYSIS_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: data-analysis-database-secrets
+              key: database
+        - name: DATA_ANALYSIS_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: data-analysis-database-secrets
+              key: username
+        - name: DATA_ANALYSIS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: data-analysis-database-secrets
+              key: password
+        - name: USER_CONSOLE_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: user-console-database-secrets
+              key: database
+        - name: USER_CONSOLE_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: user-console-database-secrets
+              key: username
+        - name: USER_CONSOLE_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: user-console-database-secrets
+              key: password
+        - name: DATA_CICD_WORKFLOWS_DB_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: data-cicd-workflows-database-secrets
+              key: database
+        - name: DATA_CICD_WORKFLOWS_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: data-cicd-workflows-database-secrets
+              key: username
+        - name: DATA_CICD_WORKFLOWS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: data-cicd-workflows-database-secrets
+              key: password
+        args:
+        - |
+          # Create SQL script content
+          cat << EOF > /tmp/init.sql
+          -- Create databases
+          CREATE DATABASE ${IDP_SSO_DB_SECRET};
+          CREATE DATABASE ${DATA_REPLICATION_DB_SECRET};
+          -- CREATE DATABASE ${DATA_REPLICATION_TEMPORAL_DB_SECRET};
+          -- CREATE DATABASE ${DATA_REPLICATION_VISIBILITY_DB_SECRET};
+          CREATE DATABASE ${DATA_ORCHESTRATION_DB_SECRET};
+          CREATE DATABASE ${DATA_MODELING_DB_SECRET};
+          CREATE DATABASE ${DATA_DCDQ_META_COLLECT_DB_SECRET};
+          CREATE DATABASE ${DATA_GOVERNANCE_DB_SECRET};
+          CREATE DATABASE ${DATA_ANALYSIS_DB_SECRET};
+          CREATE DATABASE ${USER_CONSOLE_DB_SECRET};
+          CREATE DATABASE ${DATA_CICD_WORKFLOWS_DB_SECRET};
+
+          -- Create users
+          CREATE USER ${IDP_SSO_DB_USER} WITH PASSWORD '${IDP_SSO_DB_PASSWORD}';
+          CREATE USER ${DATA_REPLICATION_DB_USER} WITH PASSWORD '${DATA_REPLICATION_DB_PASSWORD}';
+          CREATE USER ${DATA_ORCHESTRATION_DB_USER} WITH PASSWORD '${DATA_ORCHESTRATION_DB_PASSWORD}';
+          CREATE USER ${DATA_MODELING_DB_USER} WITH PASSWORD '${DATA_MODELING_DB_PASSWORD}';
+          CREATE USER ${DATA_DCDQ_META_COLLECT_DB_USER} WITH PASSWORD '${DATA_DCDQ_META_COLLECT_DB_PASSWORD}';
+          CREATE USER ${DATA_GOVERNANCE_DB_USER} WITH PASSWORD '${DATA_GOVERNANCE_DB_PASSWORD}';
+          CREATE USER ${DATA_ANALYSIS_DB_USER} WITH PASSWORD '${DATA_ANALYSIS_DB_PASSWORD}';
+          CREATE USER ${USER_CONSOLE_DB_USER} WITH PASSWORD '${USER_CONSOLE_DB_PASSWORD}';
+          CREATE USER ${DATA_CICD_WORKFLOWS_DB_USER} WITH PASSWORD '${DATA_CICD_WORKFLOWS_DB_PASSWORD}';
+
+          -- Allow users to create databases
+          ALTER USER ${IDP_SSO_DB_USER} WITH CREATEDB;
+          ALTER USER ${DATA_REPLICATION_DB_USER} WITH CREATEDB;
+          ALTER USER ${DATA_ORCHESTRATION_DB_USER} WITH CREATEDB;
+          ALTER USER ${DATA_MODELING_DB_USER} WITH CREATEDB;
+          ALTER USER ${DATA_DCDQ_META_COLLECT_DB_USER} WITH CREATEDB;
+          ALTER USER ${DATA_GOVERNANCE_DB_USER} WITH CREATEDB;
+          ALTER USER ${DATA_ANALYSIS_DB_USER} WITH CREATEDB;
+          ALTER USER ${USER_CONSOLE_DB_USER} WITH CREATEDB;
+          ALTER USER ${DATA_CICD_WORKFLOWS_DB_USER} WITH CREATEDB;
+
+          -- Set database ownership (this automatically grants all privileges)
+          ALTER DATABASE ${IDP_SSO_DB_SECRET} OWNER TO ${IDP_SSO_DB_USER};
+          ALTER DATABASE ${DATA_REPLICATION_DB_SECRET} OWNER TO ${DATA_REPLICATION_DB_USER};
+          -- ALTER DATABASE ${DATA_REPLICATION_TEMPORAL_DB_SECRET} OWNER TO ${DATA_REPLICATION_DB_USER};
+          -- ALTER DATABASE ${DATA_REPLICATION_VISIBILITY_DB_SECRET} OWNER TO ${DATA_REPLICATION_DB_USER};
+          ALTER DATABASE ${DATA_ORCHESTRATION_DB_SECRET} OWNER TO ${DATA_ORCHESTRATION_DB_USER};
+          ALTER DATABASE ${DATA_MODELING_DB_SECRET} OWNER TO ${DATA_MODELING_DB_USER};
+          ALTER DATABASE ${DATA_DCDQ_META_COLLECT_DB_SECRET} OWNER TO ${DATA_DCDQ_META_COLLECT_DB_USER};
+          ALTER DATABASE ${DATA_GOVERNANCE_DB_SECRET} OWNER TO ${DATA_GOVERNANCE_DB_USER};
+          ALTER DATABASE ${DATA_ANALYSIS_DB_SECRET} OWNER TO ${DATA_ANALYSIS_DB_USER};
+          ALTER DATABASE ${USER_CONSOLE_DB_SECRET} OWNER TO ${USER_CONSOLE_DB_USER};
+          ALTER DATABASE ${DATA_CICD_WORKFLOWS_DB_SECRET} OWNER TO ${DATA_CICD_WORKFLOWS_DB_USER};
+
+          -- Grant privileges
+          GRANT ALL PRIVILEGES ON DATABASE ${IDP_SSO_DB_SECRET} TO ${IDP_SSO_DB_USER};
+          GRANT ALL PRIVILEGES ON DATABASE ${DATA_REPLICATION_DB_SECRET} TO ${DATA_REPLICATION_DB_USER};
+          -- GRANT ALL PRIVILEGES ON DATABASE ${DATA_REPLICATION_TEMPORAL_DB_SECRET} TO ${DATA_REPLICATION_DB_USER};
+          -- GRANT ALL PRIVILEGES ON DATABASE ${DATA_REPLICATION_VISIBILITY_DB_SECRET} TO ${DATA_REPLICATION_DB_USER};
+          GRANT ALL PRIVILEGES ON DATABASE ${DATA_ORCHESTRATION_DB_SECRET} TO ${DATA_ORCHESTRATION_DB_USER};
+          GRANT ALL PRIVILEGES ON DATABASE ${DATA_MODELING_DB_SECRET} TO ${DATA_MODELING_DB_USER};
+          GRANT ALL PRIVILEGES ON DATABASE ${DATA_DCDQ_META_COLLECT_DB_SECRET} TO ${DATA_DCDQ_META_COLLECT_DB_USER};
+          GRANT ALL PRIVILEGES ON DATABASE ${DATA_GOVERNANCE_DB_SECRET} TO ${DATA_GOVERNANCE_DB_USER};
+          GRANT ALL PRIVILEGES ON DATABASE ${DATA_ANALYSIS_DB_SECRET} TO ${DATA_ANALYSIS_DB_USER};
+          GRANT ALL PRIVILEGES ON DATABASE ${USER_CONSOLE_DB_SECRET} TO ${USER_CONSOLE_DB_USER};
+          GRANT ALL PRIVILEGES ON DATABASE ${DATA_CICD_WORKFLOWS_DB_SECRET} TO ${DATA_CICD_WORKFLOWS_DB_USER};
+
+          -- Grant CREATE privileges on specific databases for schema and extension creation
+          GRANT CREATE ON DATABASE ${IDP_SSO_DB_SECRET} TO ${IDP_SSO_DB_USER};
+          GRANT CREATE ON DATABASE ${DATA_REPLICATION_DB_SECRET} TO ${DATA_REPLICATION_DB_USER};
+          -- GRANT CREATE ON DATABASE ${DATA_REPLICATION_TEMPORAL_DB_SECRET} TO ${DATA_REPLICATION_DB_USER};
+          -- GRANT CREATE ON DATABASE ${DATA_REPLICATION_VISIBILITY_DB_SECRET} TO ${DATA_REPLICATION_DB_USER};
+          GRANT CREATE ON DATABASE ${DATA_ORCHESTRATION_DB_SECRET} TO ${DATA_ORCHESTRATION_DB_USER};
+          GRANT CREATE ON DATABASE ${DATA_MODELING_DB_SECRET} TO ${DATA_MODELING_DB_USER};
+          GRANT CREATE ON DATABASE ${DATA_DCDQ_META_COLLECT_DB_SECRET} TO ${DATA_DCDQ_META_COLLECT_DB_USER};
+          GRANT CREATE ON DATABASE ${DATA_GOVERNANCE_DB_SECRET} TO ${DATA_GOVERNANCE_DB_USER};
+          GRANT CREATE ON DATABASE ${DATA_ANALYSIS_DB_SECRET} TO ${DATA_ANALYSIS_DB_USER};
+          GRANT CREATE ON DATABASE ${USER_CONSOLE_DB_SECRET} TO ${USER_CONSOLE_DB_USER};
+          GRANT CREATE ON DATABASE ${DATA_CICD_WORKFLOWS_DB_SECRET} TO ${DATA_CICD_WORKFLOWS_DB_USER};
+          EOF
+          # Create secret with SQL script
+          kubectl create secret generic database-init-script \
+            --from-file=init.sql=/tmp/init.sql \
+            --namespace="{{ namespace }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+      restartPolicy: Never
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: database-init-script-sa
+  namespace: "{{ namespace }}"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: database-init-script-role
+  namespace: "{{ namespace }}"
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create", "get", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: database-init-script-rolebinding
+  namespace: "{{ namespace }}"
+subjects:
+- kind: ServiceAccount
+  name: database-init-script-sa
+  namespace: "{{ namespace }}"
+roleRef:
+  kind: Role
+  name: database-init-script-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: stackgres.io/v1
+kind: SGScript
+metadata:
+  name: database-init-script
+  namespace: "{{ namespace }}"
+spec:
+  scripts:
+  - name: init-databases
+    scriptFrom:
+      secretKeyRef:
+        name: database-init-script
+        key: init.sql
+---
+# PostgreSQL Configuration - Optimized for multi-service workload
+apiVersion: stackgres.io/v1
+kind: SGPostgresConfig
+metadata:
+  namespace: "{{ namespace }}"
+  name: pgconfig
+spec:
+  postgresVersion: "16"
+  postgresql.conf:
+    # Connection settings
+    max_connections: '800'
+    superuser_reserved_connections: '10'
+    
+    # Memory settings optimized for higher connection count
+    shared_buffers: '2GB'
+    work_mem: '8MB'
+    maintenance_work_mem: '1GB'
+    
+    # Vacuum settings for multi-service workload
+    autovacuum_max_workers: '4'
+    autovacuum_vacuum_cost_delay: '2ms'
+    autovacuum_work_mem: '256MB'
+    
+    # Checkpoint settings for higher write load
+    checkpoint_completion_target: '0.9'
+    checkpoint_timeout: '10min'
+    
+    # WAL settings for multi-service environment
+    max_wal_size: '4GB'
+    min_wal_size: '2GB'
+    wal_keep_size: '2GB'
+    
+    # Performance settings
+    default_statistics_target: '200'
+    random_page_cost: '1.5'
+    
+    # Parallel processing (careful with many connections)
+    max_parallel_workers: '6'
+    max_parallel_workers_per_gather: '2'
+    
+    # Lock settings for multi-service
+    max_locks_per_transaction: '256'
+    max_pred_locks_per_transaction: '256'
+    max_prepared_transactions: '64'
+    
+    # Replication settings
+    max_replication_slots: '20'
+    max_wal_senders: '20'
+    
+    # Compression and performance features
+    default_toast_compression: 'lz4'
+    enable_partitionwise_aggregate: 'on'
+    enable_partitionwise_join: 'on'
+    
+    # JIT settings
+    jit_inline_above_cost: '-1'
+    
+    # Security
+    password_encryption: 'scram-sha-256'
+    
+    # Extensions and monitoring
+    shared_preload_libraries: 'pg_stat_statements, auto_explain'
+    pg_stat_statements.track_utility: 'off'
+    track_activity_query_size: '8kB'
+    track_commit_timestamp: 'on'
+    track_functions: 'pl'
+    track_io_timing: 'on'
+    
+    # System settings
+    huge_pages: 'try'
+
+---
+# PgBouncer Configuration - Optimized for connection pooling
+apiVersion: stackgres.io/v1
+kind: SGPoolingConfig
+metadata:
+  namespace: "{{ namespace }}"
+  name: pgpoolconfig
+spec:
+  pgBouncer:
+    pgbouncer.ini:
+      databases:
+        # Critical services with higher allocations
+        airbyte_temporal:
+          dbname: airbyte_temporal
+          min_pool_size: 20
+          pool_mode: session
+          pool_size: 300
+        airbyte_visibility:
+          dbname: airbyte_visibility
+          min_pool_size: 20
+          pool_mode: session
+          pool_size: 300
+        # Medium priority services
+        airflow:
+          dbname: airflow
+          min_pool_size: 10
+          pool_mode: session
+          pool_size: 200
+        argo_workflows:
+          dbname: argo
+          min_pool_size: 5
+          pool_mode: session
+          pool_size: 100
+        dc_dq_meta:
+          dbname: dcdqmeta
+          pool_mode: session
+          pool_size: 100
+        # Lower priority services
+        keycloak:
+          dbname: keycloak
+          min_pool_size: 5
+          pool_mode: session
+          pool_size: 50
+        datahub:
+          dbname: datahub
+          min_pool_size: 5
+          pool_mode: transaction
+          pool_size: 50
+        jupyterhub:
+          dbname: jupyterhub
+          min_pool_size: 3
+          pool_mode: session
+          pool_size: 30
+      pgbouncer:
+        # Connection limits balanced with PostgreSQL max_connections (800)
+        max_client_conn: '1000'
+        max_db_connections: '600'
+        max_user_connections: '1500'
+        # Pool sizing
+        default_pool_size: '50'
+        min_pool_size: '3'
+        reserve_pool_size: '50'
+        pool_mode: 'transaction'
+        # Timeout settings optimized for multi-service
+        client_idle_timeout: '7200'
+        idle_transaction_timeout: '600'
+        server_idle_timeout: '1800'
+        server_lifetime: '1800'
+        # TCP settings
+        tcp_keepalive: '1'
+        tcp_keepidle: '60'
+        tcp_keepintvl: '30'
+        # Additional performance settings
+        server_round_robin: '1'
+        server_fast_close: '1'
+        stats_period: '60'
+        # Security and compatibility
+        ignore_startup_parameters: 'search_path,extra_float_digits'
+        # Logging for debugging
+        log_connections: '1'
+        log_disconnections: '1'
+        log_pooler_errors: '1'
+
+---
+# Instance Profiles for different deployment sizes
+apiVersion: stackgres.io/v1
+kind: SGInstanceProfile
+metadata:
+  namespace: "{{ namespace }}"
+  name: size-development
+spec:
+  cpu: "1"
+  memory: "4Gi"
+  requests:
+    cpu: "1"
+    memory: "4Gi"
+  initContainers:
+    requests:
+      cpu: "1"
+      memory: "4Gi"
+  # Suitable for: Development/testing with limited services
+  # Can handle: ~200 connections, basic workload
+
+---
+apiVersion: stackgres.io/v1
+kind: SGInstanceProfile
+metadata:
+  namespace: "{{ namespace }}"
+  name: size-production-small
+spec:
+  cpu: "2"
+  memory: "6Gi"
+  requests:
+    cpu: "2"
+    memory: "6Gi"
+  initContainers:
+    requests:
+      cpu: "2"
+      memory: "6Gi"
+  # Suitable for: Small production with 4-6 services
+  # Can handle: ~400 connections, moderate workload
+  # Recommended for: Your current setup if resource-constrained
+
+---
+apiVersion: stackgres.io/v1
+kind: SGInstanceProfile
+metadata:
+  namespace: "{{ namespace }}"
+  name: size-production-medium
+spec:
+  cpu: "3"
+  memory: "9Gi"
+  requests:
+    cpu: "3"
+    memory: "9Gi"
+  initContainers:
+    requests:
+      cpu: "3"
+      memory: "9Gi"
+  # Suitable for: Medium production with 6-8 services
+  # Can handle: ~600 connections, heavy workload
+  # Recommended for: Your current setup (RECOMMENDED)
+
+---
+apiVersion: stackgres.io/v1
+kind: SGInstanceProfile
+metadata:
+  namespace: "{{ namespace }}"
+  name: size-production-large
+spec:
+  cpu: "4"
+  memory: "16Gi"
+  requests:
+    cpu: "4"
+    memory: "16Gi"
+  initContainers:
+    requests:
+      cpu: "4"
+      memory: "16Gi"
+  # Suitable for: Large production with 8+ services
+  # Can handle: ~800 connections, very heavy workload
+  # Recommended for: High-growth scenarios or heavy analytics
+
+---
+apiVersion: stackgres.io/v1beta1
+kind: SGObjectStorage
+metadata:
+  name: objectstorage
+  namespace: "{{ namespace }}"
+spec:
+  type: s3Compatible
+  s3Compatible:
+    bucket: data-fast-bi-bucket
+    region: k8s
+    enablePathStyleAddressing: true
+    endpoint: http://minio.minio.svc.cluster.local:9000
+    awsCredentials:
+      secretKeySelectors:
+        accessKeyId:
+          key: CONSOLE_ACCESS_KEY
+          name: minio-data-fast-bi-bucket-admin
+        secretAccessKey:
+          key: CONSOLE_SECRET_KEY
+          name: minio-data-fast-bi-bucket-admin
+---
+apiVersion: stackgres.io/v1
+kind: SGCluster
+metadata:
+  namespace: "{{ namespace }}"
+  name: fastbi-global-psql
+spec:
+  postgres:
+    extensions:
+    - name: "pg_cron"
+    - name: "pg_stat_statements"
+    - name: "db_info"
+    - name: "pg_search"
+      version: "0.10.3"
+    - name: "pg_track_settings"
+    - name: "pg_repack"
+      version: "1.5.2"
+    - name: "pg_trgm"
+    - name: "btree_gin"
+    - name: "uuid-ossp"
+    - name: "citext"
+    - name: "ltree"
+    ssl:
+      enabled: true
+    version: '16.8'
+    flavor: 'vanilla'
+{%- if cloud_provider != "self-managed" %}
+  replication:
+    mode: "sync"
+    role: "ha"
+{%- endif %}
+{%- if cloud_provider == "self-managed" %}
+  instances: 1
+{%- else %}
+  instances: 3
+{%- endif %}
+{%- if cloud_provider == "self-managed" %}
+  sgInstanceProfile: 'size-development'
+{%- else %}
+  sgInstanceProfile: 'size-production-small'
+{%- endif %}
+  pods:
+    disableConnectionPooling: false
+    disableMetricsExporter: true
+    persistentVolume:
+{%- if cloud_provider == "self-managed" %}
+      size: '5Gi'
+{%- else %}
+      size: '10Gi'
+{%- endif %}
+  configurations:
+    credentials:
+      users:
+        superuser:
+          password: 
+            key: postgresPassword
+            name: idp-sso-database-secrets
+    observability:
+      disableMetrics: true
+      prometheusAutobind: false
+    sgPostgresConfig: 'pgconfig'
+    sgPoolingConfig: 'pgpoolconfig'
+    backups: []
+  managedSql:
+    scripts:
+    - sgScript: database-init-script
+{%- if cloud_provider == "self-managed" %}
+  profile: 'development'
+{%- else %}
+  profile: 'production'
+{%- endif %}

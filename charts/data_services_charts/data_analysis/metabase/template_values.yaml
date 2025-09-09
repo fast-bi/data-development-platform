@@ -1,0 +1,384 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+{%- raw %}
+replicaCount: 1
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 90
+  targetMemoryUtilizationPercentage: 90
+
+pdb:
+  create: false
+  minAvailable: 1
+  maxUnavailable: ""
+
+deploymentAnnotations: {}
+deploymentLabels: {}
+podAnnotations: {}
+podLabels:
+  fastbi: data-analysis-hub
+{%- endraw %}
+image:
+  repository: metabase/metabase
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: "{{ bi_app_version | default('') }}"
+  command: []
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+{%- raw %}
+## String to fully override metabase.fullname template
+##
+fullnameOverride: "data-analysis-hub"
+
+# Config Jetty web server
+listen:
+  host: "0.0.0.0"
+  port: 3000
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+  port: 9191
+
+ssl:
+  # If you have an ssl certificate and would prefer to have Metabase run over HTTPS
+  enabled: false
+  # port: 8443
+  # keyStore: |-
+  #   << JKS KEY STORE >>
+  # keyStorePassword: storepass
+jetty:
+#  maxThreads: 254
+#  minThreads: 8
+#  maxQueued: -1
+#  maxIdleTime: 60000
+{%- endraw %}
+# Backend database
+database:
+  # Database type (h2 / mysql / postgres), default: h2
+  type: postgres
+  ## Specify file to store H2 database.  You will also have to back this with a volume (cf. extraVolume and extraVolumeMounts)!
+  # file:
+  # encryptionKey: << YOUR ENCRYPTION KEY OR LEAVE BLANK AND USE EXISTING SECRET >>
+  ## Only need when you use mysql / postgres
+  host: "{{ bi_psql_host }}"
+  port: "{{ bi_psql_port }}"
+  dbname: "{{ bi_psql_database }}"
+{%- raw %}
+  # username:
+  # password:
+  ## Alternatively, use a connection URI for full configurability. Example for SSL enabled Postgres.
+  #connectionURI: postgres://<host>:<port>/<database>?user=<username>&password=<password>&ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory
+  ## If a secret with the database credentials already exists, use the following values:
+  existingSecret: data-analysis-db-secrets
+  existingSecretUsernameKey: username
+  existingSecretPasswordKey: password
+  # existingSecretConnectionURIKey:
+  # existingSecretEncryptionKeyKey:
+  ## One or more Google Cloud SQL database instances can be made available to Metabase via the *Cloud SQL Auth proxy*.
+  ## These can be used for Metabase's internal database (by specifying `host: localhost` and the port above), or as
+  ## additional databases (configured at Admin → Databases). Workload Identity should be used for authentication, so
+  ## that when `serviceAccount.create=true`, `serviceAccount.annotations` should contain:
+  ##   iam.gke.io/gcp-service-account: your-gsa@email
+  ## Ref: https://cloud.google.com/sql/docs/postgres/connect-kubernetes-engine
+  googleCloudSQL:
+    ## Found in Cloud Console "Cloud SQL Instance details" or using `gcloud sql instances describe INSTANCE_ID`
+    ## example format: $project:$region:$instance=tcp:$port
+    ## Each connection must have a unique TCP port.
+    instanceConnectionNames: []
+    ## Option to use a specific version of the *Cloud SQL Auth proxy* sidecar image.
+    ## ref: https://console.cloud.google.com/gcr/images/cloudsql-docker/GLOBAL/gce-proxy
+    # sidecarImageTag: latest
+    ## ref: https://cloud.google.com/sql/docs/postgres/connect-kubernetes-engine#running_the_as_a_sidecar
+    resources: {}
+    securityContext:
+      runAsNonRoot: true
+
+password:
+  # Changing Metabase password complexity:
+  # weak: no character constraints
+  # normal: at least 1 digit (default)
+  # strong: minimum 8 characters w/ 2 lowercase, 2 uppercase, 1 digit, and 1 special character
+  complexity: strong
+  length: 8
+
+timeZone: UTC
+emojiLogging: true
+colorLogging: true
+# javaOpts:
+# pluginsDirectory: /plugins
+# siteUrl:
+
+session:
+  {}
+  # maxSessionAge:
+  # sessionCookies:
+  # cookieSameSite:
+
+# specify init containers, e.g. for module download
+extraInitContainers: []
+#  - name: download-modules
+#    image: "curlimages/curl:7.70.0"
+#    imagePullPolicy: "IfNotPresent"
+#    volumeMounts:
+#      - name: plugins
+#        mountPath: /plugins
+#    workingDir: /plugins
+#    command:
+#      - "/bin/sh"
+#      - "-ec"
+#      - |
+#        curl -Lso /plugins/athena.metabase-driver.jar \
+#                  https://github.com/dacort/metabase-athena-driver/releases/download/v1.1.0/athena.metabase-driver.jar
+
+{%- endraw %}
+{%- if cloud_provider == "self-managed" %}
+extraVolumes:
+  - name: ca-certs
+    csi:
+      driver: csi.cert-manager.io
+      readOnly: true
+      volumeAttributes:
+        # This enables the trust functionality
+        csi.cert-manager.io/issuer-name: {{ customer }}-ca-issuer
+        csi.cert-manager.io/issuer-kind: ClusterIssuer
+        #csi.cert-manager.io/fs-group: "1000"
+        # Important: This enables trust mode specifically
+        csi.cert-manager.io/mount-as: trusted-ca
+extraVolumeMounts:
+  - name: ca-certs
+    mountPath: /etc/ssl/certs
+    readOnly: false
+{%- else %}
+extraVolumeMounts: []
+#  - name: plugins
+#    mountPath: /plugins
+#    readOnly: false
+
+extraVolumes: []
+#  - name: plugins
+#    emptyDir: {}
+{%- endif %}
+{%- raw %}
+
+livenessProbe:
+  path: /api/health
+  initialDelaySeconds: 120
+  timeoutSeconds: 30
+  failureThreshold: 6
+
+readinessProbe:
+  path: /api/health
+  initialDelaySeconds: 30
+  timeoutSeconds: 3
+  periodSeconds: 5
+
+service:
+  name: metabase
+  type: ClusterIP
+  externalPort: 80
+  internalPort: 3000
+  # Used to fix NodePort when service.type: NodePort.
+  nodePort:
+  annotations:
+    {}
+    # Used to add custom annotations to the Service.
+    # service.beta.kubernetes.io/aws-load-balancer-internal: "0.0.0.0/0"
+  labels:
+    {}
+    # Used to add custom labels to the Service.
+  loadBalancerSourceRanges:
+    {}
+  # Used to configure a static IP address
+  loadBalancerIP:
+{%- endraw %}
+ingress:
+  enabled: true
+  # The ingress class name, if you use multiple ingress controllers:
+  # className: ...
+  # Used to create Ingress record (should used with service.type: ClusterIP).
+  hosts:
+    - {{ ingress_host }}
+    # - metabase.domain.com
+  # The ingress path. Useful to host metabase on a subpath, such as `/metabase`.
+  path: /
+  pathType: Prefix
+  labels:
+    # Used to add custom labels to the Ingress
+    # Useful if for example you have multiple Ingress controllers and want your Ingress controllers to bind to specific Ingresses
+    # traffic: internal
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ ingress_host }}
+    # cert-manager.io/cluster-issuer: lets-encrypt-issuer
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-ingress-redirect-https@kubernetescrd
+  tls: {}  # Using Fast.BI WildCard Certificate namespace traefik-ingress
+    # Secrets must be manually created in the namespace.
+    # - secretName: metabase-tls-cert
+    #   hosts:
+    #     - {{ ingress_host }}
+{%- raw %}
+route:
+  enabled: false
+  annotations:
+    {}
+    # haproxy.router.openshift.io/timeout: "60s"
+  # host: ""
+  path: ""
+  wildcardPolicy: "None"
+  tls:
+    {}
+    # termination: "Edge"
+    # insecureEdgeTerminationPolicy: "Redirect"
+    # key: ""
+    # certificate: ""
+    # caCertificate: ""
+    # destinationCACertificate: ""
+
+# A custom log4j2.xml file can be provided using a multiline YAML string.
+# See https://github.com/metabase/metabase/blob/master/resources/log4j2.xml
+#
+# log4j2XML:
+
+# DEPRECATED; A custom log4j.properties file can be provided using a multiline YAML string.
+# See https://github.com/metabase/metabase/blob/master/resources/log4j.properties
+#
+# log4jProperties:
+
+# The deployment strategy to use
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/#DeploymentSpec
+# strategy:
+#   type: "Recreate"
+{%- endraw %}
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations:
+{%- if cloud_provider == "gcp" %}
+{%- if bi_data_k8s_sa %}
+      iam.gke.io/gcp-service-account: {{ bi_data_k8s_sa }}
+{%- else %}
+      {}
+{%- endif %}
+{%- else %}
+      {}
+{%- endif %}
+{%- raw %}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ~
+
+resources:
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits:
+    cpu: 1000m
+    memory: 2048Mi
+  requests:
+    cpu: 600m
+    memory: 1024Mi
+
+## Node labels for pod assignment
+## ref: https://kubernetes.io/docs/user-guide/node-selection/
+#
+nodeSelector: {}
+
+## Tolerations for pod assignment
+## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+##
+tolerations: []
+
+## Affinity for pod assignment
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+##
+affinity: {}
+
+## Spread Constraints for pod assignment
+## ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/
+topologySpreadConstraints: []
+
+## PriorityClass for pod assignment
+## ref:
+## https://kubernetes.io/docs/concepts/scheduling-eviction/pod-priority-preemption/#pod-priority
+## priorityClass: ""
+
+## AWS Security Group Policy (EKS)
+## ref: https://docs.aws.amazon.com/eks/latest/userguide/security-groups-for-pods.html
+##
+awsEKS:
+  sgp:
+    enabled: false
+    # AWS Security Group IDs to attach to the pod
+    # sgIds:
+    #   - sg-abc123
+    #   - sg-xyz456
+{% endraw %}
+extraEnv:
+ - name: MB_CHECK_FOR_UPDATES
+   value: "false"
+ - name: MB_ADMIN_EMAIL
+   value: "{{ bi_admin_email }}"
+ - name: MAX_SESSION_AGE
+   value: "1440"
+ - name: MB_AGGREGATED_QUERY_ROW_LIMIT
+   value: "100000"
+ - name: MB_ANON_TRACKING_ENABLED
+   value: "false"
+ - name: MB_APPLICATION_DB_MAX_CONNECTION_POOL_SIZE
+   value: "100"
+ - name: MB_EMAIL_FROM_NAME
+   value: "No Reply"
+ - name: MB_EMAIL_FROM_ADDRESS
+   value: "{{ bi_smtp_mail_from }}"
+ - name: MB_EMAIL_SMTP_HOST
+   value: "{{ bi_smtp_host }}"
+ - name: MB_EMAIL_SMTP_PORT
+   value: "{{ bi_smtp_port }}"
+ - name: MB_EMAIL_SMTP_USERNAME
+   value: "{{ bi_smtp_user }}"
+ - name: MB_EMAIL_SMTP_PASSWORD
+   value: "{{ bi_smtp_password }}"
+ - name: MB_EMAIL_SMTP_SECURITY
+   value: "none"
+ - name: MB_NO_SURVEYS
+   value: "true"
+ - name: MB_SITE_URL
+   value: "https://{{ ingress_host }}"
+ - name: MB_START_OF_WEEK
+   value: "monday"
+ - name: MB_ENCRYPTION_SECRET_KEY
+   value: "{{ bi_cookie_secret }}"
+{%- raw %}
+envFrom: []
+  # - type: secret
+  #   name: metabase-secret
+  # - type: configMap
+  #   name: metabase-cm
+
+securityContext: {}
+
+sidecars: []
+  # - name: busybox
+  #   image: busybox
+  #   ports:
+  #     - containerPort: 80
+  #       name: http
+  #   resources:
+  #     requests:
+  #       memory: 100Mi
+  #       cpu: 10m
+  #     limits:
+  #       memory: 100Mi
+  #       cpu: 10m
+  #   command: ["/bin/sh"]
+  #   args: ["-c", "while true; do echo hello; sleep 10;done"]
+{% endraw %}

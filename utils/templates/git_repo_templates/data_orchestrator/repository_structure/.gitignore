@@ -1,0 +1,5 @@
+# Ignore hidden files but allow .github directory for CI/CD
+.*
+!.github/
+!.github/**
+.DS_Store

@@ -1,0 +1,95 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+{%- raw %}
+fullnameOverride: "cicd-workflow-db-psql"
+image:
+  registry: docker.io
+  repository: bitnami/postgresql
+  tag: 16.2.0
+architecture: standalone
+replication:
+  synchronousCommit: "on"
+  applicationName: "argo-workflows"
+primary:
+  name: ""
+  replicaCount: 1
+  resourcesPreset: "none"
+  extendedConfiguration: |
+    max_connections = 1000
+readReplicas:
+  replicaCount: 1
+  extendedConfiguration: |
+    max_connections = 1000
+  resourcesPreset: "none"
+auth:
+  enablePostgresUser: true
+  existingSecret: cicd-workflows-argo-workflows-db-secrets
+  secretKeys:
+    adminPasswordKey: postgresPassword
+    userPasswordKey: password
+    replicationPasswordKey: replicationPassword
+  replicationUsername: repl_user
+  username: argo
+  database: argo
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 10Gi
+podSecurityContext:
+  # gid=70(postgres)
+  fsGroup: 70
+containerSecurityContext:
+  # -- Ensures the container will run with a non-root user
+  allowPrivilegeEscalation: false 
+  runAsNonRoot: true
+  # uid=70(postgres)
+  runAsUser: 70
+  # gid=70(postgres)
+  runAsGroup: 70
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault
+{% endraw %}
+extraDeploy:
+{%- if method == "external_infisical" %}
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-cicd-workflows-database-secrets
+  spec:
+      resyncInterval: 86400
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-cicd-workflows/database-secrets"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: cicd-workflows-argo-workflows-db-secrets
+          secretNamespace: "cicd-workflows"
+{%- endif %}
+{%- if method == "local_vault" %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-cicd-workflows-database-secrets
+    namespace: cicd-workflows
+  spec: 
+    refreshInterval: 15s
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: cicd-workflows-argo-workflows-db-secrets
+    dataFrom:
+      - extract:
+          key: "data-cicd-workflows/database-secrets"
+{% endif %}

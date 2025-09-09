@@ -1,0 +1,41 @@
+{% if customer %}CUSTOMER: "{{ customer }}"{%- endif %}
+{% if data_orchestrator_platform %}PLATFORM: "{{ data_orchestrator_platform }}"{%- endif %}
+{% if data_orchestration_endpoint %}AIRFLOW_URL: "{{ data_orchestration_endpoint }}"{%- endif %}
+{% if data_orchestration_root_user %}AIRFLOW_USER: "{{ data_orchestration_root_user }}"{%- endif %}
+{% if data_orchestration_root_password %}AIRFLOW_PASSWORD: "{{ data_orchestration_root_password }}"{%- endif %}
+{% if data_orchestration_dbt_project_default_variable_file_name %}AIRFLOW_SECRET_FILE_NAME: "{{ data_orchestration_dbt_project_default_variable_file_name }}"{%- endif %}
+{% if customer_git_repo_group_access_token %}AIRFLOW_REPO_ACCESS_TOKEN: "{{ customer_git_repo_group_access_token }}"{%- endif %}
+{% if customer_git_repo_group_access_token_name %}AIRFLOW_REPO_TOKEN_NAME: "{{ customer_git_repo_group_access_token_name }}"{%- endif %}
+{% if data_governance_gsm_token %}DATAHUB_GMS_TOKEN: "{{ data_governance_gsm_token }}"{%- endif %}
+{% if data_governance_gsm_url %}DATAHUB_GMS_URL: "{{ data_governance_gsm_url }}"{%- endif %}
+{% if bi_system %}DATA_ANALYSIS_PLATFORM: "{{ bi_system }}"{%- endif %}
+{% if data_analysis_gcp_sa_secret %}GCP_DATA_ANALYSIS_SA_SECRET: "{{ data_analysis_gcp_sa_secret }}"{%- endif %}
+{% if bi_system == "lightdash" -%}
+{% if bi_system_api_key %}LIGHTDASH_API_KEY: "{{ bi_system_api_key }}"{%- endif %}
+{% if bi_endpoint %}LIGHTDASH_URL: "{{ bi_endpoint }}"{%- endif %}
+{% elif bi_system == "superset" -%}
+{% if bi_root_user %}SUPERSET_USER: "{{ bi_root_user }}"{%- endif %}
+{% if bi_root_password %}SUPERSET_USER_PASSWORD: "{{ bi_root_password }}"{%- endif %}
+{% if bi_endpoint %}SUPERSET_BASE_URL: "{{ bi_endpoint }}"{%- endif %}
+{% elif bi_system == "metabase" -%}
+{% if bi_root_user %}METABASE_USER: "{{ bi_root_user }}"{%- endif %}
+{% if bi_root_password %}METABASE_PASSWORD: "{{ bi_root_password }}"{%- endif %}
+{% if bi_endpoint %}METABASE_URL: "{{ bi_endpoint }}"{%- endif %}
+{% endif %}
+{% if cloud_provider == "gcp" -%}
+{% if data_platform_gcp_project_id %}GCP_PROJECT_NAME: "{{ data_platform_gcp_project_id }}"{%- endif %}
+{% if data_platform_gcp_sa_secret %}GCP_SA_SECRET: "{{ data_platform_gcp_sa_secret }}"{%- endif %}
+{% if data_platform_gcp_sa_email %}GCP_SA_EMAIL: "{{ data_platform_gcp_sa_email }}"{%- endif %}
+{% elif cloud_provider == "aws" -%}
+{% if data_platform_aws_tenand_id %}AWS_TENANT_ID: "{{ data_platform_aws_tenand_id }}"{%- endif %}
+{% elif cloud_provider == "azure" -%}
+{% if data_platform_azure_tenant_id %}AZURE_TENANT_ID: "{{ data_platform_azure_tenant_id }}"{%- endif %}
+{% endif %}
+{% if customer_git_repo_group_access_token_name %}PRIVATE_ACCESS_NAME: "{{ customer_git_repo_group_access_token_name }}"{%- endif %}
+{% if customer_git_repo_group_access_token %}PRIVATE_ACCESS_TOKEN: "{{ customer_git_repo_group_access_token }}"{%- endif %}
+{% if customer_git_repo_group_access_token_name %}SECRET_DBT_PACKAGE_REPO_TOKEN: "{{ customer_git_repo_group_access_token }}"{%- endif %}
+{% if customer_git_repo_group_access_token %}SECRET_PACKAGE_REPO_TOKEN_NAME: "{{ customer_git_repo_group_access_token_name }}"{%- endif %}
+{% if customer_git_repo_final_url %}DAG_REPO_PUSH: "{{ customer_git_repo_final_url }}"{%- endif %}
+{% if customer_git_repo_user_email %}GIT_USER_EMAIL: "{{ customer_git_repo_user_email }}"{%- endif %}
+{% if dcdq_metadatacollector_api_url %}DCDQ_METADATACOLLECTOR_API_URL: "{{ dcdq_metadatacollector_api_url }}"{%- endif %}
+{% if dcdq_metadatacollector_api_token %}DCDQ_METADATACOLLECTOR_API_TOKEN: "{{ dcdq_metadatacollector_api_token }}"{%- endif %}

@@ -1,0 +1,756 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+{%- raw %}
+## Override the deployment namespace
+##
+namespaceOverride: ""
+
+# Force the target Kubernetes version (it uses Helm `.Capabilities` if not set).
+# This is especially useful for `helm template` as capabilities are always empty
+# due to the fact that it doesn't query an actual cluster
+kubeVersion:
+
+# Oauth client configuration specifics
+config:
+  # Add config annotations
+  annotations: {}
+  # OAuth client ID
+  clientID: ""
+  # OAuth client secret
+  clientSecret: ""
+  # Create a new secret with the following command
+  # openssl rand -base64 32 | head -c 32 | base64
+  # Use an existing secret for OAuth2 credentials (see secret.yaml for required fields)
+  # Example:
+  existingSecret: dq-auth-service-sso-secrets
+  cookieSecret: ""
+  # The name of the cookie that oauth2-proxy will create
+  # If left empty, it will default to the release name
+  cookieName: "_dq4oauth2_proxy"
+  google: {}
+  # Default configuration, to be overridden
+  configFile: |-
+      upstream_timeout = "1h"
+
+  # Custom configuration file: oauth2_proxy.cfg
+  # configFile: |-
+  #   pass_basic_auth = false
+  #   pass_access_token = true
+  # Use an existing config map (see configmap.yaml for required fields)
+  # Example:
+  # existingConfig: config
+
+alphaConfig:
+  enabled: false
+  # Add config annotations
+  annotations: {}
+  # Arbitrary configuration data to append to the server section
+  serverConfigData: {}
+  # Arbitrary configuration data to append to the metrics section
+  metricsConfigData: {}
+  # Arbitrary configuration data to append
+  configData: {}
+  # Arbitrary configuration to append
+  # This is treated as a Go template and rendered with the root context
+  configFile: ""
+  # Use an existing config map (see secret-alpha.yaml for required fields)
+  existingConfig: ~
+  # Use an existing secret
+  existingSecret: ~
+
+image:
+  repository: "quay.io/oauth2-proxy/oauth2-proxy"
+  # appVersion is used by default
+  tag: ""
+  pullPolicy: "IfNotPresent"
+
+# Optionally specify an array of imagePullSecrets.
+# Secrets must be manually created in the namespace.
+# ref: https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod
+# imagePullSecrets:
+  # - name: myRegistryKeySecretName
+
+# Set a custom containerPort if required.
+# This will default to 4180 if this value is not set and the httpScheme set to http
+# This will default to 4443 if this value is not set and the httpScheme set to https
+# containerPort: 4180
+
+extraArgs: {}
+{%- endraw %}
+extraEnv:
+  - name: OAUTH2_PROXY_PASS_HOST_HEADER
+    value: "false"
+  - name: OAUTH2_PROXY_ALLOWED_ROLES
+    value: "Admin,User,Viewer"
+  - name: OAUTH2_PROXY_ALLOWED_GROUP
+    value: "</Data Platform Services/Data_Quality>"
+  - name: OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST
+    value: "true"
+  - name: OAUTH2_PROXY_COOKIE_CSRF_EXPIRE
+    value: "30m"
+  - name: OAUTH2_PROXY_COOKIE_EXPIRE
+    value: "30m"
+  - name: OAUTH2_PROXY_COOKIE_REFRESH
+    value: "30s"
+  - name: OAUTH2_PROXY_COOKIE_DOMAINS
+    value: ".{{ customer_root_domain }}"
+  - name: OAUTH2_PROXY_COOKIE_SECURE
+    value: "true"
+  - name: OAUTH2_PROXY_EMAIL_DOMAINS
+    value: "*"
+  - name: OAUTH2_PROXY_LOGIN_URL
+    value: "{{ oauth_auth_url }}"
+  - name: OAUTH2_PROXY_OIDC_ISSUER_URL
+    value: "{{ oauth_realm_url }}"
+  - name: OAUTH2_PROXY_OIDC_JWKS_URL
+    value: "{{ oauth_certs_url }}"
+  - name: OAUTH2_PROXY_PASS_ACCESS_TOKEN
+    value: "true"
+  - name: OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER
+    value: "true"
+  - name: OAUTH2_PROXY_PROVIDER
+    value: "keycloak-oidc"
+  - name: OAUTH2_PROXY_PROVIDER_DISPLAY_NAME
+    value: "Keycloak"
+  - name: OAUTH2_PROXY_REDEEM_URL
+    value: "{{ oauth_token_url }}"
+  - name: OAUTH2_PROXY_REDIRECT_URL
+    value: "{{ oauth_callback_url }}"
+  - name: OAUTH2_PROXY_REVERSE_PROXY
+    value: "true"
+  - name: OAUTH2_PROXY_SCOPE
+    value: "profile openid email groups"
+  - name: OAUTH2_PROXY_SET_AUTHORIZATION_HEADER
+    value: "true"
+  - name: OAUTH2_PROXY_SET_XAUTHREQUEST
+    value: "true"
+  - name: OAUTH2_PROXY_SKIP_AUTH_STRIP_HEADERS
+    value: "false"
+  - name: OAUTH2_PROXY_REAL_CLIENT_IP_HEADER
+    value: "X-Forwarded-For"
+  - name: OAUTH2_PROXY_SKIP_OIDC_DISCOVERY
+    value: "true"
+  - name: OAUTH2_PROXY_SKIP_PROVIDER_BUTTON
+    value: "true"
+  - name: OAUTH2_PROXY_UPSTREAMS
+    value: "static://202"
+  - name: OAUTH2_PROXY_WHITELIST_DOMAINS
+    value: ".{{ customer_root_domain }}"
+  - name: OAUTH2_PROXY_SKIP_AUTH_PREFLIGHT
+    value: "true"
+  - name: OAUTH2_PROXY_SKIP_AUTH_ROUTES
+    value: "/manifest.json"
+
+{%- raw %}
+# -- Custom labels to add into metadata
+customLabels: {}
+
+# To authorize individual email addresses
+# That is part of extraArgs but since this needs special treatment we need to do a separate section
+authenticatedEmailsFile:
+  enabled: false
+  # Defines how the email addresses file will be projected, via a configmap or secret
+  persistence: configmap
+  # template is the name of the configmap what contains the email user list but has been configured without this chart.
+  # It's a simpler way to maintain only one configmap (user list) instead changing it for each oauth2-proxy service.
+  # Be aware the value name in the extern config map in data needs to be named to "restricted_user_access" or to the
+  # provided value in restrictedUserAccessKey field.
+  template: ""
+  # The configmap/secret key under which the list of email access is stored
+  # Defaults to "restricted_user_access" if not filled-in, but can be overridden to allow flexibility
+  restrictedUserAccessKey: ""
+  # One email per line
+  # example:
+  # restricted_access: |-
+  #   name1@domain
+  #   name2@domain
+  # If you override the config with restricted_access it will configure a user list within this chart what takes care of the
+  # config map resource.
+  restricted_access: ""
+  annotations: {}
+  # helm.sh/resource-policy: keep
+
+service:
+  type: ClusterIP
+  # when service.type is ClusterIP ...
+  # clusterIP: 192.0.2.20
+  # when service.type is LoadBalancer ...
+  # loadBalancerIP: 198.51.100.40
+  # loadBalancerSourceRanges: 203.0.113.0/24
+  # when service.type is NodePort ...
+  # nodePort: 80
+  portNumber: 80
+  # Protocol set on the service
+  appProtocol: http
+  annotations: {}
+  # foo.io/bar: "true"
+
+## Create or use ServiceAccount
+serviceAccount:
+  ## Specifies whether a ServiceAccount should be created
+  enabled: true
+  ## The name of the ServiceAccount to use.
+  ## If not set and create is true, a name is generated using the fullname template
+  name: data-quality-sa
+  automountServiceAccountToken: true
+{%- endraw %}
+  annotations:
+{%- if cloud_provider == "gcp" %}
+{%- if data_quality_k8s_sa %}
+    iam.gke.io/gcp-service-account: {{ data_quality_k8s_sa }}
+{%- else %}
+    {}
+{%- endif %}
+{%- else %}
+    {}
+{%- endif %}
+ingress:
+  enabled: true
+  className: traefik
+  path: /
+  # Only used if API capabilities (networking.k8s.io/v1) allow it
+  pathType: ImplementationSpecific
+  # Used to create an Ingress record.
+  hosts:
+    - {{ ingress_host }}
+  labels: {}
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ ingress_host }}
+    #cert-manager.io/cluster-issuer: lets-encrypt-issuer
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-ingress-redirect-https@kubernetescrd
+  tls: {}  # Using Fast.BI WildCard Certificate namespace traefik-ingress
+    # - secretName: dq-auth-tls-cert
+    #   hosts:
+    #     - {{ ingress_host }}
+{%- raw %}
+resources:
+  limits: {}
+  requests:
+    cpu: 100m
+    memory: 300Mi
+{%- endraw %}
+{%- if cloud_provider == "self-managed" %}
+extraVolumes:
+  - name: ca-certs
+    csi:
+      driver: csi.cert-manager.io
+      readOnly: true
+      volumeAttributes:
+        # This enables the trust functionality
+        csi.cert-manager.io/issuer-name: {{ customer }}-ca-issuer
+        csi.cert-manager.io/issuer-kind: ClusterIssuer
+        csi.cert-manager.io/fs-group: "2000"  # Set to match oauth2-proxy group ID
+        # Important: This enables trust mode specifically
+        csi.cert-manager.io/mount-as: trusted-ca
+extraVolumeMounts:
+  - name: ca-certs
+    mountPath: /etc/ssl/certs
+    readOnly: false
+{%- else %}
+extraVolumes: []
+  # - name: ca-bundle-cert
+  #   secret:
+  #     secretName: <secret-name>
+
+extraVolumeMounts: []
+  # - mountPath: /etc/ssl/certs/
+  #   name: ca-bundle-cert
+{%- endif %}
+{%- raw %}
+# Additional containers to be added to the pod.
+extraContainers: []
+  #  - name: my-sidecar
+  #    image: nginx:latest
+
+priorityClassName: ""
+
+# hostAliases is a list of aliases to be added to /etc/hosts for network name resolution
+hostAliases: []
+# - ip: "10.xxx.xxx.xxx"
+#   hostnames:
+#     - "auth.example.com"
+# - ip: 127.0.0.1
+#   hostnames:
+#     - chart-example.local
+#     - example.local
+
+# [TopologySpreadConstraints](https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/) configuration.
+# Ref: https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
+# topologySpreadConstraints: []
+
+# Affinity for pod assignment
+# Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+# affinity: {}
+
+# Tolerations for pod assignment
+# Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+tolerations: []
+
+# Node labels for pod assignment
+# Ref: https://kubernetes.io/docs/user-guide/node-selection/
+nodeSelector: {}
+
+# Whether to use secrets instead of environment values for setting up OAUTH2_PROXY variables
+proxyVarsAsSecrets: true
+
+# Configure Kubernetes liveness and readiness probes.
+# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/
+# Disable both when deploying with Istio 1.0 mTLS. https://istio.io/help/faq/security/#k8s-health-checks
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  timeoutSeconds: 1
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 0
+  timeoutSeconds: 5
+  periodSeconds: 10
+  successThreshold: 1
+
+# Configure Kubernetes security context for container
+# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+securityContext:
+  enabled: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 2000
+  runAsGroup: 2000
+  seccompProfile:
+    type: RuntimeDefault
+
+deploymentAnnotations: {}
+podAnnotations: {}
+podLabels: {}
+replicaCount: 1
+revisionHistoryLimit: 10
+strategy: {}
+
+## PodDisruptionBudget settings
+## ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Configure Kubernetes security context for pod
+# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+podSecurityContext: {}
+
+# whether to use http or https
+httpScheme: http
+
+initContainers:
+  # if the redis sub-chart is enabled, wait for it to be ready
+  # before starting the proxy
+  # creates a role binding to get, list, watch, the redis master pod
+  # if service account is enabled
+  waitForRedis:
+    enabled: false
+    image:
+      repository: "docker.io/bitnami/kubectl"
+      pullPolicy: "IfNotPresent"
+    # uses the kubernetes version of the cluster
+    # the chart is deployed on, if not set
+    kubectlVersion: ""
+    securityContext:
+      enabled: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      runAsUser: 65534
+      runAsGroup: 65534
+      seccompProfile:
+        type: RuntimeDefault
+    timeout: 180
+    resources: {}
+      # limits:
+      #   cpu: 100m
+      #   memory: 300Mi
+      # requests:
+      #   cpu: 100m
+      #   memory: 300Mi
+
+# Additionally authenticate against a htpasswd file. Entries must be created with "htpasswd -B" for bcrypt encryption.
+# Alternatively supply an existing secret which contains the required information.
+htpasswdFile:
+  enabled: false
+  existingSecret: ""
+  entries: []
+  # One row for each user
+  # example:
+  # entries:
+  #  - testuser:$2y$05$gY6dgXqjuzFhwdhsiFe7seM9q9Tile4Y3E.CBpAZJffkeiLaC21Gy
+
+# Configure the session storage type, between cookie and redis
+sessionStorage:
+  # Can be one of the supported session storage cookie|redis
+  type: redis
+  redis:
+    # Name of the Kubernetes secret containing the redis & redis sentinel password values (see also `sessionStorage.redis.passwordKey`)
+    existingSecret: "dq-auth-service-redis"
+    # Redis password value. Applicable for all Redis configurations. Taken from redis subchart secret if not set. `sessionStorage.redis.existingSecret` takes precedence
+    password: ""
+    # Key of the Kubernetes secret data containing the redis password value
+    passwordKey: "redis-password"
+    # Can be one of standalone|cluster|sentinel
+    clientType: "standalone"
+    standalone:
+      # URL of redis standalone server for redis session storage (e.g. `redis://HOST[:PORT]`). Automatically generated if not set
+      connectionUrl: ""
+    cluster:
+      # List of Redis cluster connection URLs (e.g. `["redis://127.0.0.1:8000", "redis://127.0.0.1:8000"]`)
+      connectionUrls: []
+    sentinel:
+      # Name of the Kubernetes secret containing the redis sentinel password value (see also `sessionStorage.redis.sentinel.passwordKey`). Default: `sessionStorage.redis.existingSecret`
+      existingSecret: "dq-auth-service-redis"
+      # Redis sentinel password. Used only for sentinel connection; any redis node passwords need to use `sessionStorage.redis.password`
+      password: ""
+      # Key of the Kubernetes secret data containing the redis sentinel password value
+      passwordKey: "redis-sentinel-password"
+      # Redis sentinel master name
+      masterName: ""
+      # List of Redis sentinel connection URLs (e.g. `["redis://127.0.0.1:8000", "redis://127.0.0.1:8000"]`)
+      connectionUrls: []
+
+# Enables and configure the automatic deployment of the redis subchart
+redis:
+  # provision an instance of the redis sub-chart
+  enabled: true
+  architecture: standalone
+  # Redis specific helm chart settings, please see:
+  # https://github.com/bitnami/charts/tree/master/bitnami/redis#parameters
+  redisPort: 6379
+  auth:
+    existingSecret: "dq-auth-service-redis"
+    existingSecretPasswordKey: "redis-password"
+  cluster:
+    enabled: false
+    slaveCount: 1
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+# Enables apiVersion deprecation checks
+checkDeprecation: true
+
+# Allows graceful shutdown
+# terminationGracePeriodSeconds: 65
+# lifecycle:
+#   preStop:
+#     exec:
+#       command: [ "sh", "-c", "sleep 60" ]
+
+metrics:
+  # Enable Prometheus metrics endpoint
+  enabled: false
+  # Serve Prometheus metrics on this port
+  port: 44180
+  # when service.type is NodePort ...
+  # nodePort: 44180
+  # Protocol set on the service for the metrics port
+  service:
+    appProtocol: http
+  serviceMonitor:
+    # Enable Prometheus Operator ServiceMonitor
+    enabled: false
+    # Define the namespace where to deploy the ServiceMonitor resource
+    namespace: ""
+    # Prometheus Instance definition
+    prometheusInstance: default
+    # Prometheus scrape interval
+    interval: 60s
+    # Prometheus scrape timeout
+    scrapeTimeout: 30s
+    # Add custom labels to the ServiceMonitor resource
+    labels: {}
+
+    ## scheme: HTTP scheme to use for scraping. Can be used with `tlsConfig` for example if using istio mTLS.
+    scheme: ""
+
+    ## tlsConfig: TLS configuration to use when scraping the endpoint. For example if using istio mTLS.
+    ## Of type: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#tlsconfig
+    tlsConfig: {}
+
+    ## bearerTokenFile: Path to bearer token file.
+    bearerTokenFile: ""
+
+    ## Used to pass annotations that are used by the Prometheus installed in your cluster to select Service Monitors to work with
+    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#prometheusspec
+    annotations: {}
+
+    ## Metric relabel configs to apply to samples before ingestion.
+    ## [Metric Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#metric_relabel_configs)
+    metricRelabelings: []
+    # - action: keep
+    #   regex: 'kube_(daemonset|deployment|pod|namespace|node|statefulset).+'
+    #   sourceLabels: [__name__]
+
+    ## Relabel configs to apply to samples before ingestion.
+    ## [Relabeling](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#relabel_config)
+    relabelings: []
+    # - sourceLabels: [__meta_kubernetes_pod_node_name]
+    #   separator: ;
+    #   regex: ^(.*)$
+    #   targetLabel: nodename
+    #   replacement: $1
+    #   action: replace
+{% endraw %}
+# Extra K8s manifests to deploy
+extraObjects:
+{%- if method == "external_infisical" %}
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-quality-sso-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-quality/sso-clients-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: dq-auth-service-sso-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-quality-sso-cache-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-quality/sso-cache-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: dq-auth-service-redis
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-warehouse-bigquery-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/gcp-cloud-dwh-service-accounts/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-warehouse-bigquery-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-warehouse-snowflake-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/snowflake-cloud-dwh-service-accounts/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-warehouse-snowflake-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-warehouse-redshift-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/aws-cloud-dwh-service-accounts/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-warehouse-redshift-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-warehouse-fabric-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-runner/azure-cloud-dwh-service-accounts/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-warehouse-fabric-secrets
+          secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- if method == "local_vault" %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-quality-sso-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: dq-auth-service-sso-secrets
+    dataFrom:
+      - extract:
+          key: "data-quality/sso-clients-secrets/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-quality-sso-cache-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: dq-auth-service-redis
+    dataFrom:
+      - extract:
+          key: "data-quality/sso-cache-secrets/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-warehouse-bigquery-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-warehouse-bigquery-secrets
+    dataFrom:
+      - extract:
+          key: "data-platform-runner/gcp-cloud-dwh-service-accounts/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-warehouse-snowflake-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-warehouse-snowflake-secrets
+    dataFrom:
+      - extract:
+          key: "data-platform-runner/snowflake-cloud-dwh-service-accounts/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-warehouse-redshift-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-warehouse-redshift-secrets
+    dataFrom:
+      - extract:
+          key: "data-platform-runner/aws-cloud-dwh-service-accounts/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-warehouse-fabric-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-warehouse-fabric-secrets
+    dataFrom:
+      - extract:
+          key: "data-platform-runner/azure-cloud-dwh-service-accounts/"
+{%- endif %}
+- apiVersion: traefik.io/v1alpha1
+  kind: Middleware
+  metadata:
+    name: oauth-verify
+  spec:
+    forwardAuth:
+      address: "http://data-quality-oauth-oauth2-proxy.{{ namespace }}.svc.cluster.local"
+      trustForwardHeader: true
+      authResponseHeaders:
+        - X-Auth-Request-Access-Token
+        - Authorization
+        - X-Auth-Request-User
+        - X-Auth-Request-Email
+        - Set-Cookie
+        - X-Auth-User
+        - X-Secret
+        - X-Forwarded-User
+        - X-WebAuth-User
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: data-dcdq-metacollect-role
+  rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "deployments/scale"]
+    verbs: ["get", "list", "patch", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: data-dcdq-metacollect-rolebinding
+  subjects:
+  - kind: ServiceAccount
+    name: data-dcdq-metacollect-sa
+    namespace: "data-dcdq-metacollect"
+  roleRef:
+    kind: Role
+    name: data-dcdq-metacollect-role
+    apiGroup: rbac.authorization.k8s.io

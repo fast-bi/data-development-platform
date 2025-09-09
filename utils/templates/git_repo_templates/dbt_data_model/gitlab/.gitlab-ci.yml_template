@@ -1,0 +1,149 @@
+variables:
+  ARGO_SERVER: "{{ ARGO_SERVER_URL }}"
+  ARGO_CLI_VERSION: "{{ ARGO_CLI_VERSION }}"
+  ARGO_HTTP1: 'true'
+{% if argo_server_url_type == "internal" %}
+  ARGO_SECURE: 'false'
+{% else %}
+  ARGO_SECURE: 'true'
+{% endif %}
+  ARGO_NAMESPACE: cicd-workflows
+  CI_DEBUG_TRACE: "false"
+  CICD_WORKFLOWS_TEMPLATE_VERSION: "{{ CICD_WORKFLOWS_TEMPLATE_VERSION }}"
+  STORAGE_CLASS: "standard"
+  PS4: ""
+
+default:
+  tags:
+    - {{ customer }}
+
+image: alpine:latest
+
+stages:
+  - cicd-branch
+  - cicd-mr-e2e
+  - cicd-master
+
+.argo_setup: &argo_setup
+  before_script:
+    - set -o errexit -o pipefail -o nounset
+    - set +x
+    - apk add --no-cache curl kubectl git > /dev/null 2>&1
+    - echo "Downloading Argo CLI" > /dev/null 2>&1
+    - curl -sLO https://github.com/argoproj/argo-workflows/releases/download/$ARGO_CLI_VERSION/argo-linux-amd64.gz
+    - gunzip argo-linux-amd64.gz > /dev/null 2>&1
+    - chmod +x argo-linux-amd64
+    - mv ./argo-linux-amd64 /usr/local/bin/argo
+    - echo "Setting up Argo Workflow authentication" > /dev/null 2>&1
+    - ARGO_TOKEN="Bearer ${ARGO_WORKFLOW_SA_TOKEN}"
+    - export ARGO_TOKEN
+    - echo "Cloning workflow repository" > /dev/null 2>&1
+    - git clone -q --depth 1 --branch ${CICD_WORKFLOWS_TEMPLATE_VERSION} https://github.com/fast-bi/data-platform-cicd-workflows.git /tmp/.argo > /dev/null 2>&1 || (echo "Failed to clone tag ${CICD_WORKFLOWS_TEMPLATE_VERSION}, falling back to master" && git clone -q --depth 1 --branch master https://github.com/fast-bi/data-platform-cicd-workflows.git /tmp/.argo > /dev/null 2>&1)
+    - cd /tmp/.argo
+
+validate_data_model_workflow_branch:
+  stage: cicd-branch
+  <<: *argo_setup
+  script:
+    - |
+      echo "Submitting Branch Argo Workflow"
+      argo submit /tmp/.argo/branch_workflow.yaml \
+        -p repo_url="${CI_PROJECT_URL}" \
+        -p revision="${CI_COMMIT_SHA}" \
+        -p branch="${CI_COMMIT_BRANCH}" \
+        -p commit_short_sha="${CI_COMMIT_SHORT_SHA}" \
+        -p git_token="${CI_JOB_TOKEN}" \
+        -p git_username="${CI_REGISTRY_USER}" \
+        -p argo_main_address="${ARGO_SERVER}" \
+        -p check_on_branch="false" \
+        -p storage_class="${STORAGE_CLASS}" \
+        --labels="project=${CI_PROJECT_NAME},commit=${CI_COMMIT_SHA},author=${GITLAB_USER_LOGIN},ci_job_id=${CI_JOB_ID},place=branch" \
+        --generate-name="branch-${CI_PROJECT_NAME}-cicd-${CI_COMMIT_SHORT_SHA}-" \
+        --watch --log
+      # Get workflow host address
+      WORKFLOW_NAME=$(argo list --selector "commit=${CI_COMMIT_SHA},ci_job_id=${CI_JOB_ID},place=branch" -o name | cut -d'/' -f2)
+      ARGO_HOST=$(echo $ARGO_SERVER | cut -d':' -f1)
+      WORKFLOW_URL="${ARGO_HOST}/workflows/${ARGO_NAMESPACE}/${WORKFLOW_NAME}"
+      # Check status and print colored URL
+      if [ "$(argo list --status Failed --selector "commit=${CI_COMMIT_SHA},ci_job_id=${CI_JOB_ID},place=branch" | wc -l)" -gt 1 ]; then
+        echo -e "\e[31mArgo Workflow URL: ${WORKFLOW_URL}\e[0m"
+        exit 1
+      else
+        echo -e "\e[32mArgo Workflow URL: ${WORKFLOW_URL}\e[0m"
+      fi
+  allow_failure: true
+  only:
+    - branches
+  except:
+    - master
+    - main
+    - merge_requests
+
+validate_data_model_workflow_mr_e2e:
+  stage: cicd-mr-e2e
+  <<: *argo_setup
+  script:
+    - |
+      echo "Submitting Merge Request - Pull Request Argo Workflow"
+      argo submit /tmp/.argo/mr_e2e_workflow.yaml \
+        -p repo_url="${CI_PROJECT_URL}" \
+        -p revision="${CI_COMMIT_REF_NAME}" \
+        -p branch="${CI_MERGE_REQUEST_SOURCE_BRANCH_NAME}" \
+        -p commit_short_sha="${CI_COMMIT_SHORT_SHA}" \
+        -p git_token="${CI_JOB_TOKEN}" \
+        -p git_username="${CI_REGISTRY_USER}" \
+        -p argo_main_address="${ARGO_SERVER}" \
+        -p target_branch="${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}" \
+        -p ci_job_id="${CI_JOB_ID}" \
+        -p storage_class="${STORAGE_CLASS}" \
+        --labels="project=${CI_PROJECT_NAME},commit=${CI_COMMIT_SHA},author=${GITLAB_USER_LOGIN},ci_job_id=${CI_JOB_ID},place=merge_request" \
+        --generate-name="mr-e2e-${CI_PROJECT_NAME}-cicd-${CI_COMMIT_SHORT_SHA}-" \
+        --watch --log
+      # Get workflow host address
+      WORKFLOW_NAME=$(argo list --selector "commit=${CI_COMMIT_SHA},ci_job_id=${CI_JOB_ID},place=merge_request" -o name | cut -d'/' -f2)
+      ARGO_HOST=$(echo $ARGO_SERVER | cut -d':' -f1)
+      WORKFLOW_URL="${ARGO_HOST}/workflows/${ARGO_NAMESPACE}/${WORKFLOW_NAME}"
+      # Check status and print colored URL
+      if [ "$(argo list --status Failed --selector "commit=${CI_COMMIT_SHA},ci_job_id=${CI_JOB_ID},place=merge_request" | wc -l)" -gt 1 ]; then
+        echo -e "\e[31mArgo Workflow URL: ${WORKFLOW_URL}\e[0m"
+        exit 1
+      else
+        echo -e "\e[32mArgo Workflow URL: ${WORKFLOW_URL}\e[0m"
+      fi
+  allow_failure: false
+  only:
+    - merge_requests
+
+releasing_data_model_workflow_master:
+  stage: cicd-master
+  <<: *argo_setup
+  script:
+    - |
+      echo "Submitting Main - Master Argo Workflow"
+      argo submit /tmp/.argo/main_workflow.yaml \
+        -p repo_url="${CI_PROJECT_URL}" \
+        -p revision="${CI_COMMIT_SHA}" \
+        -p commit_short_sha="${CI_COMMIT_SHORT_SHA}" \
+        -p commit_before_sha="${CI_COMMIT_BEFORE_SHA}" \
+        -p git_token="${CI_JOB_TOKEN}" \
+        -p git_username="${CI_REGISTRY_USER}" \
+        -p argo_main_address="${ARGO_SERVER}" \
+        -p storage_class="${STORAGE_CLASS}" \
+        --labels="project=${CI_PROJECT_NAME},commit=${CI_COMMIT_SHA},author=${GITLAB_USER_LOGIN},ci_job_id=${CI_JOB_ID},place=main" \
+        --generate-name="main-${CI_PROJECT_NAME}-cicd-${CI_COMMIT_SHORT_SHA}-" \
+        --watch --log
+      # Get workflow host address
+      WORKFLOW_NAME=$(argo list --selector "commit=${CI_COMMIT_SHA},ci_job_id=${CI_JOB_ID},place=main" -o name | cut -d'/' -f2)
+      ARGO_HOST=$(echo $ARGO_SERVER | cut -d':' -f1)
+      WORKFLOW_URL="${ARGO_HOST}/workflows/${ARGO_NAMESPACE}/${WORKFLOW_NAME}"
+      # Check status and print colored URL
+      if [ "$(argo list --status Failed --selector "commit=${CI_COMMIT_SHA},ci_job_id=${CI_JOB_ID},place=main" | wc -l)" -gt 1 ]; then
+        echo -e "\e[31mArgo Workflow URL: ${WORKFLOW_URL}\e[0m"
+        exit 1
+      else
+        echo -e "\e[32mArgo Workflow URL: ${WORKFLOW_URL}\e[0m"
+      fi
+  allow_failure: false
+  only:
+    - master
+    - main

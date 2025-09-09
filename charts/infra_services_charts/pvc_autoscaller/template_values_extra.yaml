@@ -1,0 +1,352 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+
+# PVC Autoscaler extra configuration
+# This file contains additional configurations for the PVC Autoscaler service
+
+# Service Account for the patch job
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pvc-autoscaler-patch-job
+  namespace: {{ namespace }}
+---
+# ClusterRole with necessary permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pvc-autoscaler-patch-role
+rules:
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "patch"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "patch"]
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list"]
+---
+# ClusterRoleBinding to associate the role with the service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pvc-autoscaler-patch-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: pvc-autoscaler-patch-role
+subjects:
+- kind: ServiceAccount
+  name: pvc-autoscaler-patch-job
+  namespace: {{ namespace }}
+---
+# Job to patch StorageClasses and PVCs
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-autoscaler-patch-job
+  namespace: {{ namespace }}
+spec:
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          serviceAccountName: pvc-autoscaler-patch-job
+          restartPolicy: Never
+          containers:
+          - name: patch-job
+            image: bitnami/kubectl:latest
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/bash
+            - -c
+            - |
+              #!/bin/bash
+
+              # Set strict error handling
+              set -euo pipefail
+
+              # Enable debug logging
+              DEBUG=false
+              PATCH_SC=${PATCH_SC:-true}
+              PATCH_PVC=${PATCH_PVC:-true}
+
+              log_debug() {
+                  if [ "$DEBUG" = true ]; then
+                      echo "[DEBUG] $1"
+                  fi
+              }
+
+              log_info() {
+                  echo "[INFO] $1"
+              }
+
+              log_error() {
+                  echo "[ERROR] $1" >&2
+              }
+
+              # Default annotation values for PVCs
+              STORAGE_LIMIT="50Gi"
+              THRESHOLD="10%"
+              INCREASE="5Gi"
+
+              # Function to display usage/help
+              show_help() {
+                  echo "Usage: $0 [OPTIONS]"
+                  echo "Patch StorageClasses and PVCs for auto-expansion in Kubernetes."
+                  echo 
+                  echo "Options:"
+                  echo "  -l VALUE    Set storage limit annotation (default: 50Gi)"
+                  echo "  -t VALUE    Set threshold annotation (default: 10%)"
+                  echo "  -i VALUE    Set increase annotation (default: 5Gi)"
+                  echo "  -d          Enable debug logging"
+                  echo "  --sc-only   Only patch StorageClasses, skip PVCs"
+                  echo "  --pvc-only  Only patch PVCs, skip StorageClasses"
+                  echo "  -h, --help  Display this help message and exit"
+                  echo
+                  echo "Example: $0 -l 100Gi -t 15% -i 10Gi --pvc-only"
+              }
+
+              # Parse command line arguments
+              while [[ $# -gt 0 ]]; do
+                  case "$1" in
+                      -l) STORAGE_LIMIT="$2"; shift 2 ;;
+                      -t) THRESHOLD="$2"; shift 2 ;;
+                      -i) INCREASE="$2"; shift 2 ;;
+                      -d) DEBUG=true; shift ;;
+                      --sc-only) PATCH_SC=true; PATCH_PVC=false; shift ;;
+                      --pvc-only) PATCH_SC=false; PATCH_PVC=true; shift ;;
+                      -h|--help) show_help; exit 0 ;;
+                      *) echo "Unknown option: $1" >&2; show_help; exit 1 ;;
+                  esac
+              done
+
+              # Function to patch storage classes
+              patch_storage_classes() {
+                  log_info "Starting StorageClass patching process"
+                  
+                  # Get all storage classes
+                  STORAGE_CLASSES=$(kubectl get storageclass -o jsonpath='{.items[*].metadata.name}')
+                  log_debug "Found storage classes: $STORAGE_CLASSES"
+                  
+                  # Counter for statistics
+                  TOTAL_SC=0
+                  PATCHED_SC=0
+                  FAILED_SC=0
+                  
+                  # StorageClass patch for allowVolumeExpansion
+                  SC_PATCH_JSON=$(cat <<EOF
+              {
+                "allowVolumeExpansion": true
+              }
+              EOF
+                  )
+                  
+                  # StorageClass annotation patch
+                  SC_ANNO_PATCH_JSON=$(cat <<EOF
+              {
+                "metadata": {
+                  "annotations": {
+                    "resize.kubesphere.io/enabled": "true"
+                  }
+                }
+              }
+              EOF
+                  )
+                  
+                  # Iterate through each storage class
+                  for sc in $STORAGE_CLASSES; do
+                      log_info "Processing StorageClass: $sc"
+                      TOTAL_SC=$((TOTAL_SC + 1))
+                      
+                      # Check if allowVolumeExpansion is already true
+                      ALLOW_EXPANSION=$(kubectl get storageclass "$sc" -o jsonpath='{.allowVolumeExpansion}' 2>/dev/null || echo "false")
+                      
+                      if [ "$ALLOW_EXPANSION" != "true" ]; then
+                          log_info "Setting allowVolumeExpansion: true for StorageClass: $sc"
+                          if kubectl patch storageclass "$sc" --type=merge -p "$SC_PATCH_JSON"; then
+                              log_debug "Successfully set allowVolumeExpansion for StorageClass: $sc"
+                          else
+                              log_error "Failed to set allowVolumeExpansion for StorageClass: $sc"
+                              FAILED_SC=$((FAILED_SC + 1))
+                              continue
+                          fi
+                      else
+                          log_debug "StorageClass $sc already has allowVolumeExpansion: true"
+                      fi
+                      
+                      # Check if the annotation already exists
+                      RESIZE_ENABLED=$(kubectl get storageclass "$sc" -o jsonpath='{.metadata.annotations.resize\.kubesphere\.io/enabled}' 2>/dev/null || echo "")
+                      
+                      if [ "$RESIZE_ENABLED" != "true" ]; then
+                          log_info "Adding resize.kubesphere.io/enabled annotation to StorageClass: $sc"
+                          if kubectl patch storageclass "$sc" --type=merge -p "$SC_ANNO_PATCH_JSON"; then
+                              log_debug "Successfully added annotation to StorageClass: $sc"
+                              PATCHED_SC=$((PATCHED_SC + 1))
+                          else
+                              log_error "Failed to add annotation to StorageClass: $sc"
+                              FAILED_SC=$((FAILED_SC + 1))
+                          fi
+                      else
+                          log_debug "StorageClass $sc already has the required annotation"
+                          PATCHED_SC=$((PATCHED_SC + 1))
+                      fi
+                  done
+                  
+                  # Print summary for storage classes
+                  log_info "================ StorageClass Summary ================"
+                  log_info "Total StorageClasses processed: $TOTAL_SC"
+                  log_info "Successfully patched: $PATCHED_SC"
+                  log_info "Failed to patch:      $FAILED_SC"
+                  log_info "==================================================="
+                  
+                  if [ $FAILED_SC -gt 0 ]; then
+                      log_error "Some StorageClasses failed to patch. Check the logs for details."
+                      return 1
+                  fi
+                  
+                  return 0
+              }
+
+              # Function to patch PVCs
+              patch_pvcs() {
+                  log_info "Starting PVC annotation patch process"
+                  log_debug "Using the following annotation values:"
+                  log_debug "  Storage Limit: $STORAGE_LIMIT"
+                  log_debug "  Threshold: $THRESHOLD"
+                  log_debug "  Increase: $INCREASE"
+                  
+                  # Prepare JSON patch for kubectl
+                  PVC_PATCH_JSON=$(cat <<EOF
+              {
+                "metadata": {
+                  "annotations": {
+                    "resize.kubesphere.io/storage-limit": "$STORAGE_LIMIT",
+                    "resize.kubesphere.io/threshold": "$THRESHOLD",
+                    "resize.kubesphere.io/increase": "$INCREASE"
+                  }
+                }
+              }
+              EOF
+                  )
+                  
+                  # Get all namespaces
+                  NAMESPACES=$(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}')
+                  log_debug "Found namespaces: $NAMESPACES"
+                  
+                  # Counter for statistics
+                  TOTAL_PVCS=0
+                  PATCHED_PVCS=0
+                  FAILED_PVCS=0
+                  
+                  # Iterate through each namespace
+                  for ns in $NAMESPACES; do
+                      log_debug "Processing namespace: $ns"
+                      
+                      # Get all PVCs in the namespace
+                      PVCS=$(kubectl get pvc -n "$ns" -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
+                      
+                      if [ -z "$PVCS" ]; then
+                          log_debug "No PVCs found in namespace $ns"
+                          continue
+                      fi
+                      
+                      log_debug "Found PVCs in namespace $ns: $PVCS"
+                      
+                      # Iterate through each PVC
+                      for pvc in $PVCS; do
+                          log_info "Processing PVC: $ns/$pvc"
+                          TOTAL_PVCS=$((TOTAL_PVCS + 1))
+                          
+                          # Get the storage class name for this PVC
+                          SC_NAME=$(kubectl get pvc "$pvc" -n "$ns" -o jsonpath='{.spec.storageClassName}' 2>/dev/null || echo "")
+                          if [ -z "$SC_NAME" ]; then
+                              log_info "PVC $ns/$pvc doesn't have a StorageClass specified, using default"
+                              SC_NAME=$(kubectl get storageclass -o jsonpath='{.items[?(@.metadata.annotations.storageclass\.kubernetes\.io/is-default-class=="true")].metadata.name}' 2>/dev/null || echo "")
+                              if [ -z "$SC_NAME" ]; then
+                                  log_error "No StorageClass found for PVC $ns/$pvc and no default StorageClass exists"
+                                  FAILED_PVCS=$((FAILED_PVCS + 1))
+                                  continue
+                              fi
+                          fi
+                          
+                          # Check if the StorageClass has the required annotation and allowVolumeExpansion
+                          SC_ANNO=$(kubectl get storageclass "$SC_NAME" -o jsonpath='{.metadata.annotations.resize\.kubesphere\.io/enabled}' 2>/dev/null || echo "")
+                          SC_ALLOW=$(kubectl get storageclass "$SC_NAME" -o jsonpath='{.allowVolumeExpansion}' 2>/dev/null || echo "false")
+                          
+                          if [ "$SC_ANNO" != "true" ] || [ "$SC_ALLOW" != "true" ]; then
+                              log_error "StorageClass $SC_NAME for PVC $ns/$pvc is not configured for auto-expansion"
+                              log_error "resize.kubesphere.io/enabled: $SC_ANNO, allowVolumeExpansion: $SC_ALLOW"
+                              log_error "Run the script with --sc-only to patch all StorageClasses first"
+                              FAILED_PVCS=$((FAILED_PVCS + 1))
+                              continue
+                          fi
+                          
+                          # Try to patch the PVC
+                          if kubectl patch pvc "$pvc" -n "$ns" --type=merge -p "$PVC_PATCH_JSON"; then
+                              log_info "Successfully patched PVC: $ns/$pvc"
+                              PATCHED_PVCS=$((PATCHED_PVCS + 1))
+                          else
+                              log_error "Failed to patch PVC: $ns/$pvc"
+                              FAILED_PVCS=$((FAILED_PVCS + 1))
+                          fi
+                      done
+                  done
+                  
+                  # Print summary for PVCs
+                  log_info "================ PVC Summary ================"
+                  log_info "Total PVCs processed: $TOTAL_PVCS"
+                  log_info "Successfully patched: $PATCHED_PVCS"
+                  log_info "Failed to patch:      $FAILED_PVCS"
+                  log_info "=========================================="
+                  
+                  if [ $FAILED_PVCS -gt 0 ]; then
+                      log_error "Some PVCs failed to patch. Check the logs for details."
+                      return 1
+                  fi
+                  
+                  return 0
+              }
+
+              # Main execution
+              log_info "Starting cluster auto-expansion setup script"
+
+              # Check what to patch based on flags
+              if [ "$PATCH_SC" = true ]; then
+                  if ! patch_storage_classes; then
+                      log_error "Issues encountered during StorageClass patching"
+                      exit 1
+                  fi
+              fi
+
+              if [ "$PATCH_PVC" = true ]; then
+                  if ! patch_pvcs; then
+                      log_error "Issues encountered during PVC patching"
+                      exit 1
+                  fi
+              fi
+
+              log_info "Script completed successfully!"
+              exit 0
+              EOF
+
+              # Make the script executable
+              chmod +x /tmp/patch_pvc_annotations.sh
+
+              # Execute the patch script
+              /bin/bash /tmp/patch_pvc_annotations.sh
+            env:
+            - name: PATCH_SC
+              value: "true"
+            - name: PATCH_PVC
+              value: "true"

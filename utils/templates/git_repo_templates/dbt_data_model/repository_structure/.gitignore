@@ -1,0 +1,13 @@
+package-lock.yml
+target/
+dbt_packages/
+logs/
+.vscode/
+.dbt/
+# Ignore hidden files but allow .github directory for CI/CD
+.*
+!.github/
+!.github/**
+!.gitlab-ci.yml
+!.sqlfluff
+!.sqlfluffignore

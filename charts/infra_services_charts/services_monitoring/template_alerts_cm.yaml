@@ -1,0 +1,1121 @@
+{% raw %}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-bi-platform-alerts
+  labels:
+    grafana_bi_alerts: "1"
+data:
+  bi-platform-alerts.yaml: |
+    apiVersion: 1
+    groups:
+        - orgId: 1
+          name: BI-Plaform-Alert
+          folder: "BI-DataStack - Alerts"
+          interval: 5m
+          rules:
+            - uid: fced300e-2877-450f-ae1f-ffb945531c0f
+              title: Airbyte-Failed-Jobs
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: P96EA1BDB221D2E18
+                  model:
+                    datasource:
+                        type: postgres
+                        uid: P96EA1BDB221D2E18
+                    editorMode: code
+                    format: table
+                    intervalMs: 300000
+                    maxDataPoints: 43200
+                    rawQuery: true
+                    rawSql: "WITH job_status AS (\t\nSELECT job_id,\n    source2destination_Name AS connection_name,\n    jobs_created_at,\n    CASE\n          WHEN status = 'succeeded' THEN '1'\n      WHEN status = 'failed' THEN '0'\n    ELSE\n        '0'\n    END AS job_status\nFROM public_core.core_airbyte_sync_status_24h\nWHERE $__timeFilter(jobs_created_at)\n)\n\nSELECT \n  connection_name,\n  count(job_status)\nFROM job_status\nWHERE\n    job_status = '0'\nGROUP BY 1\n"
+                    refId: A
+                    sql:
+                        columns:
+                            - parameters: []
+                              type: function
+                        groupBy:
+                            - property:
+                                type: string
+                              type: groupBy
+                        limit: 50
+                - refId: B
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 0
+                                - 0
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params: []
+                          reducer:
+                            params: []
+                            type: avg
+                          type: query
+                    datasource:
+                        name: Expression
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 1
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                          unloadEvaluator:
+                            params:
+                                - 1
+                            type: lt
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 1
+              noDataState: OK
+              execErrState: Error
+              for: 1h
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "1"
+              labels:
+                BI-Platform-Alert: Airbyte
+              isPaused: false
+            - uid: c6148135-a588-43cf-b119-83ca75acd0ee
+              title: Aiflow-Failed-Jobs
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PF85F16481827C812
+                  model:
+                    datasource:
+                        type: postgres
+                        uid: PF85F16481827C812
+                    editorMode: code
+                    format: table
+                    hide: false
+                    intervalMs: 300000
+                    maxDataPoints: 43200
+                    rawQuery: true
+                    rawSql: |-
+                        WITH job_status AS (	
+                        SELECT id,
+                            dag_id,
+                            start_date,
+                            CASE
+                                  WHEN state = 'success' THEN '1'
+                              WHEN state = 'failed' THEN '0'
+                            ELSE
+                                '0'
+                            END AS job_status
+                        FROM public.dag_run
+                        )
+
+                        SELECT
+                        dag_id,
+                        COUNT(job_status) as failed_jobs_count
+                        FROM job_status
+                        WHERE job_status = '0' and $__timeFilter(start_date)
+                        GROUP BY 1
+                    refId: A
+                    sql:
+                        columns:
+                            - parameters: []
+                              type: function
+                        groupBy:
+                            - property:
+                                type: string
+                              type: groupBy
+                        limit: 50
+                - refId: B
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 0
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 2
+              noDataState: OK
+              execErrState: Alerting
+              for: 15m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "2"
+              labels:
+                BI-Platform-Alert: Airflow
+              isPaused: false
+            - uid: b80d9b3e-4182-49da-9efd-5326ef4ae214
+              title: Airflow-Dag-Duration
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PBFA97CFB590B2093
+                  model:
+                    datasource:
+                        type: prometheus
+                        uid: PBFA97CFB590B2093
+                    editorMode: code
+                    expr: af_agg_dagrun_duration_success{quantile="0.99"} > 0
+                    instant: false
+                    interval: ""
+                    intervalMs: 15000
+                    legendFormat: '{{dag_id}}'
+                    maxDataPoints: 43200
+                    range: true
+                    refId: A
+                - refId: B
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 7200
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 5
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "5"
+              labels:
+                BI-Platform-Alert: Airflow
+              isPaused: false
+            - uid: acda761d-30c7-4c3d-9528-717b51f8d551
+              title: Replication-Service-Health
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PBFA97CFB590B2093
+                  model:
+                    datasource:
+                        type: prometheus
+                        uid: PBFA97CFB590B2093
+                    editorMode: code
+                    expr: (sum(kube_deployment_status_replicas_available{job="kubernetes-service-endpoints",deployment="data-orchestration-webserver",namespace="data-orchestration"}) > 0) * 1 and (sum(kube_deployment_status_replicas_available{job="kubernetes-service-endpoints",deployment="data-orchestration-scheduler",namespace="data-orchestration"}) > 0) * 1 and (sum(kube_statefulset_status_replicas_available{job="kubernetes-service-endpoints",statefulset="data-orchestration-triggerer",namespace="data-orchestration"}) > 0) * 1 and (sum(kube_statefulset_status_replicas_available{job="kubernetes-service-endpoints",statefulset="data-orchestration-worker",namespace="data-orchestration"}) > 0) * 1
+                    instant: false
+                    interval: ""
+                    intervalMs: 15000
+                    maxDataPoints: 43200
+                    range: true
+                    refId: A
+                - refId: B
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 1
+                            type: lt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 6
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "6"
+              labels:
+                BI-Platform-Alert: Airbyte
+              isPaused: false
+{%- endraw %}
+{%- if project_id %}
+{%- raw %}
+            - uid: bdff2e8d-1846-46ba-a389-aa469024e1c5
+              title: Biquery-Analysis-bytes-amount
+              condition: C
+              data:
+                - refId: A
+                  queryType: timeSeriesList
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: P5CA8467D30E95367
+                  model:
+                    aliasBy: '{{metric.label.priority}}'
+                    datasource:
+                        type: stackdriver
+                        uid: P5CA8467D30E95367
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    queryType: timeSeriesList
+                    refId: A
+                    timeSeriesList:
+                        alignmentPeriod: cloud-monitoring-auto
+                        crossSeriesReducer: REDUCE_NONE
+                        filters:
+                            - metric.type
+                            - =
+                            - bigquery.googleapis.com/query/scanned_bytes
+                        groupBys:
+                            - metadata.system_labels.name
+                        perSeriesAligner: ALIGN_MEAN
+                        preprocessor: none
+{%- endraw %}
+                        projectName: {{ project_id }}
+{%- raw %}
+                        view: FULL
+                - refId: B
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 2.68435456e+11
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 8
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "8"
+              labels:
+                BI-Platform-Alert: BigQuery
+              isPaused: false
+{%- endraw %}
+{%- endif %}
+{%- raw %}
+            - uid: f625d9c0-be86-4c08-be0a-55abd0b47301
+              title: Replication-Pending-Jobs
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PBFA97CFB590B2093
+                  model:
+                    datasource:
+                        type: prometheus
+                        uid: PBFA97CFB590B2093
+                    editorMode: code
+                    exemplar: false
+                    expr: default_num_pending_jobs{exported_job="metrics-reporter", geography="AUTO", instance="data-replication-otel-collector.data-replication.svc.cluster.local:8889", job="airbyte-otel-collector"}
+                    instant: false
+                    interval: ""
+                    intervalMs: 15000
+                    legendFormat: num_pending_jobs
+                    maxDataPoints: 43200
+                    range: true
+                    refId: A
+                - refId: B
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 0
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 10
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "10"
+              labels:
+                BI-Platform-Alert: Airbyte
+              isPaused: false
+            - uid: b2fd35c6-7e6f-4727-bac2-607683a4ef59
+              title: Airflow-Dags-Processing-Times
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PBFA97CFB590B2093
+                  model:
+                    datasource:
+                        type: prometheus
+                        uid: PBFA97CFB590B2093
+                    editorMode: code
+                    expr: af_agg_dag_processing_last_run_seconds{namespace="data-orchestration"}
+                    instant: false
+                    interval: ""
+                    intervalMs: 15000
+                    legendFormat: '{{dag_file}}'
+                    maxDataPoints: 43200
+                    range: true
+                    refId: A
+                - refId: B
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 60
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 11
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "11"
+              labels:
+                BI-Platform-Alert: Airflow
+              isPaused: false
+            - uid: ac09515a-9478-4f24-a93a-09156211ef1f
+              title: Airflow-Components-Uptime
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PBFA97CFB590B2093
+                  model:
+                    datasource:
+                        type: prometheus
+                        uid: PBFA97CFB590B2093
+                    editorMode: code
+                    expr: (sum(kube_deployment_status_replicas_available{job="kubernetes-service-endpoints",deployment="data-replication-server",namespace="data-replication"}) > 0) * 1 and (sum(kube_deployment_status_replicas_available{job="kubernetes-service-endpoints",deployment="data-replication-temporal",namespace="data-replication"}) > 0) * 1 and (sum(kube_deployment_status_replicas_available{job="kubernetes-service-endpoints",deployment="data-replication-webapp",namespace="data-replication"}) > 0) * 1 and (sum(kube_deployment_status_replicas_available{job="kubernetes-service-endpoints",deployment="data-replication-worker",namespace="data-replication"}) > 0) * 1
+                    instant: false
+                    interval: ""
+                    intervalMs: 15000
+                    legendFormat: '{{component}}'
+                    maxDataPoints: 43200
+                    range: true
+                    refId: A
+                - refId: B
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 1
+                            type: lt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 12
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "12"
+              labels:
+                BI-Platform-Alert: Airflow
+              isPaused: false
+            - uid: b819d2d3-8e2e-4a05-a4b3-7a7e86996949
+              title: K8S-Cluster-CPU-Usage
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PBFA97CFB590B2093
+                  model:
+                    datasource:
+                        type: prometheus
+                        uid: PBFA97CFB590B2093
+                    editorMode: code
+                    expr: sum(rate(container_cpu_usage_seconds_total{image!=""}[1m])) / sum(machine_cpu_cores) * 100
+                    interval: 10s
+                    intervalFactor: 1
+                    intervalMs: 900000
+                    legendFormat: k8s-cluster-cpu
+                    maxDataPoints: 100
+                    range: true
+                    refId: A
+                    step: 10
+                - refId: B
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 80
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 13
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "13"
+              labels:
+                BI-Platform-Alert: K8S
+              isPaused: false
+            - uid: ba19d2d5-dcec-4a61-ba36-43aef838c7a5
+              title: K8S-Cluster-Memory-usage
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PBFA97CFB590B2093
+                  model:
+                    datasource:
+                        type: prometheus
+                        uid: PBFA97CFB590B2093
+                    editorMode: code
+                    expr: sum(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / sum(node_memory_MemTotal_bytes) * 100
+                    interval: 10s
+                    intervalFactor: 1
+                    intervalMs: 900000
+                    legendFormat: k8s-memory-usage
+                    maxDataPoints: 100
+                    range: true
+                    refId: A
+                    step: 10
+                - refId: B
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 85
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 14
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "14"
+              labels:
+                BI-Platform-Alert: K8S
+              isPaused: false
+            - uid: a87fffcc-b4bd-4843-9fd9-a7f766ead36d
+              title: K8S-Cluster-Storage-usage
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PBFA97CFB590B2093
+                  model:
+                    datasource:
+                        type: prometheus
+                        uid: PBFA97CFB590B2093
+                    editorMode: code
+                    expr: sum(node_filesystem_size_bytes{fstype=~"ext4|xfs"} - node_filesystem_free_bytes{fstype=~"ext4|xfs"}) / sum(node_filesystem_size_bytes{fstype=~"ext4|xfs"}) * 100
+                    interval: 10s
+                    intervalFactor: 1
+                    intervalMs: 900000
+                    legendFormat: ""
+                    maxDataPoints: 100
+                    metric: ""
+                    range: true
+                    refId: A
+                    step: 10
+                - refId: B
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 85
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 15
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "15"
+              labels:
+                BI-Platform-Alert: K8S
+              isPaused: false
+            - uid: e6f83a4d-973d-4d5c-a4af-7a8b5308a1c6
+              title: DataHub-Health
+              condition: C
+              data:
+                - refId: A
+                  relativeTimeRange:
+                    from: 86400
+                    to: 0
+                  datasourceUid: PBFA97CFB590B2093
+                  model:
+                    datasource:
+                        type: prometheus
+                        uid: PBFA97CFB590B2093
+                    editorMode: code
+                    expr: (sum(kube_deployment_status_replicas_available{job="kubernetes-service-endpoints",deployment="data-governance-datahub-gms",namespace="data-governance"}) > 0) * 1 and (sum(kube_deployment_status_replicas_available{job="kubernetes-service-endpoints",deployment="data-governance-datahub-frontend",namespace="data-governance"}) > 0) * 1 and (sum(kube_deployment_status_replicas_available{job="kubernetes-service-endpoints",deployment="data-governance-acryl-datahub-actions",namespace="data-governance"}) > 0) * 1
+                    instant: false
+                    interval: ""
+                    intervalMs: 15000
+                    maxDataPoints: 43200
+                    range: true
+                    refId: A
+                - refId: B
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params: []
+                            type: gt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - B
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: A
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    reducer: last
+                    refId: B
+                    type: reduce
+                - refId: C
+                  datasourceUid: __expr__
+                  model:
+                    conditions:
+                        - evaluator:
+                            params:
+                                - 1
+                            type: lt
+                          operator:
+                            type: and
+                          query:
+                            params:
+                                - C
+                          reducer:
+                            params: []
+                            type: last
+                          type: query
+                    datasource:
+                        type: __expr__
+                        uid: __expr__
+                    expression: B
+                    hide: false
+                    intervalMs: 1000
+                    maxDataPoints: 43200
+                    refId: C
+                    type: threshold
+              dashboardUid: a4984731-ef35-4b26-a211-75dcbc49fe9c
+              panelId: 17
+              noDataState: OK
+              execErrState: Error
+              for: 5m
+              annotations:
+                __dashboardUid__: a4984731-ef35-4b26-a211-75dcbc49fe9c
+                __panelId__: "17"
+              labels:
+                BI-Platform-Alert: DataHub
+              isPaused: false
+{% endraw %}

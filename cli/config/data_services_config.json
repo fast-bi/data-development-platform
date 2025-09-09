@@ -1,0 +1,80 @@
+{
+  "data_services": {
+    "1.0_cicd_workload_runner": {
+      "name": "CICD Workload Runner",
+      "chart_version": "0.23.7",
+      "namespace": "cicd-workload-trigger",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "git_provider", "git_runner_access_token"]
+    },
+    "2.0_object_storage_operator": {
+      "name": "Object Storage Operator",
+      "chart_version": "7.1.1",
+      "operator_chart_version": "7.1.1",
+      "namespace": "minio",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method"]
+    },
+    "3.0_data-cicd-workflows": {
+      "name": "Argo Workflows",
+      "chart_version": "0.45.22",
+      "namespace": "cicd-workflows",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method"]
+    },
+    "4.0_data_replication": {
+      "name": "Data Replication",
+      "chart_version": "1.7.2",
+      "namespace": "data-replication",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "data_replication_default_destination_type", "region"]
+    },
+    "5.0_data_orchestration": {
+      "name": "Data Orchestration",
+      "chart_version": "1.16.0",
+      "app_version": "v2.11.0",
+      "namespace": "data-orchestration",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "app_version"]
+    },
+    "6.0_data_modeling": {
+      "name": "Data Modeling",
+      "chart_version": "4.2.0",
+      "app_version": "0.1.0",
+      "namespace": "data-modeling",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "app_version"]
+    },
+    "7.0_data_dcdq_meta_collect": {
+      "name": "DCDQ Metadata Collector",
+      "chart_version": "0.1.1",
+      "app_version": "0.1.0",
+      "namespace": "data-dcdq-metacollect",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "app_version"]
+    },
+    "8.0_data_analysis": {
+      "name": "Data Analysis",
+      "chart_version": "1.7.4",
+      "app_version": "0.1975.0",
+      "namespace": "data-analysis",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "bi_system", "app_version"]
+    },
+    "9.0_data_governance": {
+      "name": "Data Governance",
+      "prerequest_chart_version": "0.1.15",
+      "chart_version": "0.6.17",
+      "app_version": "v1.2.0",
+      "namespace": "data-governance",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "eck_es_chart_version", "eck_es_app_version", "eck_es_op_chart_version", "vault_secrets"],
+      "deployment_phases": [
+        "elasticsearch_operator",
+        "elasticsearch_cluster", 
+        "datahub_prerequisites",
+        "datahub"
+      ],
+      "eck_es_chart_version": "0.16.0",
+      "eck_es_app_version": "8.17.0",
+      "eck_es_op_chart_version": "3.1.0"
+    },
+    "10.0_user_console": {
+      "name": "Data Platform User Console",
+      "chart_version": "0.1.1",
+      "namespace": "user-console",
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "tsb_fastbi_web_core_image_version", "tsb_dbt_init_core_image_version"]
+    }
+  }
+} 
