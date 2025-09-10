@@ -488,7 +488,7 @@ Host data_model
                     if file.endswith('_template'):
                         template_path = os.path.join(root, file)
                         output_path = template_path[:-9]  # Remove '_template' suffix
-                        self._render_template(template_path, output_path, context)
+                        self._render_template_file(template_path, output_path)
                         os.remove(template_path)  # Remove template file after rendering
 
         except Exception as e:

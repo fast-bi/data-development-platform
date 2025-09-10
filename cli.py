@@ -1337,6 +1337,16 @@ class DeploymentManager:
         else:
             secrets_config['git_provider'] = self.state.config['secrets_git_provider']
         
+        # Repository access method (needed before repository URL validation)
+        if 'secrets_repo_access_method' not in self.state.config:
+            secrets_config['repo_access_method'] = safe_select(
+                "Select repository access method:",
+                ['access_token', 'deploy_keys', 'ssh_keys']
+            )
+            self.state.config['secrets_repo_access_method'] = secrets_config['repo_access_method']
+        else:
+            secrets_config['repo_access_method'] = self.state.config['secrets_repo_access_method']
+        
         if 'secrets_dag_repo_url' not in self.state.config:
             while True:
                 try:
@@ -1373,15 +1383,6 @@ class DeploymentManager:
             self.state.config['secrets_data_repo_main_branch'] = secrets_config['data_repo_main_branch']
         else:
             secrets_config['data_repo_main_branch'] = self.state.config['secrets_data_repo_main_branch']
-        
-        if 'secrets_repo_access_method' not in self.state.config:
-            secrets_config['repo_access_method'] = safe_select(
-                "Select repository access method:",
-                ['access_token', 'deploy_keys', 'ssh_keys']
-            )
-            self.state.config['secrets_repo_access_method'] = secrets_config['repo_access_method']
-        else:
-            secrets_config['repo_access_method'] = self.state.config['secrets_repo_access_method']
         
         if 'secrets_git_provider_access_token' not in self.state.config:
             if safe_select("Configure Git access token?", ['Yes', 'No']) == 'Yes':
