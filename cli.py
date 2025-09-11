@@ -14,6 +14,7 @@ from questionary import Style
 
 # Set required environment variables for CLI usage
 import os
+import platform
 os.environ.setdefault('SECRET_KEY', 'cli-secret-key-for-deployment')
 os.environ.setdefault('MAIL_SERVER', 'mail.smtp2go.com')
 os.environ.setdefault('MAIL_PORT', '2525')
@@ -29,6 +30,27 @@ os.environ.setdefault('GOOGLE_CLIENT_ID', 'cli-client-id')
 os.environ.setdefault('GOOGLE_CLIENT_SECRET', 'cli-client-secret')
 os.environ.setdefault('GOOGLE_REDIRECT_URI', 'http://localhost:8080/callback')
 os.environ.setdefault('GITLAB_ADMIN_ACCESS_TOKEN', 'cli-token')
+
+# Configure Terragrunt cache location based on OS to prevent long path issues
+def configure_terragrunt_cache():
+    """Configure Terragrunt cache location to prevent long path issues on Windows"""
+    if not os.environ.get('TERRAGRUNT_DOWNLOAD'):
+        system = platform.system().lower()
+        if system == 'windows':
+            cache_path = r'C:\temp\terragrunt-cache'
+        else:  # Linux, macOS, etc.
+            cache_path = '/tmp/terragrunt-cache'
+        
+        # Create the cache directory if it doesn't exist
+        try:
+            os.makedirs(cache_path, exist_ok=True)
+            os.environ['TERRAGRUNT_DOWNLOAD'] = cache_path
+            print(f"🔧 Configured Terragrunt cache location: {cache_path}")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not create Terragrunt cache directory {cache_path}: {e}")
+
+# Configure Terragrunt cache on startup
+configure_terragrunt_cache()
 
 # Import the Deployer class'es directly
 from deployers.clouds.google_cloud import GoogleCloudManager

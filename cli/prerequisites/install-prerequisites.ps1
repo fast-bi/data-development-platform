@@ -180,7 +180,7 @@ function Show-InstallationSummary {
 
 # Function to check if we're in the right directory
 function Test-Directory {
-    if (-not (Test-Path "..\cli.py")) {
+    if (-not (Test-Path "..\..\cli.py")) {
         Write-Error "This script must be run from the cli\prerequisites\ directory"
         Write-Error "Please navigate to the correct directory and try again"
         exit 1
