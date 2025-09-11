@@ -1,5 +1,5 @@
 terraform {
-  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/cloud-dns?ref=v2.0.4"
+  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/cloud-dns?ref=v1.0.0"
 }
 
 include "root" {
