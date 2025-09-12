@@ -1,5 +1,5 @@
 # Fast.BI CLI Prerequisites Installer for Windows
-# Installs all required tools using Chocolatey and other methods
+# This script now redirects to WSL2 installation for better compatibility
 
 #Requires -Version 5.1
 #Requires -RunAsAdministrator
@@ -400,77 +400,162 @@ function Test-Installations {
 
 # Function to show next steps
 function Show-NextSteps {
-    Write-Log "Installation completed! Next steps:" $Blue
     Write-Host ""
-    Write-Host "🔧 Configure your tools:" $White
-    Write-Host "  1. gcloud auth login" $White
-    Write-Host "  2. gcloud config set project YOUR_PROJECT_ID" $White
-    Write-Host "  3. kubectl config set-cluster my-cluster --server=https://your-cluster-endpoint" $White
+    Write-Host "📋 Summary:" $Blue
+    Write-Host "===========" $Blue
+    Write-Host "✅ WSL2 and Ubuntu are ready for Fast.BI CLI" $Green
+    Write-Host "📁 Follow the instructions above to complete setup in WSL2" $White
+    Write-Host "🔧 All prerequisites will be installed in the Linux environment" $White
     Write-Host ""
-    Write-Host "🚀 Start using Fast.BI CLI:" $White
-    Write-Host "  1. cd .." $White
-    Write-Host "  2. python cli.py" $White
+    Write-Host "💡 Benefits of this approach:" $Blue
+    Write-Host "   • Consistent behavior across Windows, Linux, and macOS" $White
+    Write-Host "   • No Windows-specific compatibility issues" $White
+    Write-Host "   • Full Linux toolchain support" $White
+    Write-Host "   • Better performance for development tools" $White
     Write-Host ""
     Write-Host "📚 Documentation:" $White
-    Write-Host "  - CLI help: python cli.py --help" $White
+    Write-Host "  - CLI help: python3 cli.py --help" $White
     Write-Host "  - Deployment guide: docs/" $White
     Write-Host ""
-    Write-Host "⚠️  Note: You may need to restart your terminal or PowerShell session" $Yellow
-    Write-Host "   to ensure all tools are in your PATH" $Yellow
+    Write-Host "🐧 WSL2 provides native Linux compatibility for all tools" $Green
+}
+
+# Function to check if WSL2 is installed and available
+function Test-WSL2 {
+    Write-Log "Checking WSL2 installation..." $Blue
+    
+    # Check if WSL is available
+    if (-not (Get-Command "wsl" -ErrorAction SilentlyContinue)) {
+        Write-Log "WSL not found" $Yellow
+        return $false
+    }
+    
+    # Check WSL version
+    try {
+        $wslVersion = wsl --version 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "WSL2 is available" $Green
+            return $true
+        }
+    } catch {
+        Write-Log "WSL version check failed" $Yellow
+    }
+    
+    # Check if WSL is installed but might be WSL1
+    try {
+        $wslList = wsl --list --verbose 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            if ($wslList -match "2") {
+                Write-Log "WSL2 is installed" $Green
+                return $true
+            } else {
+                Write-Log "WSL1 detected, WSL2 required" $Yellow
+                return $false
+            }
+        }
+    } catch {
+        Write-Log "WSL list check failed" $Yellow
+    }
+    
+    return $false
+}
+
+# Function to install WSL2 and Ubuntu
+function Install-WSL2 {
+    Write-Log "Installing WSL2 and Ubuntu..." $Blue
+    
+    Write-Warning "WSL2 is required to run Fast.BI CLI on Windows"
+    Write-Warning "This will install WSL2 and Ubuntu Linux distribution"
+    Write-Warning "The installation may take several minutes and require a restart"
+    
+    $confirm = Read-Host "Do you want to continue with WSL2 installation? (y/N)"
+    if ($confirm -ne "y" -and $confirm -ne "Y") {
+        Write-Error "WSL2 installation cancelled. Fast.BI CLI cannot run without WSL2 on Windows."
+        exit 1
+    }
+    
+    try {
+        # Enable WSL feature
+        Write-Log "Enabling WSL feature..." $Blue
+        dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+        
+        # Enable Virtual Machine Platform
+        Write-Log "Enabling Virtual Machine Platform..." $Blue
+        dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+        
+        # Set WSL2 as default
+        Write-Log "Setting WSL2 as default..." $Blue
+        wsl --set-default-version 2
+        
+        # Install Ubuntu
+        Write-Log "Installing Ubuntu..." $Blue
+        wsl --install -d Ubuntu
+        
+        Write-Success "WSL2 and Ubuntu installation initiated"
+        Write-Warning "Please restart your computer and run this script again"
+        Write-Warning "After restart, Ubuntu will complete its setup automatically"
+        
+        $restart = Read-Host "Do you want to restart now? (y/N)"
+        if ($restart -eq "y" -or $restart -eq "Y") {
+            Write-Log "Restarting computer..." $Blue
+            Restart-Computer -Force
+        } else {
+            Write-Warning "Please restart manually and run this script again"
+            exit 0
+        }
+        
+    } catch {
+        Write-Error "WSL2 installation failed: $($_.Exception.Message)"
+        exit 1
+    }
+}
+
+# Function to show WSL2 setup instructions
+function Show-WSL2Instructions {
+    Write-Log "WSL2 and Ubuntu are ready!" $Green
     Write-Host ""
-    Write-Host "🐳 Docker users: Docker Desktop may need to be started manually" $Yellow
+    Write-Host "🚀 Next Steps:" $Blue
+    Write-Host "=============" $Blue
+    Write-Host ""
+    Write-Host "1. Open WSL2 Ubuntu:" $White
+    Write-Host "   wsl -d Ubuntu" $Yellow
+    Write-Host ""
+    Write-Host "2. Clone the repository in WSL2:" $White
+    Write-Host "   git clone https://github.com/your-org/data-development-platform.git" $Yellow
+    Write-Host "   cd data-development-platform" $Yellow
+    Write-Host ""
+    Write-Host "3. Run the Linux prerequisites installer:" $White
+    Write-Host "   chmod +x cli/prerequisites/install-prerequisites.sh" $Yellow
+    Write-Host "   ./cli/prerequisites/install-prerequisites.sh" $Yellow
+    Write-Host ""
+    Write-Host "4. After installation, run the CLI from WSL2:" $White
+    Write-Host "   python3 cli.py" $Yellow
+    Write-Host ""
+    Write-Host "💡 Tip: You can access your Windows files from WSL2 at /mnt/c/" $Blue
+    Write-Host "💡 Tip: Use 'code .' in WSL2 to open VS Code with WSL2 integration" $Blue
 }
 
 # Main installation function
 function Main {
-    Write-Host "🪟 Fast.BI CLI Prerequisites Installer for Windows" $Blue
-    Write-Host "==================================================" $Blue
+    Write-Host "🪟 Fast.BI CLI Prerequisites Installer for Windows (WSL2)" $Blue
+    Write-Host "========================================================" $Blue
     Write-Host ""
     
-    # Check Windows version
-    Test-WindowsVersion
+    Write-Log "Fast.BI CLI now requires WSL2 for Windows compatibility" $Blue
+    Write-Log "This ensures consistent behavior across all platforms" $Blue
+    Write-Host ""
     
-    # Check PowerShell version
-    Test-PowerShellVersion
-    
-    # Set execution policy
-    Set-ExecutionPolicy
-    
-    # Install Chocolatey
-    Install-Chocolatey
-    
-    # Install Python
-    Install-Python
-    
-    # Install kubectl
-    Install-Kubectl
-    
-    # Install gcloud CLI
-    Install-Gcloud
-    
-    # Install Terraform
-    Install-Terraform
-    
-    # Install Terragrunt
-    Install-Terragrunt
-    
-    # Install Helm
-    Install-Helm
-    
-    # Install additional tools
-    Install-AdditionalTools
-    
-    # Configure environment variables
-    Set-EnvironmentVariables
-    
-    # Verify installations
-    if (Test-Installations) {
-        # Show next steps
-        Show-NextSteps
+    # Check if WSL2 is available
+    if (Test-WSL2) {
+        Write-Log "WSL2 detected, showing setup instructions..." $Blue
+        Show-WSL2Instructions
     } else {
-        Write-Error "Installation verification failed"
-        exit 1
+        Write-Log "WSL2 not found, installing WSL2 and Ubuntu..." $Blue
+        Install-WSL2
     }
+    
+    # Show next steps
+    Show-NextSteps
 }
 
 # Handle script interruption

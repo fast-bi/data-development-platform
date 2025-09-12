@@ -11,7 +11,7 @@ Based on the Fast.BI CLI requirements, the following tools need to be installed:
 - **kubectl**: Kubernetes command-line tool
 - **gcloud CLI**: Google Cloud command-line tool (required for authentication)
 - **Terraform**: Infrastructure as Code tool for GCP resource management
-- **Terragrunt**: Terraform wrapper for keeping configurations DRY
+- **Terragrunt v0.84.0**: Terraform wrapper for keeping configurations DRY (specific version required)
 - **Helm**: Kubernetes package manager for deploying applications
 
 ### Additional Dependencies
@@ -30,7 +30,7 @@ Run the main installer script for your platform:
 ./install-prerequisites.sh
 ```
 
-**Windows:**
+**Windows (WSL2):**
 ```powershell
 .\install-prerequisites.ps1
 ```
@@ -48,10 +48,28 @@ Use the platform-specific scripts:
 ./linux/install-linux.sh
 ```
 
-**Windows:**
+**Windows (WSL2):**
 ```powershell
 .\windows\install-windows.ps1
 ```
+
+## Windows Installation (WSL2)
+
+**Important:** Fast.BI CLI now requires WSL2 (Windows Subsystem for Linux) for Windows compatibility. This ensures consistent behavior across all platforms and eliminates Windows-specific issues.
+
+### WSL2 Installation Process:
+1. **Automatic WSL2 Setup**: The installer will detect if WSL2 is installed
+2. **Ubuntu Installation**: If WSL2 is not found, it will install WSL2 and Ubuntu automatically
+3. **Setup Instructions**: After WSL2 is ready, you'll get instructions to complete setup in WSL2
+4. **Linux Environment**: All tools are installed in the Ubuntu WSL2 environment
+5. **Consistent Experience**: Same installation process as native Linux
+
+### Why WSL2?
+- ✅ **Eliminates Windows-specific issues** (PATH problems, line continuations, etc.)
+- ✅ **Consistent behavior** across all platforms
+- ✅ **Native Linux compatibility** for all tools
+- ✅ **Better performance** than traditional virtualization
+- ✅ **Easy file system access** between Windows and Linux
 
 ### Option 3: Individual Tool Installation
 Use the individual tool installers in each platform directory.

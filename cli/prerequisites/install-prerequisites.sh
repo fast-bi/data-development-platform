@@ -31,8 +31,6 @@ success() {
 
 # Function to detect operating system
 detect_os() {
-    log "Detecting operating system..."
-    
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         # Linux
         if command -v apt-get &> /dev/null; then
@@ -166,6 +164,7 @@ main() {
     setup_logging
     
     # Detect OS
+    log "Detecting operating system..."
     local os=$(detect_os)
     log "Detected OS: $os"
     
@@ -173,7 +172,7 @@ main() {
     check_privileges
     
     # Check if we're in the right directory
-    if [[ ! -f "../cli.py" ]]; then
+    if [[ ! -f "../../cli.py" ]]; then
         error "This script must be run from the cli/prerequisites/ directory"
         error "Please navigate to the correct directory and try again"
         exit 1

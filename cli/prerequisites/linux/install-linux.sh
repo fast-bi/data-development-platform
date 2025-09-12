@@ -36,21 +36,16 @@ command_exists() {
 
 # Function to detect Linux distribution
 detect_distribution() {
-    log "Detecting Linux distribution..."
-    
     if [[ -f /etc/os-release ]]; then
         . /etc/os-release
         local distro="$ID"
         local version="$VERSION_ID"
-        log "Distribution: $distro $version"
         echo "$distro"
     elif command_exists lsb_release; then
         local distro=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
         local version=$(lsb_release -sr)
-        log "Distribution: $distro $version"
         echo "$distro"
     else
-        warn "Could not detect distribution, assuming generic Linux"
         echo "linux"
     fi
 }
@@ -151,6 +146,84 @@ install_python() {
     fi
 }
 
+# Ensure 'python' and 'pip' commands are available (alias to Python 3)
+ensure_python_shims() {
+    log "Ensuring 'python' and 'pip' commands resolve to Python 3..."
+    local distro=$1
+    case $distro in
+        "ubuntu"|"debian")
+            # Prefer distro-provided shim if available
+            if command_exists apt-get; then
+                sudo apt-get install -y python-is-python3 || true
+            fi
+            ;;
+    esac
+    # Fallback symlinks if still missing
+    if ! command_exists python && command_exists python3; then
+        if [[ -w /usr/bin ]]; then
+            sudo ln -sf "$(command -v python3)" /usr/bin/python
+        else
+            warn "/usr/bin not writable; skipping python shim"
+        fi
+    fi
+    if ! command_exists pip && command_exists pip3; then
+        if [[ -w /usr/bin ]]; then
+            sudo ln -sf "$(command -v pip3)" /usr/bin/pip
+        else
+            warn "/usr/bin not writable; skipping pip shim"
+        fi
+    fi
+    # Verify
+    if command_exists python; then
+        success "python -> $(python -V 2>&1)"
+    else
+        warn "'python' command still not available"
+    fi
+    if command_exists pip; then
+        success "pip -> $(pip --version 2>&1)"
+    else
+        warn "'pip' command still not available"
+    fi
+}
+
+# Function to install Python requirements
+install_python_requirements() {
+    log "Installing Python dependencies..."
+    
+    # Resolve repo root and requirements path
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local repo_root
+    repo_root="$(cd "$script_dir/../../.." && pwd)"
+    local requirements_file="$repo_root/cli/prerequisites/requirements.txt"
+    
+    if [[ ! -f "$requirements_file" ]]; then
+        warn "requirements.txt not found at $requirements_file; skipping"
+        return 0
+    fi
+    
+    # Ensure pip present
+    if ! python3 -m pip --version >/dev/null 2>&1; then
+        warn "pip for Python3 not found; attempting to install"
+        if command_exists apt-get; then
+            sudo apt-get install -y python3-pip || true
+        fi
+    fi
+    
+    # Upgrade pip tooling (best effort)
+    python3 -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true
+    
+    # Install requirements - handle externally-managed-environment
+    log "Installing Python packages from requirements.txt..."
+    if [[ $EUID -eq 0 ]]; then
+        python3 -m pip install --break-system-packages -r "$requirements_file"
+    else
+        python3 -m pip install --user --break-system-packages -r "$requirements_file"
+    fi
+    
+    success "Python dependencies installed"
+}
+
 # Function to install kubectl
 install_kubectl() {
     log "Installing kubectl..."
@@ -188,13 +261,27 @@ install_gcloud() {
         return 0
     fi
     
-    # Download and install gcloud CLI
-    log "Downloading gcloud CLI..."
-    curl https://sdk.cloud.google.com | bash
-    
-    # Add to PATH for current session
-    source "$HOME/google-cloud-sdk/path.bash.inc"
-    source "$HOME/google-cloud-sdk/completion.bash.inc"
+    local distro=$1
+    case $distro in
+        "ubuntu"|"debian")
+            log "Installing gcloud via apt repository"
+            sudo apt-get install -y apt-transport-https ca-certificates gnupg
+            curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+            echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list > /dev/null
+            sudo apt-get update
+            sudo apt-get install -y google-cloud-cli
+            ;;
+        *)
+            log "Installing gcloud to /opt via official installer (non-interactive)..."
+            curl -sSL https://sdk.cloud.google.com | bash -s -- --disable-prompts --install-dir=/opt
+            # Create symlinks for key commands
+            for cmd in gcloud gsutil bq; do
+                if [[ -f "/opt/google-cloud-sdk/bin/$cmd" ]]; then
+                    sudo ln -sf "/opt/google-cloud-sdk/bin/$cmd" "/usr/local/bin/$cmd"
+                fi
+            done
+            ;;
+    esac
     
     # Verify installation
     if command_exists gcloud; then
@@ -253,16 +340,22 @@ install_terraform() {
 
 # Function to install Terragrunt
 install_terragrunt() {
-    log "Installing Terragrunt..."
+    log "Installing Terragrunt v0.84.0..."
     
     if command_exists terragrunt; then
-        log "Terragrunt already installed"
-        return 0
+        local current_version=$(terragrunt --version | head -n1)
+        if [[ "$current_version" == *"v0.84.0"* ]]; then
+            log "Terragrunt v0.84.0 already installed"
+            return 0
+        else
+            warn "Terragrunt $current_version installed, but v0.84.0 is required"
+            log "Updating to Terragrunt v0.84.0..."
+        fi
     fi
     
-    # Download latest Terragrunt
-    log "Downloading latest Terragrunt..."
-    local terragrunt_version=$(curl -s https://api.github.com/repos/gruntwork-io/terragrunt/releases/latest | grep '"tag_name":' | cut -d'"' -f4)
+    # Download specific Terragrunt version v0.84.0
+    log "Downloading Terragrunt v0.84.0..."
+    local terragrunt_version="v0.84.0"
     local terragrunt_url="https://github.com/gruntwork-io/terragrunt/releases/download/${terragrunt_version}/terragrunt_linux_amd64"
     
     curl -LO "$terragrunt_url"
@@ -272,7 +365,12 @@ install_terragrunt() {
     # Verify installation
     if command_exists terragrunt; then
         local version=$(terragrunt --version | head -n1)
-        success "Terragrunt installed successfully: $version"
+        if [[ "$version" == *"v0.84.0"* ]]; then
+            success "Terragrunt v0.84.0 installed successfully: $version"
+        else
+            error "Terragrunt version mismatch. Expected v0.84.0, got: $version"
+            exit 1
+        fi
     else
         error "Terragrunt installation failed"
         exit 1
@@ -402,37 +500,97 @@ install_additional_tools() {
 configure_shell_profiles() {
     log "Configuring shell profiles..."
     
-    local shell_profile=""
-    
-    # Determine shell and profile files
-    case "$SHELL" in
-        */zsh)
-            shell_profile="$HOME/.zshrc"
-            ;;
-        */bash)
-            shell_profile="$HOME/.bashrc"
-            ;;
-        *)
-            warn "Unknown shell: $SHELL"
-            return 0
-            ;;
-    esac
-    
-    # Add gcloud CLI to profile if not already there
-    if [[ -f "$shell_profile" ]] && grep -q "google-cloud-sdk" "$shell_profile"; then
-        log "gcloud CLI path already configured in $shell_profile"
-    else
-        log "Adding gcloud CLI to $shell_profile..."
-        echo "" >> "$shell_profile"
-        echo "# Google Cloud SDK" >> "$shell_profile"
-        echo 'source "$HOME/google-cloud-sdk/path.bash.inc"' >> "$shell_profile"
-        echo 'source "$HOME/google-cloud-sdk/completion.bash.inc"' >> "$shell_profile"
-        success "gcloud CLI path added to $shell_profile"
+    # If gcloud already resolves on PATH, no profile edits needed
+    if command_exists gcloud; then
+        log "gcloud already on PATH; skipping profile configuration"
+        return 0
     fi
     
-    # Reload shell profile for current session
+    # Prefer system locations first
+    local gcloud_path=""
+    if [[ -d "/opt/google-cloud-sdk" ]]; then
+        gcloud_path="/opt/google-cloud-sdk"
+        log "Using /opt/google-cloud-sdk for PATH sourcing"
+    elif [[ -d "/usr/lib/google-cloud-sdk" ]]; then
+        gcloud_path="/usr/lib/google-cloud-sdk"
+        log "Using /usr/lib/google-cloud-sdk for PATH sourcing"
+    elif [[ -d "$HOME/google-cloud-sdk" ]]; then
+        gcloud_path="$HOME/google-cloud-sdk"
+        log "Using $HOME/google-cloud-sdk for PATH sourcing"
+    elif [[ -d "/root/google-cloud-sdk" ]]; then
+        # Do NOT write /root paths into user profiles; only use for system profile
+        gcloud_path="/root/google-cloud-sdk"
+        log "gcloud only found under /root; will configure system profile only"
+    else
+        warn "gcloud CLI installation not found for profile configuration"
+        return 0
+    fi
+    
+    # Get the actual user (not root if running with sudo)
+    local actual_user="${SUDO_USER:-$USER}"
+    local user_home="/home/$actual_user"
+    if [[ "$actual_user" == "root" ]]; then
+        user_home="$HOME"
+    fi
+    
+    local shell_profile="$user_home/.bashrc"
+    if [[ "$SHELL" == *"zsh"* ]]; then
+        shell_profile="$user_home/.zshrc"
+    fi
+    
+    # Cleanup stale entries pointing to non-existent locations
     if [[ -f "$shell_profile" ]]; then
-        source "$shell_profile"
+        if grep -q "google-cloud-sdk" "$shell_profile"; then
+            log "Cleaning stale google-cloud-sdk entries in $shell_profile (if any)"
+            sed -i '\~google-cloud-sdk~d' "$shell_profile"
+        fi
+    fi
+    
+    # Only add user profile sourcing if not using apt (apt puts gcloud in /usr/bin)
+    if ! command_exists gcloud; then
+        if [[ -f "$gcloud_path/path.bash.inc" ]]; then
+            log "Adding gcloud sourcing to $shell_profile"
+            echo "" >> "$shell_profile"
+            echo "# Google Cloud SDK" >> "$shell_profile"
+            echo "source \"$gcloud_path/path.bash.inc\"" >> "$shell_profile"
+            if [[ -f "$gcloud_path/completion.bash.inc" ]]; then
+                echo "source \"$gcloud_path/completion.bash.inc\"" >> "$shell_profile"
+            fi
+        fi
+    fi
+    
+    # System-wide profile for all users; safe to reference /opt or /usr/lib
+    if [[ -f "/etc/profile.d/gcloud.sh" ]]; then
+        log "System-wide gcloud profile already exists"
+    else
+        log "Creating system-wide gcloud profile at /etc/profile.d/gcloud.sh"
+        sudo tee /etc/profile.d/gcloud.sh > /dev/null << EOF
+# Google Cloud SDK - Global Configuration
+if [ -f "/opt/google-cloud-sdk/path.bash.inc" ]; then
+    . "/opt/google-cloud-sdk/path.bash.inc"
+elif [ -f "/usr/lib/google-cloud-sdk/path.bash.inc" ]; then
+    . "/usr/lib/google-cloud-sdk/path.bash.inc"
+elif [ -f "$HOME/google-cloud-sdk/path.bash.inc" ]; then
+    . "$HOME/google-cloud-sdk/path.bash.inc"
+fi
+if [ -f "/opt/google-cloud-sdk/completion.bash.inc" ]; then
+    . "/opt/google-cloud-sdk/completion.bash.inc"
+elif [ -f "/usr/lib/google-cloud-sdk/completion.bash.inc" ]; then
+    . "/usr/lib/google-cloud-sdk/completion.bash.inc"
+elif [ -f "$HOME/google-cloud-sdk/completion.bash.inc" ]; then
+    . "$HOME/google-cloud-sdk/completion.bash.inc"
+fi
+EOF
+        success "System-wide gcloud CLI profile created"
+    fi
+    
+    # Also add to /etc/bash.bashrc (idempotent)
+    if ! grep -q "google-cloud-sdk" /etc/bash.bashrc; then
+        log "Adding gcloud sourcing to /etc/bash.bashrc"
+        echo "" | sudo tee -a /etc/bash.bashrc > /dev/null
+        echo "# Google Cloud SDK" | sudo tee -a /etc/bash.bashrc > /dev/null
+        echo "[ -f /etc/profile.d/gcloud.sh ] && . /etc/profile.d/gcloud.sh" | sudo tee -a /etc/bash.bashrc > /dev/null
+        success "gcloud sourcing added to /etc/bash.bashrc"
     fi
 }
 
@@ -477,8 +635,13 @@ show_next_steps() {
     echo "  - CLI help: python3 cli.py --help"
     echo "  - Deployment guide: docs/"
     echo ""
-    echo "⚠️  Note: You may need to restart your terminal or run 'source ~/.bashrc' (or ~/.zshrc)"
-    echo "   to ensure all tools are in your PATH"
+    echo "⚠️  Important PATH Notes:"
+    echo "  - gcloud CLI has been configured globally for all users"
+    echo "  - Added to: /etc/profile.d/gcloud.sh and /etc/bash.bashrc"
+    echo "  - You may need to restart your terminal or run:"
+    echo "    source /etc/profile.d/gcloud.sh"
+    echo "  - Or start a new terminal session"
+    echo "  - gcloud CLI is now accessible from any user account"
     echo ""
     echo "🐳 Docker users: You may need to logout and login again for Docker group permissions"
 }
@@ -490,7 +653,17 @@ main() {
     echo ""
     
     # Detect distribution
+    log "Detecting Linux distribution..."
     local distro=$(detect_distribution)
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        log "Distribution: $ID $VERSION_ID"
+    elif command_exists lsb_release; then
+        local version=$(lsb_release -sr)
+        log "Distribution: $distro $version"
+    else
+        log "Distribution: $distro (generic Linux)"
+    fi
     
     # Check privileges
     check_privileges
@@ -500,12 +673,14 @@ main() {
     
     # Install Python
     install_python "$distro"
+    # Ensure python/pip shims
+    ensure_python_shims "$distro"
     
     # Install kubectl
     install_kubectl
     
     # Install gcloud CLI
-    install_gcloud
+    install_gcloud "$distro"
     
     # Install Terraform
     install_terraform "$distro"
@@ -518,6 +693,9 @@ main() {
     
     # Install additional tools
     install_additional_tools "$distro"
+    
+    # Install Python requirements
+    install_python_requirements
     
     # Configure shell profiles
     configure_shell_profiles

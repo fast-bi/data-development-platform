@@ -141,6 +141,63 @@ install_python() {
     fi
 }
 
+# Ensure 'python' and 'pip' commands are available (alias to Python 3)
+ensure_python_shims() {
+    log "Ensuring 'python' and 'pip' commands resolve to Python 3..."
+    # On macOS with Homebrew, python3 is installed; create shims if missing
+    if ! command_exists python && command_exists python3; then
+        sudo ln -sf "$(command -v python3)" /usr/local/bin/python || true
+        sudo ln -sf "$(command -v python3)" /opt/homebrew/bin/python || true
+    fi
+    if ! command_exists pip && command_exists pip3; then
+        sudo ln -sf "$(command -v pip3)" /usr/local/bin/pip || true
+        sudo ln -sf "$(command -v pip3)" /opt/homebrew/bin/pip || true
+    fi
+    # Verify
+    if command_exists python; then
+        success "python -> $(python -V 2>&1)"
+    else
+        warn "'python' command still not available"
+    fi
+    if command_exists pip; then
+        success "pip -> $(pip --version 2>&1)"
+    else
+        warn "'pip' command still not available"
+    fi
+}
+
+# Function to install Python requirements
+install_python_requirements() {
+    log "Installing Python dependencies..."
+    
+    # Resolve repo root and requirements path
+    local script_dir
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local repo_root
+    repo_root="$(cd "$script_dir/../../.." && pwd)"
+    local requirements_file="$repo_root/prerequisites/requirements.txt"
+    
+    if [[ ! -f "$requirements_file" ]]; then
+        warn "requirements.txt not found at $requirements_file; skipping"
+        return 0
+    fi
+    
+    # Ensure pip present
+    if ! python3 -m pip --version >/dev/null 2>&1; then
+        warn "pip for Python3 not found; attempting to install via Homebrew python"
+        brew install python@3.11 || true
+    fi
+    
+    # Upgrade pip tooling (best effort)
+    python3 -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true
+    
+    # Install requirements for current user (macOS typically doesn't have externally-managed-environment)
+    log "Installing Python packages from requirements.txt..."
+    python3 -m pip install --user -r "$requirements_file"
+    
+    success "Python dependencies installed"
+}
+
 # Function to install kubectl
 install_kubectl() {
     log "Installing kubectl..."
@@ -216,21 +273,37 @@ install_terraform() {
 
 # Function to install Terragrunt
 install_terragrunt() {
-    log "Installing Terragrunt..."
+    log "Installing Terragrunt v0.84.0..."
     
     if command_exists terragrunt; then
-        log "Terragrunt already installed"
-        return 0
+        local current_version=$(terragrunt --version | head -n1)
+        if [[ "$current_version" == *"v0.84.0"* ]]; then
+            log "Terragrunt v0.84.0 already installed"
+            return 0
+        else
+            warn "Terragrunt $current_version installed, but v0.84.0 is required"
+            log "Updating to Terragrunt v0.84.0..."
+        fi
     fi
     
-    # Install Terragrunt via Homebrew
-    log "Installing Terragrunt via Homebrew..."
-    brew install terragrunt
+    # Download specific Terragrunt version v0.84.0
+    log "Downloading Terragrunt v0.84.0..."
+    local terragrunt_version="v0.84.0"
+    local terragrunt_url="https://github.com/gruntwork-io/terragrunt/releases/download/${terragrunt_version}/terragrunt_darwin_amd64"
+    
+    curl -LO "$terragrunt_url"
+    chmod +x terragrunt_darwin_amd64
+    sudo mv terragrunt_darwin_amd64 /usr/local/bin/terragrunt
     
     # Verify installation
     if command_exists terragrunt; then
         local version=$(terragrunt --version | head -n1)
-        success "Terragrunt installed successfully: $version"
+        if [[ "$version" == *"v0.84.0"* ]]; then
+            success "Terragrunt v0.84.0 installed successfully: $version"
+        else
+            error "Terragrunt version mismatch. Expected v0.84.0, got: $version"
+            exit 1
+        fi
     else
         error "Terragrunt installation failed"
         exit 1
@@ -424,6 +497,8 @@ main() {
     
     # Install Python
     install_python
+    # Ensure python/pip shims
+    ensure_python_shims
     
     # Install kubectl
     install_kubectl
@@ -442,6 +517,9 @@ main() {
     
     # Install additional tools
     install_additional_tools
+    
+    # Install Python requirements
+    install_python_requirements
     
     # Configure shell profiles
     configure_shell_profiles
