@@ -1,6 +1,9 @@
 # Fast.BI CLI Python Dependencies
 # Install with: pip install -r requirements.txt
 
+# Flask
+flask
+
 # Core CLI framework
 click>=8.0.0
 
