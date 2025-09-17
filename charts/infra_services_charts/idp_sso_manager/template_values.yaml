@@ -1241,7 +1241,7 @@ keycloakConfigCli:
   ##
   image:
     registry: docker.io
-    repository: bitnami/keycloak-config-cli
+    repository: bitnamilegacy/keycloak-config-cli
     ## Specify a imagePullPolicy
     ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
     ##

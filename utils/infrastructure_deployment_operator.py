@@ -17,8 +17,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('infrastructure_deployment.log')
+        logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger('infrastructure_deployment_operator')

@@ -1080,6 +1080,11 @@ postgresql:
 # More documentation can be found here: https://artifacthub.io/packages/helm/bitnami/redis
 # @default -- see `values.yaml`
 redis:
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/redis
+    tag: 8.2.1
+    pullPolicy: IfNotPresent
   ##
   ## Use the redis chart dependency.
   ##

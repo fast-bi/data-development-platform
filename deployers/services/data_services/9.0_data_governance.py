@@ -16,7 +16,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('data_governance_deployment.log'),
         logging.StreamHandler()
     ]
 )
@@ -210,6 +209,7 @@ class DataGovernanceDeployer:
                 "--namespace", namespace,
                 "--create-namespace",
                 "--wait",
+                "--timeout", "30m",
                 "--values", values_path,
                 "--kubeconfig", self.kube_config
             ]

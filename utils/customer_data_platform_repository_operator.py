@@ -16,8 +16,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('customer_data_platform_repository.log')
+        logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger('customer_data_platform_repository_operator')

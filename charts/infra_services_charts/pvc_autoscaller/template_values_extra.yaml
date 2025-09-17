@@ -65,7 +65,7 @@ spec:
           restartPolicy: Never
           containers:
           - name: patch-job
-            image: bitnami/kubectl:latest
+            image: bitnamilegacy/kubectl:1.33.4
             imagePullPolicy: IfNotPresent
             command:
             - /bin/bash
