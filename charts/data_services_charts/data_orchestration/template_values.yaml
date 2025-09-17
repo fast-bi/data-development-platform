@@ -3316,8 +3316,8 @@ postgresql:
 {%- endif %}
   fullnameOverride: "data-orchestration-db-psql"
   image:
-    repository: bitnami/postgresql
-    tag: 16.2.0
+    repository: bitnamilegacy/postgresql
+    tag: 16.6.0
   architecture: replication
   primary:
     replicaCount: 1

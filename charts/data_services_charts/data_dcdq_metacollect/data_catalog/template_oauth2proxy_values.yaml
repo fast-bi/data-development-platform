@@ -4,6 +4,11 @@
 # Helm Chart repo: {{ chart_repo }}
 # Helm Chart version {{ chart_version }}
 {%- raw %}
+
+global:
+  security:
+    allowInsecureImages: true
+
 ## Override the deployment namespace
 ##
 namespaceOverride: ""
@@ -354,7 +359,8 @@ initContainers:
   waitForRedis:
     enabled: false
     image:
-      repository: "docker.io/bitnami/kubectl"
+      repository: "docker.io/bitnamilegacy/kubectl"
+      tag: "1.33.4"
       pullPolicy: "IfNotPresent"
     # uses the kubernetes version of the cluster
     # the chart is deployed on, if not set
@@ -425,6 +431,11 @@ sessionStorage:
 # Enables and configure the automatic deployment of the redis subchart
 redis:
   # provision an instance of the redis sub-chart
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/redis
+    tag: 8.2.1
+    pullPolicy: IfNotPresent
   enabled: true
   architecture: standalone
   # Redis specific helm chart settings, please see:

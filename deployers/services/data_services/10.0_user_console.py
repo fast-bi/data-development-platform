@@ -11,12 +11,11 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from typing import Optional
 
-# Configure logging
+# Configure logging for import usage (no file handler by default)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('user_console_deployment.log'),
         logging.StreamHandler()
     ]
 )

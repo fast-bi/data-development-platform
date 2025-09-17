@@ -219,8 +219,6 @@ datahub-frontend:
       value: "groups"
     - name: AUTH_VERBOSE_LOGGING
       value: "false"
-    - name: AUTH_SESSION_TTL_HOURS
-      value: "6"
     - name: MAX_SESSION_TOKEN_AGE
       value: "6h"
 acryl-datahub-actions:
