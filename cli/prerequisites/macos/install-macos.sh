@@ -286,8 +286,10 @@ install_terragrunt() {
         fi
     fi
     
+
     # Download specific Terragrunt version v0.84.0
     log "Downloading Terragrunt v0.84.0..."
+    
     local terragrunt_version="v0.84.0"
     local terragrunt_url="https://github.com/gruntwork-io/terragrunt/releases/download/${terragrunt_version}/terragrunt_darwin_amd64"
     
@@ -428,6 +430,21 @@ configure_shell_profiles() {
         echo 'source "$(brew --prefix)/share/google-cloud-sdk/completion.bash.inc"' >> "$shell_profile"
         success "gcloud CLI path added to $shell_profile"
     fi
+    
+    # Configure Terragrunt cache location to prevent long path issues
+    if [[ -f "$shell_profile" ]] && grep -q "TERRAGRUNT_DOWNLOAD" "$shell_profile"; then
+        log "Terragrunt cache location already configured in $shell_profile"
+    else
+        log "Adding Terragrunt cache configuration to $shell_profile..."
+        echo "" >> "$shell_profile"
+        echo "# Terragrunt cache configuration (prevents long path issues)" >> "$shell_profile"
+        echo 'export TERRAGRUNT_DOWNLOAD="/tmp/terragrunt-cache"' >> "$shell_profile"
+        success "Terragrunt cache location configured in $shell_profile"
+    fi
+    
+    # Create the cache directory
+    mkdir -p /tmp/terragrunt-cache
+    success "Created Terragrunt cache directory: /tmp/terragrunt-cache"
     
     # Reload shell profile for current session
     if [[ -f "$shell_profile" ]]; then

@@ -63,9 +63,9 @@ if %psversion% lss 5 (
 echo PowerShell version check passed: %psversion%
 echo.
 
-REM Run the PowerShell installer
-echo Running PowerShell installer...
-powershell -ExecutionPolicy Bypass -File "install-prerequisites.ps1"
+REM Run the Windows PowerShell installer
+echo Running Windows PowerShell installer...
+powershell -ExecutionPolicy Bypass -File "windows\install-windows.ps1"
 
 if %errorlevel% equ 0 (
     echo.
@@ -79,8 +79,8 @@ if %errorlevel% equ 0 (
     echo 3. Clone the repository in WSL2
     echo 4. Run the Linux prerequisites installer
     echo 5. Use the CLI from within WSL2
-    echo.
-    echo For more information, see the README files.
+    echo For verification, run: .\verify-prerequisites.ps1
+
     echo.
 ) else (
     echo.

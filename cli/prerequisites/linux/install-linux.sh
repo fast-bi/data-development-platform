@@ -353,6 +353,7 @@ install_terragrunt() {
         fi
     fi
     
+
     # Download specific Terragrunt version v0.84.0
     log "Downloading Terragrunt v0.84.0..."
     local terragrunt_version="v0.84.0"
@@ -533,12 +534,22 @@ configure_shell_profiles() {
         user_home="$HOME"
     fi
     
-    local shell_profile="$user_home/.bashrc"
-    if [[ "$SHELL" == *"zsh"* ]]; then
-        shell_profile="$user_home/.zshrc"
+    # Configure Terragrunt cache location to prevent long path issues
+    if [[ -f "$shell_profile" ]] && grep -q "TERRAGRUNT_DOWNLOAD" "$shell_profile"; then
+        log "Terragrunt cache location already configured in $shell_profile"
+    else
+        log "Adding Terragrunt cache configuration to $shell_profile..."
+        echo "" >> "$shell_profile"
+        echo "# Terragrunt cache configuration (prevents long path issues)" >> "$shell_profile"
+        echo 'export TERRAGRUNT_DOWNLOAD="/tmp/terragrunt-cache"' >> "$shell_profile"
+        success "Terragrunt cache location configured in $shell_profile"
     fi
     
-    # Cleanup stale entries pointing to non-existent locations
+    # Create the cache directory
+    mkdir -p /tmp/terragrunt-cache
+    success "Created Terragrunt cache directory: /tmp/terragrunt-cache"
+    
+    # Reload shell profile for current session
     if [[ -f "$shell_profile" ]]; then
         if grep -q "google-cloud-sdk" "$shell_profile"; then
             log "Cleaning stale google-cloud-sdk entries in $shell_profile (if any)"

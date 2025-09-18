@@ -244,7 +244,7 @@ class GoogleCloudManager:
             if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
                 env['GOOGLE_APPLICATION_CREDENTIALS'] = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
 
-            result = subprocess.run(command, env=env, check=True, capture_output=True, text=True)
+            result = subprocess.run(command, env=env, check=True, capture_output=True, text=True, shell=True)
             
             # Save the result to a file
             with open(output_file_path, 'w') as f:
@@ -302,8 +302,8 @@ class GoogleCloudManager:
     def check_gcloud_auth(self):
         """Check if gcloud authentication is properly configured"""
         try:
-            result = subprocess.run(["gcloud", "auth", "list", "--filter=status:ACTIVE", "--format=value(account)"], 
-                                  capture_output=True, text=True, check=True)
+            result = subprocess.run("gcloud auth list --filter=status:ACTIVE --format=value(account)", 
+                                  capture_output=True, text=True, check=True, shell=True)
             if result.stdout.strip():
                 logger.info(f"gcloud authentication found for account: {result.stdout.strip()}")
                 return True
@@ -345,8 +345,8 @@ class GoogleCloudManager:
                     logger.info("Using local gcloud authentication (CLI mode)")
                     # Check if user is authenticated with gcloud
                     try:
-                        result = subprocess.run(["gcloud", "auth", "list", "--filter=status:ACTIVE", "--format=value(account)"], 
-                                              capture_output=True, text=True, check=True)
+                        result = subprocess.run("gcloud auth list --filter=status:ACTIVE --format=value(account)", 
+                                              capture_output=True, text=True, check=True, shell=True)
                         if result.stdout.strip():
                             logger.info(f"Using gcloud authentication for account: {result.stdout.strip()}")
                         else:

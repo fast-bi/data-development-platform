@@ -1,10 +1,11 @@
-# Fast.BI CLI Prerequisites Installation
+# Fast.BI CLI Prerequisites Installer
 
-This directory contains scripts to install all required tools and dependencies for the Fast.BI CLI on different operating systems.
+This directory contains intelligent installation scripts that check what's already installed and only install missing components.
 
-## Required Tools
+## Version Consistency
 
-Based on the Fast.BI CLI requirements, the following tools need to be installed:
+All tools are now standardized to use consistent versions across platforms to ensure identical behavior:
+
 
 ### Core Requirements
 - **Python >=3.9**: For running the Fast.BI CLI
@@ -12,47 +13,76 @@ Based on the Fast.BI CLI requirements, the following tools need to be installed:
 - **gcloud CLI**: Google Cloud command-line tool (required for authentication)
 - **Terraform**: Infrastructure as Code tool for GCP resource management
 - **Terragrunt v0.84.0**: Terraform wrapper for keeping configurations DRY (specific version required)
-- **Helm**: Kubernetes package manager for deploying applications
 
-### Additional Dependencies
-- **Git**: For repository operations
-- **Docker**: For container operations (optional but recommended)
-- **jq**: JSON processor for configuration files
-- **curl/wget**: For downloading tools
+See `versions.yaml` for detailed version configuration and compatibility information.
 
-## Installation Methods
+## 🚀 Quick Start
 
-### Option 1: Automatic Installation (Recommended)
-Run the main installer script for your platform:
-
-**macOS/Linux:**
-```bash
-./install-prerequisites.sh
+### Option 1: Batch File (Recommended)
+```cmd
+install-prerequisites.bat
 ```
 
-**Windows (WSL2):**
-```powershell
-.\install-prerequisites.ps1
-```
-
-### Option 2: Manual Installation
-Use the platform-specific scripts:
-
-**macOS:**
-```bash
-./macos/install-macos.sh
-```
-
-**Linux:**
-```bash
-./linux/install-linux.sh
-```
-
+=======
 **Windows (WSL2):**
 ```powershell
 .\windows\install-windows.ps1
 ```
 
+## 📋 What Gets Installed
+
+The installer intelligently checks and installs:
+
+- **Python 3.11+** (with Microsoft Store aliases disabled)
+- **kubectl** (Kubernetes CLI)
+- **gcloud CLI** (Google Cloud CLI with fallback installation)
+- **Terraform** (Infrastructure as Code)
+- **Terragrunt** (Terraform wrapper)
+- **Helm** (Kubernetes package manager)
+- **Git** (Version control)
+- **jq** (JSON processor)
+- **curl** (HTTP client)
+- **Docker Desktop** (Container platform - optional)
+
+## 🔍 Features
+
+### Intelligent Installation
+- ✅ **Checks existing installations** - Only installs what's missing
+- ✅ **Version verification** - Ensures minimum required versions
+- ✅ **Microsoft Store alias handling** - Automatically disables problematic Python aliases
+- ✅ **Fallback installation methods** - Multiple installation strategies for reliability
+- ✅ **Comprehensive logging** - Detailed logs saved to `logs/` directory
+- ✅ **Error resilience** - Continues installation even if some tools fail
+
+### Smart Detection
+- Detects already installed tools and their versions
+- Skips installation if tool meets requirements
+- Handles version conflicts and updates
+- Manages environment variables automatically
+
+## 📁 Files
+
+- `install-prerequisites.bat` - Windows batch file wrapper
+- `verify-prerequisites.ps1` - Verification script (Windows)
+- `windows/install-windows.ps1` - Windows installer
+- `install-prerequisites.sh` - Linux/macOS entrypoint
+- `linux/` - Linux installer scripts (if present)
+- `macos/` - macOS installer scripts (if present)
+- `logs/` - Installation logs directory
+
+## 🔧 Usage Examples
+
+### Run Complete Installation (Windows)
+=======
+**Windows (WSL2):**
+
+```powershell
+# Run as Administrator
+.\windows\install-windows.ps1
+```
+
+### Verify Installation
+=======
 ## Windows Installation (WSL2)
 
 **Important:** Fast.BI CLI now requires WSL2 (Windows Subsystem for Linux) for Windows compatibility. This ensures consistent behavior across all platforms and eliminates Windows-specific issues.
@@ -106,108 +136,65 @@ After installation, run the verification script:
 .\verify-prerequisites.ps1
 ```
 
-## Troubleshooting
+### Linux/macOS
+```bash
+chmod +x install-prerequisites.sh
+./install-prerequisites.sh
+```
+
+## 📊 Installation Logs
+
+All installations are logged to the `logs/` directory with timestamps:
+- `logs/install-YYYYMMDD-HHMMSS.log`
+
+## ⚠️ Requirements
+
+- **Windows 10/11** or Windows Server 2016+
+- **PowerShell 5.1** or later
+- **Administrator privileges**
+- **Internet connection**
+
+## 🎯 After Installation
+
+1. **Restart your terminal/PowerShell session**
+2. **Configure cloud provider credentials**:
+   ```bash
+   gcloud auth login
+   gcloud config set project YOUR_PROJECT_ID
+   ```
+3. **Run the Fast.BI CLI**:
+   ```bash
+   python cli.py --help
+   ```
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **Permission Denied**: Run with sudo (Linux/macOS) or as Administrator (Windows)
-2. **Python Version**: Ensure Python 3.9+ is installed and in PATH
-3. **Network Issues**: Check firewall and proxy settings
-4. **Disk Space**: Ensure sufficient disk space for tool installations
+1. **Python Microsoft Store aliases**
+   - The installer automatically handles this
+   - If issues persist, manually disable in Windows Settings > Apps > Advanced app settings > App execution aliases
 
-### Platform-Specific Issues
+2. **gcloud CLI installation fails**
+   - The installer has a fallback method
+   - If both fail, install manually from: https://cloud.google.com/sdk/docs/install
 
-#### macOS
-- If Homebrew is not installed, the script will install it automatically
-- For M1/M2 Macs, ensure Rosetta 2 is installed if needed
+3. **Tools not found after installation**
+   - Restart your terminal/PowerShell session
+   - Run `refreshenv` in PowerShell
+   - Check the installation logs in `logs/` directory
 
-#### Linux
-- Some distributions may require enabling additional repositories
-- SELinux/AppArmor may need configuration for certain tools
+### Getting Help
 
-#### Windows
-- PowerShell execution policy may need to be set to RemoteSigned
-- Chocolatey installation may require administrative privileges
+- Check installation logs in `logs/` directory
+- Run verification script: `.\verify-prerequisites.ps1`
+- Ensure you're running as Administrator
+- Verify internet connection and disk space
 
-## Manual Tool Installation
+## 🔄 Re-running Installation
 
-If automatic installation fails, you can install tools manually:
-
-### Python
-- **macOS**: Download from python.org or use Homebrew
-- **Linux**: Use system package manager or download from python.org
-- **Windows**: Download from python.org or use Chocolatey
-
-### kubectl
-```bash
-# Download latest version
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl
-sudo mv kubectl /usr/local/bin/
-```
-
-### gcloud CLI
-```bash
-# Download and install
-curl https://sdk.cloud.google.com | bash
-exec -l $SHELL
-gcloud init
-```
-
-### Terraform
-```bash
-# Download and install
-curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs)"
-sudo apt-get update && sudo apt-get install terraform
-```
-
-### Terragrunt
-```bash
-# Download and install
-sudo curl -fsSL -o /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.45.0/terragrunt_linux_amd64
-sudo chmod +x /usr/local/bin/terragrunt
-```
-
-### Helm
-```bash
-# Download and install
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-```
-
-## Configuration
-
-After installation, some tools may require configuration:
-
-### gcloud CLI
-```bash
-gcloud auth login
-gcloud config set project YOUR_PROJECT_ID
-```
-
-### kubectl
-```bash
-# Configure context for your cluster
-kubectl config set-cluster my-cluster --server=https://your-cluster-endpoint
-kubectl config set-context my-context --cluster=my-cluster
-kubectl config use-context my-context
-```
-
-### Terraform
-```bash
-# Initialize Terraform (when using in a project)
-terraform init
-```
-
-## Updates
-
-To update installed tools, run the installation script again. It will check for newer versions and update if available.
-
-## Support
-
-For issues with the prerequisites installation:
-
-1. Check the troubleshooting section above
-2. Review the platform-specific logs in the `logs/` directory
-3. Ensure your system meets the minimum requirements
-4. Check for platform-specific documentation in each subdirectory
+The installer is safe to run multiple times:
+- Skips already installed tools
+- Updates tools if newer versions are available
+- Only installs missing components
+- Preserves existing configurations
