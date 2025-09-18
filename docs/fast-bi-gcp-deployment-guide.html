@@ -1,24 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fast.BI GCP Deployment Guide</title>
     <style>
         .fastbi-deployment-guide {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f8f9fa;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            box-sizing: border-box;
         }
         .fastbi-deployment-guide .fastbi-container {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: transparent;
+            padding: 0;
+            border-radius: 0;
+            box-shadow: none;
         }
         .fastbi-deployment-guide .fastbi-h1 {
             color: #2c3e50;
@@ -238,8 +233,7 @@
             font-weight: bold;
         }
     </style>
-</head>
-<body class="fastbi-deployment-guide">
+<div class="fastbi-deployment-guide">
     <div class="fastbi-container">
         <h1 class="fastbi-h1">🚀 Fast.BI Data Development Platform - GCP Deployment Guide</h1>
         
@@ -286,8 +280,8 @@
             </ul>
         </div>
 
-        <div class="prerequisites">
-            <h3>Required Accounts & Resources</h3>
+        <div class="fastbi-prerequisites">
+            <h3 class="fastbi-h3">Required Accounts & Resources</h3>
             <ul>
                 <li><strong>GCP Account</strong> with billing enabled</li>
                 <li><strong>Custom Domain</strong> (e.g., yourcompany.com)</li>
@@ -296,7 +290,7 @@
             </ul>
         </div>
 
-        <h2 id="gcp-setup">☁️ GCP Account Setup</h2>
+        <h2 class="fastbi-h2" id="gcp-setup">☁️ GCP Account Setup</h2>
 
         <div class="fastbi-step">
             <span class="fastbi-step-number">1</span>
@@ -330,8 +324,8 @@ brew install google-cloud-sdk
 curl https://sdk.cloud.google.com | bash
 exec -l $SHELL
 </br>
-# Windows
-# Download from: https://cloud.google.com/sdk/docs/install
+# Windows </br>
+# Download from: https://cloud.google.com/sdk/docs/install </br>
             </div>
         </div>
 
@@ -344,7 +338,7 @@ gcloud auth application-default login </br>
             </div>
         </div>
 
-        <h2 id="git-setup">🔧 Git Repository Setup</h2>
+        <h2 class="fastbi-h2" id="git-setup">🔧 Git Repository Setup</h2>
 
         <div class="fastbi-alert fastbi-alert-warning">
             <strong>Important:</strong> You need to create two Git repositories before starting the deployment. These are mandatory for the platform to function.
@@ -825,5 +819,4 @@ python cli.py --cleanup
             <strong>Need Help?</strong> Check the troubleshooting section above or open an issue on GitHub.
         </p>
     </div>
-</body>
-</html>
+</div>

@@ -113,6 +113,8 @@ A specialized Airflow package available on PyPI that provides flexible execution
 
 ## 🚀 Getting Started
 
+> Quick path: Deploy on Google Cloud with our step-by-step guide → https://wiki.fast.bi/en/User-Guide/Data-Platform-Deployment/Google-Cloud
+
 ### Quick Start
 ```bash
 # Clone the repository
