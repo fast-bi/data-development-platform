@@ -6,10 +6,13 @@ This directory contains intelligent installation scripts that check what's alrea
 
 All tools are now standardized to use consistent versions across platforms to ensure identical behavior:
 
-- **Terragrunt**: v0.84.0 (standardized across Windows, Linux, macOS, and Docker)
-- **Terraform**: Latest stable version
-- **Helm**: Latest stable version  
-- **kubectl**: Latest stable version
+
+### Core Requirements
+- **Python >=3.9**: For running the Fast.BI CLI
+- **kubectl**: Kubernetes command-line tool
+- **gcloud CLI**: Google Cloud command-line tool (required for authentication)
+- **Terraform**: Infrastructure as Code tool for GCP resource management
+- **Terragrunt v0.84.0**: Terraform wrapper for keeping configurations DRY (specific version required)
 
 See `versions.yaml` for detailed version configuration and compatibility information.
 
@@ -20,7 +23,8 @@ See `versions.yaml` for detailed version configuration and compatibility informa
 install-prerequisites.bat
 ```
 
-### Option 2: PowerShell Script (Windows)
+=======
+**Windows (WSL2):**
 ```powershell
 .\windows\install-windows.ps1
 ```
@@ -69,12 +73,65 @@ The installer intelligently checks and installs:
 ## 🔧 Usage Examples
 
 ### Run Complete Installation (Windows)
+=======
+**Windows (WSL2):**
+
 ```powershell
 # Run as Administrator
 .\windows\install-windows.ps1
 ```
 
 ### Verify Installation
+=======
+## Windows Installation (WSL2)
+
+**Important:** Fast.BI CLI now requires WSL2 (Windows Subsystem for Linux) for Windows compatibility. This ensures consistent behavior across all platforms and eliminates Windows-specific issues.
+
+### WSL2 Installation Process:
+1. **Automatic WSL2 Setup**: The installer will detect if WSL2 is installed
+2. **Ubuntu Installation**: If WSL2 is not found, it will install WSL2 and Ubuntu automatically
+3. **Setup Instructions**: After WSL2 is ready, you'll get instructions to complete setup in WSL2
+4. **Linux Environment**: All tools are installed in the Ubuntu WSL2 environment
+5. **Consistent Experience**: Same installation process as native Linux
+
+### Why WSL2?
+- ✅ **Eliminates Windows-specific issues** (PATH problems, line continuations, etc.)
+- ✅ **Consistent behavior** across all platforms
+- ✅ **Native Linux compatibility** for all tools
+- ✅ **Better performance** than traditional virtualization
+- ✅ **Easy file system access** between Windows and Linux
+
+### Option 3: Individual Tool Installation
+Use the individual tool installers in each platform directory.
+
+## Platform Support
+
+### macOS
+- Supports both Intel and Apple Silicon (M1/M2) processors
+- Uses Homebrew for package management
+- Automatically detects architecture and installs appropriate versions
+
+### Linux
+- Supports Ubuntu 18.04+, CentOS 7+, RHEL 7+, and similar distributions
+- Uses system package managers (apt, yum, dnf)
+- Automatically detects distribution and uses appropriate commands
+
+### Windows
+- Supports Windows 10/11 and Windows Server 2016+
+- Uses Chocolatey for package management
+- Includes PowerShell execution policy configuration
+- Provides both user and system-wide installation options
+
+## Verification
+
+After installation, run the verification script:
+
+**macOS/Linux:**
+```bash
+./verify-prerequisites.sh
+```
+
+**Windows:**
 ```powershell
 .\verify-prerequisites.ps1
 ```

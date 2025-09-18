@@ -177,6 +177,7 @@ class PlatformDataOrchestration:
                 "--namespace", namespace,
                 "--create-namespace",
                 "--wait",
+                "--timeout", "30m",
                 "--values", values_path,
                 "--kubeconfig", self.kube_config
             ]

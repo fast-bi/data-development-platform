@@ -1,5 +1,5 @@
 @echo off
-REM Fast.BI CLI Prerequisites Installer for Windows
+REM Fast.BI CLI Prerequisites Installer for Windows (WSL2)
 REM This batch file provides instructions and runs the PowerShell installer
 
 echo.
@@ -7,44 +7,38 @@ echo ========================================
 echo Fast.BI CLI Prerequisites Installer
 echo ========================================
 echo.
-echo This installer will install all required tools for the Fast.BI CLI:
+echo IMPORTANT: Fast.BI CLI now requires WSL2 for Windows compatibility.
+echo This ensures consistent behavior across all platforms and eliminates
+echo Windows-specific compatibility issues.
 echo.
-echo Required Tools:
-echo - Python 3.9+
-echo - kubectl
-echo - gcloud CLI
-echo - Terraform
-echo - Terragrunt
-echo - Helm
-echo - Git
-echo - jq
-echo - curl
-echo - Docker Desktop (optional)
+echo The installer will:
+echo 1. Check if WSL2 is installed
+echo 2. Install WSL2 and Ubuntu if needed
+echo 3. Provide instructions for completing setup in WSL2
+echo.
+echo Benefits of WSL2 approach:
+echo - Consistent behavior across Windows, Linux, and macOS
+echo - No Windows-specific compatibility issues
+echo - Full Linux toolchain support
+echo - Better performance for development tools
 echo.
 echo Prerequisites:
-echo - Windows 10/11 or Windows Server 2016+
+echo - Windows 10 version 2004+ or Windows 11
 echo - PowerShell 5.1 or later
 echo - Administrator privileges
 echo - Internet connection
 echo.
-echo The installer will:
-echo 1. Check system requirements
-echo 2. Install Chocolatey package manager
-echo 3. Install all required tools
-echo 4. Configure environment variables
-echo 5. Verify installations
-echo.
-echo Note: This process may take 10-30 minutes depending on your system.
+echo Note: WSL2 installation may require a system restart.
 echo.
 
-set /p continue="Do you want to continue? (Y/N): "
+set /p continue="Do you want to continue with WSL2 setup? (Y/N): "
 if /i "%continue%"=="Y" goto :install
 if /i "%continue%"=="N" goto :exit
 goto :continue
 
 :install
 echo.
-echo Starting installation...
+echo Starting WSL2 setup...
 echo.
 
 REM Check if PowerShell is available
@@ -76,20 +70,22 @@ powershell -ExecutionPolicy Bypass -File "windows\install-windows.ps1"
 if %errorlevel% equ 0 (
     echo.
     echo ========================================
-    echo Installation completed successfully!
+    echo WSL2 setup completed successfully!
     echo ========================================
     echo.
     echo Next steps:
-    echo 1. Restart your terminal/PowerShell
-    echo 2. Configure your cloud provider credentials
-    echo 3. Run the Fast.BI CLI: python cli.py
-    echo.
+    echo 1. Follow the instructions shown above
+    echo 2. Open WSL2 Ubuntu: wsl -d Ubuntu
+    echo 3. Clone the repository in WSL2
+    echo 4. Run the Linux prerequisites installer
+    echo 5. Use the CLI from within WSL2
     echo For verification, run: .\verify-prerequisites.ps1
+
     echo.
 ) else (
     echo.
     echo ========================================
-    echo Installation failed!
+    echo WSL2 setup failed!
     echo ========================================
     echo.
     echo Please check the error messages above.
@@ -98,6 +94,7 @@ if %errorlevel% equ 0 (
     echo - Check your internet connection
     echo - Ensure sufficient disk space
     echo - Check Windows Defender/firewall settings
+    echo - Verify Windows version supports WSL2
     echo.
 )
 

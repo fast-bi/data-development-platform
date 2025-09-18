@@ -6,18 +6,13 @@
 # Set error action preference
 $ErrorActionPreference = "Stop"
 
-# Colors for output
-$Red = "Red"
-$Green = "Green"
-$Yellow = "Yellow"
-$Blue = "Blue"
-$White = "White"
+# Colors for output (removed for batch file compatibility)
 
 # Logging function
 function Write-Log {
     param(
         [string]$Message,
-        [string]$Color = $White
+        [string]$Color = "White"
     )
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     Write-Host "[$timestamp] $Message" -ForegroundColor $Color
@@ -25,40 +20,40 @@ function Write-Log {
 
 function Write-Error {
     param([string]$Message)
-    Write-Log "ERROR: $Message" $Red
+    Write-Log "ERROR: $Message" "Red"
 }
 
 function Write-Warning {
     param([string]$Message)
-    Write-Log "WARNING: $Message" $Yellow
+    Write-Log "WARNING: $Message" "Yellow"
 }
 
 function Write-Success {
     param([string]$Message)
-    Write-Log "SUCCESS: $Message" $Green
+    Write-Log "SUCCESS: $Message" "Green"
 }
 
 # Function to detect operating system
 function Get-OperatingSystem {
-    Write-Log "Detecting operating system..." $Blue
+    Write-Log "Detecting operating system..." "Blue"
     
     if ($IsWindows) {
-        Write-Log "Windows detected" $White
+        Write-Log "Windows detected" "White"
         return "windows"
     } elseif ($IsLinux) {
-        Write-Log "Linux detected" $White
+        Write-Log "Linux detected" "White"
         return "linux"
     } elseif ($IsMacOS) {
-        Write-Log "macOS detected" $White
+        Write-Log "macOS detected" "White"
         return "macos"
     } else {
         # Fallback for older PowerShell versions
         $os = Get-WmiObject -Class Win32_OperatingSystem
         if ($os.Caption -like "*Windows*") {
-            Write-Log "Windows detected (fallback method)" $White
+            Write-Log "Windows detected (fallback method)" "White"
             return "windows"
         } else {
-            Write-Log "Unknown operating system" $Yellow
+            Write-Log "Unknown operating system" "Yellow"
             return "unknown"
         }
     }
@@ -74,7 +69,7 @@ function Test-Administrator {
 # Function to check privileges
 function Test-Privileges {
     if (Test-Administrator) {
-        Write-Log "Running as Administrator" $White
+        Write-Log "Running as Administrator" "White"
         return $true
     } else {
         Write-Warning "This script requires Administrator privileges"
@@ -88,19 +83,139 @@ function New-LogsDirectory {
     $logsDir = "logs"
     if (-not (Test-Path $logsDir)) {
         New-Item -ItemType Directory -Path $logsDir | Out-Null
-        Write-Log "Created logs directory: $logsDir" $Blue
+        Write-Log "Created logs directory: $logsDir" "Blue"
     }
+}
+
+# Function to check if WSL2 is installed and available
+function Test-WSL2 {
+    Write-Log "Checking WSL2 installation..." "Blue"
+    
+    # Check if WSL is available
+    if (-not (Get-Command "wsl" -ErrorAction SilentlyContinue)) {
+        Write-Log "WSL not found" "Yellow"
+        return $false
+    }
+    
+    # Check WSL version
+    try {
+        wsl --version 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "WSL2 is available" "Green"
+            return $true
+        }
+    } catch {
+        Write-Log "WSL version check failed" "Yellow"
+    }
+    
+    # Check if WSL is installed but might be WSL1
+    try {
+        $wslList = wsl --list --verbose 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            if ($wslList -match "2") {
+                Write-Log "WSL2 is installed" "Green"
+                return $true
+            } else {
+                Write-Log "WSL1 detected, WSL2 required" "Yellow"
+                return $false
+            }
+        }
+    } catch {
+        Write-Log "WSL list check failed" "Yellow"
+    }
+    
+    return $false
+}
+
+# Function to install WSL2 and Ubuntu
+function Install-WSL2 {
+    Write-Log "Installing WSL2 and Ubuntu..." "Blue"
+    
+    Write-Warning "WSL2 is required to run Fast.BI CLI on Windows"
+    Write-Warning "This will install WSL2 and Ubuntu Linux distribution"
+    Write-Warning "The installation may take several minutes and require a restart"
+    
+    $confirm = Read-Host "Do you want to continue with WSL2 installation? (y/N)"
+    if ($confirm -ne "y" -and $confirm -ne "Y") {
+        Write-Error "WSL2 installation cancelled. Fast.BI CLI cannot run without WSL2 on Windows."
+        exit 1
+    }
+    
+    try {
+        # Enable WSL feature
+        Write-Log "Enabling WSL feature..." "Blue"
+        dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux /all /norestart
+        
+        # Enable Virtual Machine Platform
+        Write-Log "Enabling Virtual Machine Platform..." "Blue"
+        dism.exe /online /enable-feature /featurename:VirtualMachinePlatform /all /norestart
+        
+        # Set WSL2 as default
+        Write-Log "Setting WSL2 as default..." "Blue"
+        wsl --set-default-version 2
+        
+        # Install Ubuntu
+        Write-Log "Installing Ubuntu..." "Blue"
+        wsl --install -d Ubuntu
+        
+        Write-Success "WSL2 and Ubuntu installation initiated"
+        Write-Warning "Please restart your computer and run this script again"
+        Write-Warning "After restart, Ubuntu will complete its setup automatically"
+        
+        $restart = Read-Host "Do you want to restart now? (y/N)"
+        if ($restart -eq "y" -or $restart -eq "Y") {
+            Write-Log "Restarting computer..." "Blue"
+            Restart-Computer -Force
+        } else {
+            Write-Warning "Please restart manually and run this script again"
+            exit 0
+        }
+        
+    } catch {
+        Write-Error "WSL2 installation failed: $($_.Exception.Message)"
+        exit 1
+    }
+}
+
+# Function to show WSL2 setup instructions
+function Show-WSL2Instructions {
+    Write-Log "WSL2 and Ubuntu are ready!" "Green"
+    Write-Host ""
+    Write-Host "Next Steps:" -ForegroundColor Blue
+    Write-Host "===========" -ForegroundColor Blue
+    Write-Host ""
+    Write-Host "1. Open WSL2 Ubuntu:" -ForegroundColor White
+    Write-Host "   wsl -d Ubuntu" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "2. Clone the repository in WSL2:" -ForegroundColor White
+    Write-Host "   git clone https://github.com/fast-bi/data-development-platform.git" -ForegroundColor Yellow
+    Write-Host "   cd data-development-platform" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "3. Run the Linux prerequisites installer:" -ForegroundColor White
+    Write-Host "   chmod +x cli/prerequisites/install-prerequisites.sh" -ForegroundColor Yellow
+    Write-Host "   ./cli/prerequisites/install-prerequisites.sh" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "4. After installation, run the CLI from WSL2:" -ForegroundColor White
+    Write-Host "   python3 cli.py" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Tip: You can access your Windows files from WSL2 at /mnt/c/" -ForegroundColor Blue
+    Write-Host "Tip: Use 'code .' in WSL2 to open VS Code with WSL2 integration" -ForegroundColor Blue
 }
 
 # Function to run platform-specific installation
 function Invoke-PlatformInstall {
     param([string]$Platform)
     
-    $scriptPath = ""
-    
     switch ($Platform) {
         "windows" {
-            $scriptPath = ".\windows\install-windows.ps1"
+            # Check if WSL2 is available
+            if (Test-WSL2) {
+                Write-Log "WSL2 detected, showing setup instructions..." "Blue"
+                Show-WSL2Instructions
+            } else {
+                Write-Log "WSL2 not found, installing WSL2 and Ubuntu..." "Blue"
+                Install-WSL2
+            }
         }
         "linux" {
             Write-Error "Linux detected. Please run the bash script instead:"
@@ -117,34 +232,11 @@ function Invoke-PlatformInstall {
             exit 1
         }
     }
-    
-    if (-not (Test-Path $scriptPath)) {
-        Write-Error "Installation script not found: $scriptPath"
-        exit 1
-    }
-    
-    Write-Log "Running $Platform installation script..." $Blue
-    
-    # Run the platform-specific script with logging
-    $logFile = "logs\install-$Platform-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
-    
-    try {
-        & $scriptPath 2>&1 | Tee-Object -FilePath $logFile
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "Platform-specific installation completed successfully"
-        } else {
-            Write-Error "Platform-specific installation failed"
-            exit 1
-        }
-    } catch {
-        Write-Error "Error running platform-specific installation: $($_.Exception.Message)"
-        exit 1
-    }
 }
 
 # Function to verify installation
 function Test-Installation {
-    Write-Log "Verifying installation..." $Blue
+    Write-Log "Verifying installation..." "Blue"
     
     $verifyScript = ".\verify-prerequisites.ps1"
     if (Test-Path $verifyScript) {
@@ -166,16 +258,18 @@ function Test-Installation {
 
 # Function to show installation summary
 function Show-InstallationSummary {
-    Write-Log "Installation Summary:" $Blue
-    Write-Host "====================" $White
-    Write-Host "✅ Prerequisites installation completed" $Green
-    Write-Host "📁 Logs saved to: logs\" $White
-    Write-Host "🔍 Run verification: .\verify-prerequisites.ps1" $White
     Write-Host ""
-    Write-Host "Next steps:" $White
-    Write-Host "1. Configure your cloud provider credentials" $White
-    Write-Host "2. Run the Fast.BI CLI: python cli.py" $White
-    Write-Host "3. Follow the deployment guide in docs\" $White
+    Write-Host "Summary:" -ForegroundColor Blue
+    Write-Host "========" -ForegroundColor Blue
+    Write-Host "WSL2 and Ubuntu are ready for Fast.BI CLI" -ForegroundColor Green
+    Write-Host "Follow the instructions above to complete setup in WSL2" -ForegroundColor White
+    Write-Host "All prerequisites will be installed in the Linux environment" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Benefits of this approach:" -ForegroundColor Blue
+    Write-Host "  - Consistent behavior across Windows, Linux, and macOS" -ForegroundColor White
+    Write-Host "  - No Windows-specific compatibility issues" -ForegroundColor White
+    Write-Host "  - Full Linux toolchain support" -ForegroundColor White
+    Write-Host "  - Better performance for development tools" -ForegroundColor White
 }
 
 # Function to check if we're in the right directory
@@ -198,7 +292,7 @@ function Test-DiskSpace {
         
         $continue = Read-Host "Continue anyway? (y/N)"
         if ($continue -ne "y" -and $continue -ne "Y") {
-            Write-Log "Installation cancelled" $Yellow
+            Write-Log "Installation cancelled" "Yellow"
             exit 1
         }
     }
@@ -206,8 +300,8 @@ function Test-DiskSpace {
 
 # Main installation function
 function Main {
-    Write-Host "🚀 Fast.BI CLI Prerequisites Installer" $Blue
-    Write-Host "======================================" $Blue
+    Write-Host "Fast.BI CLI Prerequisites Installer" -ForegroundColor Blue
+    Write-Host "====================================" -ForegroundColor Blue
     Write-Host ""
     
     # Setup logging
@@ -215,7 +309,7 @@ function Main {
     
     # Detect OS
     $os = Get-OperatingSystem
-    Write-Log "Detected OS: $os" $Blue
+    Write-Log "Detected OS: $os" "Blue"
     
     # Check privileges
     if (-not (Test-Privileges)) {

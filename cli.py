@@ -3896,7 +3896,55 @@ class EnvironmentDestroyer:
         # as they contain important state information for local state deployments
 
 
-def deploy_environment(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool):
+def cleanup_local_environment():
+    """Clean up local temporary deployment files (state files, logs, etc.) - SAFE VERSION"""
+    import shutil
+    import os
+    from pathlib import Path
+    
+    click.echo("🧹 Cleaning up local temporary deployment files...")
+    
+    # Only clean up temporary and generated files, NOT infrastructure templates
+    cleanup_paths = [
+        "cli/state/",
+        "local_environment/",
+        "deployment_*.log",
+        "*.tmp",
+        "temp_*",
+        "*.tfstate.backup"  # Only backup files, not main state files
+    ]
+    
+    cleaned_count = 0
+    
+    for path_pattern in cleanup_paths:
+        try:
+            if path_pattern.endswith('/'):
+                # Directory cleanup - only temporary directories
+                dir_path = Path(path_pattern)
+                if dir_path.exists() and dir_path.is_dir():
+                    shutil.rmtree(dir_path)
+                    click.echo(f"  🗑️  Removed directory: {path_pattern}")
+                    cleaned_count += 1
+            else:
+                # File pattern cleanup - only temporary files
+                import glob
+                for file_path in glob.glob(path_pattern):
+                    if os.path.exists(file_path):
+                        # Double-check: don't remove important config files
+                        if not any(important in file_path for important in ['values.yaml', 'template', 'README', 'deployment_configuration']):
+                            os.remove(file_path)
+                            click.echo(f"  🗑️  Removed file: {file_path}")
+                            cleaned_count += 1
+        except Exception as e:
+            click.echo(f"  ⚠️  Could not remove {path_pattern}: {str(e)}")
+    
+    if cleaned_count == 0:
+        click.echo("  ℹ️  No temporary deployment files found to clean up")
+    else:
+        click.echo(f"  ✅ Cleaned up {cleaned_count} temporary items")
+
+
+def deploy_environment(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool):
     """Deploy Fast.BI environment with configuration file or interactive setup."""
     
     try:
@@ -3922,6 +3970,17 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
             destroy_manager = EnvironmentDestroyer(state_file)
             destroy_manager.destroy_environment()
             return
+        
+        # Handle cleanup operation
+        if cleanup:
+            click.echo("🧹 Starting cleanup of local temporary deployment files...")
+            try:
+                cleanup_local_environment()
+                click.echo("✅ Cleanup completed successfully!")
+                return
+            except Exception as e:
+                click.echo(f"❌ Cleanup failed: {str(e)}")
+                return
         
         # Determine if we should run in non-interactive mode
         run_non_interactive = non_interactive or (config and not interactive)
@@ -4115,9 +4174,10 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
 @click.option('--non-interactive', is_flag=True, help='Run in non-interactive mode (requires config file)')
 @click.option('--destroy', is_flag=True, help='Destroy entire environment (infrastructure + Kubernetes resources)')
 @click.option('--destroy-confirm', is_flag=True, help='Skip confirmation for destroy operation')
-def cli(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool):
+@click.option('--cleanup', is_flag=True, help='Clean up local temporary deployment files (state files, logs, etc.)')
+def cli(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool):
     """Fast.BI Platform Deployment CLI"""
-    deploy_environment(config, interactive, phase, simple_input, state_file, show_config, keycloak_help, non_interactive, destroy, destroy_confirm)
+    deploy_environment(config, interactive, phase, simple_input, state_file, show_config, keycloak_help, non_interactive, destroy, destroy_confirm, cleanup)
 
 
 if __name__ == '__main__':

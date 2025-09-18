@@ -23,7 +23,7 @@ spec:
           serviceAccountName: vault-operator
           containers:
             - name: vault-operator
-              image: bitnami/kubectl:latest
+              image: bitnamilegacy/kubectl:1.33.4
               command: ["/bin/bash", "-c"]
               args:
                 - |
@@ -218,7 +218,7 @@ spec:
       serviceAccountName: vault-operator
       containers:
         - name: vault-auth-config
-          image: bitnami/kubectl:latest
+          image: bitnamilegacy/kubectl:1.33.4
           command: ["/bin/bash", "-c"]
           args:
             - |
@@ -342,7 +342,7 @@ spec:
       serviceAccountName: vault-populator
       initContainers:
         - name: wait-for-auth
-          image: bitnami/kubectl:latest
+          image: bitnamilegacy/kubectl:1.33.4
           command: ["/bin/bash", "-c"]
           args:
             - |

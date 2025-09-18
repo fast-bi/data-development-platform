@@ -258,7 +258,7 @@ manifests:
                 key: token_service_signing_key
         containers:
         - name: create-secret
-          image: bitnami/kubectl:latest
+          image: bitnamilegacy/kubectl:1.33.4
           command:
           - /bin/sh
           - -c
