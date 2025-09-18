@@ -16,6 +16,7 @@ inputs = {
   sa_names = ["bi-data-k8s-sa"]
   generate_keys_for_sa = true
   sa_display_name = "Bussines Analysis Service Account"
+  output_path = get_terragrunt_dir()
   project_roles = [
     "${include.root.locals.project}=>roles/storage.admin",
     "${include.root.locals.project}=>roles/bigquery.admin",

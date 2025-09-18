@@ -21,4 +21,5 @@ inputs = {
   project     = dependency.project.outputs.project_id
   zone_name = include.root.locals.zone_name
   domain_name = include.root.locals.domain_name
+  output_path = get_terragrunt_dir()
 }

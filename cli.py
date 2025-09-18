@@ -427,26 +427,40 @@ def load_config_from_file(config_file: str) -> Dict:
 
 class DeploymentManager:
     """Main class to manage the entire deployment process"""
-    def __init__(self, state: DeploymentState, config_file: str = None, non_interactive: bool = False):
+    def __init__(self, state: DeploymentState, config_file: str = None, non_interactive: bool = False, logger = None):
         self.state = state
         self.secret_manager = None
         self.deployment_session_id = None
         self.realm_info = None
         self.config_file = config_file
         self.non_interactive = non_interactive
+        self.logger = logger
         
         # Load configuration from file if provided
         if config_file:
             config_data = load_config_from_file(config_file)
             self.state.config.update(config_data)
             self.state.save_state()
+    
+    def log_and_echo(self, message, level="info"):
+        """Helper method to log and echo messages"""
+        click.echo(message)
+        if self.logger:
+            if level == "info":
+                self.logger.info(message)
+            elif level == "error":
+                self.logger.error(message)
+            elif level == "warning":
+                self.logger.warning(message)
+            elif level == "debug":
+                self.logger.debug(message)
 
     def phase_1_infrastructure(self) -> bool:
         """Phase 1: Infrastructure Deployment"""
-        click.echo("\n🚀 PHASE 1: Infrastructure Deployment")
+        self.log_and_echo("\n🚀 PHASE 1: Infrastructure Deployment")
         
         if self.state.infrastructure_deployed:
-            click.echo("✅ Infrastructure already deployed")
+            self.log_and_echo("✅ Infrastructure already deployed")
             return True
 
         # In non-interactive mode, automatically choose new infrastructure deployment
@@ -590,15 +604,16 @@ class DeploymentManager:
                 refresh_token=None,
                 token_expiry=None,
                 token_key=None,
-                metadata_collector=SimpleMetadataCollector()
+                metadata_collector=SimpleMetadataCollector(),
+                logger=self.logger
             )
             
             # Execute the deployment
-            click.echo("🚀 Starting GCP infrastructure deployment...")
+            self.log_and_echo("🚀 Starting GCP infrastructure deployment...")
             result = gcp_manager.run()
             
             if "successfully" in result.lower():
-                click.echo("✅ GCP infrastructure deployed successfully")
+                self.log_and_echo("✅ GCP infrastructure deployed successfully")
                 
                 # Set kubeconfig path for next steps
                 self.state.kubeconfig_path = f"terraform/google_cloud/terragrunt/bi-platform/17-kubeconfig/kubeconfig"
@@ -606,11 +621,11 @@ class DeploymentManager:
                 self.state.save_state()
                 return True
             else:
-                click.echo(f"❌ GCP infrastructure deployment failed: {result}")
+                self.log_and_echo(f"❌ GCP infrastructure deployment failed: {result}", "error")
                 return False
                 
         except Exception as e:
-            click.echo(f"❌ Error during GCP deployment: {str(e)}")
+            self.log_and_echo(f"❌ Error during GCP deployment: {str(e)}", "error")
             return False
 
     def _collect_gcp_parameters(self) -> Dict:
@@ -1452,7 +1467,7 @@ class DeploymentManager:
             vault_file = f"/tmp/{self.state.config['customer']}_customer_vault_structure.json"
             
             if not Path(vault_file).exists():
-                click.echo("⚠️ Vault structure file not found")
+                click.echo("⚠️ Vault structure file not found. Deploy keys will be displayed during repository configuration.")
                 return
             
             with open(vault_file, 'r') as f:
@@ -1470,13 +1485,13 @@ class DeploymentManager:
             data_model_public_key = data_model_keys.get('public', '')
             
             if orchestrator_public_key or data_model_public_key:
-                click.echo("\n🔑 DEPLOY KEYS FOR REPOSITORY CONFIGURATION")
+                click.echo("🔑 DEPLOY KEYS FOR REPOSITORY CONFIGURATION")
                 click.echo("=" * 50)
                 click.echo("Please add these public keys as deploy keys in your repositories:")
                 click.echo("")
                 
                 if orchestrator_public_key:
-                    click.echo("📁 DAG Repository Deploy Key:")
+                    click.echo("📁 DAG Repository Deploy Key (REQUIRED for Airflow DAG execution):")
                     click.echo(f"Repository: {self.state.config.get('secrets_dag_repo_url', 'Not configured')}")
                     click.echo("Public Key:")
                     click.echo(orchestrator_public_key)
@@ -1490,11 +1505,64 @@ class DeploymentManager:
                     click.echo("")
                 
                 click.echo("=" * 50)
-                click.echo("⚠️ IMPORTANT: Add these deploy keys to your repositories before proceeding to Phase 3")
+                click.echo("⚠️ CRITICAL: Deploy keys are MANDATORY for the Data Orchestrator repository")
+                click.echo("The Airflow service requires SSH access to pull DAGs from the repository.")
+                click.echo("Add these deploy keys to your repositories before proceeding.")
                 click.echo("")
+            else:
+                click.echo("⚠️ No deploy keys found in vault structure. Deploy keys will be displayed during repository configuration.")
         
         except Exception as e:
             click.echo(f"⚠️ Error reading deploy keys: {str(e)}")
+            click.echo("Deploy keys will be displayed during repository configuration.")
+
+    def _fix_kubeconfig_if_needed(self) -> bool:
+        """Fix kubeconfig file to use the correct gke-gcloud-auth-plugin path"""
+        try:
+            # Import the kubeconfig fixer
+            from utils.kubeconfig_fixer import KubeconfigFixer
+            
+            # Get kubeconfig path from state or configuration
+            kubeconfig_path = self.state.kubeconfig_path or self.state.config.get('kubeconfig_path')
+            if not kubeconfig_path or not Path(kubeconfig_path).exists():
+                click.echo("⚠️ Kubeconfig file not found, skipping kubeconfig fix")
+                return True  # Not an error, just skip
+            
+            click.echo("🔧 Checking and fixing kubeconfig file...")
+            
+            fixer = KubeconfigFixer()
+            if fixer.fix_kubeconfig(kubeconfig_path):
+                click.echo("✅ Kubeconfig file fixed successfully")
+                return True
+            else:
+                click.echo("❌ Could not fix kubeconfig file")
+                return False
+                
+        except ImportError:
+            click.echo("⚠️ Kubeconfig fixer not available, skipping kubeconfig fix")
+            return True  # Not an error, just skip
+        except Exception as e:
+            click.echo(f"❌ Error fixing kubeconfig: {str(e)}")
+            return False
+
+    def _fix_missing_gcp_config(self):
+        """Fix missing GCP configuration values with defaults"""
+        try:
+            # Fix terraform_state if null or missing
+            if not self.state.config.get('gcp_terraform_state'):
+                self.state.config['gcp_terraform_state'] = 'local'
+                click.echo("🔧 Fixed missing terraform_state: set to 'local'")
+            
+            # Fix gke_deployment_type if null or missing
+            if not self.state.config.get('gcp_gke_deployment_type'):
+                self.state.config['gcp_gke_deployment_type'] = 'zonal'
+                click.echo("🔧 Fixed missing gke_deployment_type: set to 'zonal'")
+            
+            # Save the updated configuration
+            self.state.save_state()
+            
+        except Exception as e:
+            click.echo(f"⚠️ Error fixing GCP configuration: {str(e)}")
 
     def _verify_deploy_keys_configured(self) -> bool:
         """Verify that deploy keys are configured in repositories"""
@@ -2043,11 +2111,20 @@ class DeploymentManager:
             click.echo("❌ Secrets not generated. Please run Phase 2 first.")
             return False
 
-        # Check if deploy keys were configured (if using deploy keys method)
-        if self.state.config.get('secrets_repo_access_method') == 'deploy_keys':
-            if not self._verify_deploy_keys_configured():
-                click.echo("❌ Deploy keys not configured in repositories. Please add the deploy keys shown in Phase 2 to your repositories.")
-                return False
+        # Display deploy keys information - ALWAYS required for data orchestrator service
+        # DAGs are pulled from repository using SSH keys regardless of access method
+        click.echo("\n⚠️  ATTENTION: Deploy keys are MANDATORY for the Data Orchestrator repository")
+        click.echo("Even if 'access_token' was selected, deploy keys are required for DAG execution.")
+        click.echo("The data orchestrator service pulls DAGs from the repository using SSH keys.")
+        click.echo("")
+        
+        # Display deploy keys information
+        self._display_deploy_keys_for_repositories()
+        
+        # Check if deploy keys were configured
+        if not self._verify_deploy_keys_configured():
+            click.echo("❌ Deploy keys not configured in repositories. Please add the deploy keys shown above to your repositories.")
+            return False
 
         # Check DNS nameserver configuration for custom domains
         if not self._verify_dns_nameserver_configuration():
@@ -2110,6 +2187,16 @@ class DeploymentManager:
         if not self.state.config:
             click.echo("❌ No configuration found. Please run Phase 1 first.")
             return False
+
+        # Fix kubeconfig file if needed (for GCP deployments)
+        if self.state.config.get('cloud_provider') == 'gcp':
+            if not self._fix_kubeconfig_if_needed():
+                click.echo("❌ Failed to fix kubeconfig file. Please fix it manually before proceeding.")
+                return False
+
+        # Fix missing GCP configuration values
+        if self.state.config.get('cloud_provider') == 'gcp':
+            self._fix_missing_gcp_config()
 
         # Handle case where infrastructure is not deployed but user wants to use existing infrastructure
         if not self.state.infrastructure_deployed:
@@ -2526,6 +2613,16 @@ class DeploymentManager:
             if not self._collect_kubeconfig_path():
                 click.echo("❌ Kubeconfig configuration failed. Please ensure Phase 1 completed successfully or provide a valid kubeconfig path.")
                 return False
+
+        # Fix kubeconfig file if needed (for GCP deployments)
+        if self.state.config.get('cloud_provider') == 'gcp':
+            if not self._fix_kubeconfig_if_needed():
+                click.echo("❌ Failed to fix kubeconfig file. Please fix it manually before proceeding.")
+                return False
+
+        # Fix missing GCP configuration values
+        if self.state.config.get('cloud_provider') == 'gcp':
+            self._fix_missing_gcp_config()
 
         # Check if Keycloak SSO is configured (prerequisite)
         if not self._verify_keycloak_configuration():
@@ -3944,8 +4041,80 @@ def cleanup_local_environment():
         click.echo(f"  ✅ Cleaned up {cleaned_count} temporary items")
 
 
-def deploy_environment(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool):
+def deploy_environment(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: Optional[str] = None, fix_kubeconfig: Optional[str] = None):
     """Deploy Fast.BI environment with configuration file or interactive setup."""
+    
+    # Handle fix-kubeconfig option
+    if fix_kubeconfig:
+        try:
+            from utils.kubeconfig_fixer import KubeconfigFixer
+            
+            click.echo(f"🔧 Fixing kubeconfig file: {fix_kubeconfig}")
+            
+            if not Path(fix_kubeconfig).exists():
+                click.echo(f"❌ Kubeconfig file not found: {fix_kubeconfig}")
+                return
+            
+            fixer = KubeconfigFixer()
+            if fixer.fix_kubeconfig(fix_kubeconfig):
+                click.echo("✅ Kubeconfig file fixed successfully")
+            else:
+                click.echo("❌ Failed to fix kubeconfig file")
+            
+            return
+            
+        except ImportError:
+            click.echo("❌ Kubeconfig fixer not available. Please install required dependencies.")
+            return
+        except Exception as e:
+            click.echo(f"❌ Error fixing kubeconfig: {str(e)}")
+            return
+    
+    # Setup centralized logging if logging_file is provided
+    cli_logger = None
+    if logging_file:
+        import logging
+        import sys
+        from datetime import datetime
+        
+        # Create logger
+        cli_logger = logging.getLogger('fast_bi_cli')
+        cli_logger.setLevel(logging.INFO)
+        
+        # Clear any existing handlers
+        for handler in cli_logger.handlers[:]:
+            cli_logger.removeHandler(handler)
+        
+        # Create file handler
+        file_handler = logging.FileHandler(logging_file, mode='w')
+        file_handler.setLevel(logging.INFO)
+        
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        
+        # Add handler to logger
+        cli_logger.addHandler(file_handler)
+        
+        # Log startup
+        cli_logger.info("=" * 80)
+        cli_logger.info("Fast.BI Platform Deployment CLI Started")
+        cli_logger.info(f"Timestamp: {datetime.now().isoformat()}")
+        cli_logger.info(f"Log file: {logging_file}")
+        cli_logger.info("=" * 80)
+    
+    # Helper function to log and echo
+    def log_and_echo(message, level="info"):
+        click.echo(message)
+        if cli_logger:
+            if level == "info":
+                cli_logger.info(message)
+            elif level == "error":
+                cli_logger.error(message)
+            elif level == "warning":
+                cli_logger.warning(message)
+            elif level == "debug":
+                cli_logger.debug(message)
     
     try:
         # Initialize deployment state
@@ -3991,7 +4160,7 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
                 click.echo("❌ No deployment configuration found. Please run a deployment first.")
                 return
             
-            deployment = DeploymentManager(state)
+            deployment = DeploymentManager(state, logger=cli_logger)
             deployment.show_configuration_summary()
             return
         
@@ -4001,7 +4170,7 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
                 click.echo("❌ No deployment configuration found. Please run a deployment first.")
                 return
             
-            deployment = DeploymentManager(state)
+            deployment = DeploymentManager(state, logger=cli_logger)
             deployment._show_keycloak_setup_help()
             return
         
@@ -4034,7 +4203,7 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
                 click.echo("ℹ️  Confirmations will be shown for critical steps (e.g., Keycloak configuration)")
             
             # Create deployment manager
-            deployment = DeploymentManager(state, config_file=config, non_interactive=True)
+            deployment = DeploymentManager(state, config_file=config, non_interactive=True, logger=cli_logger)
             
             # Determine which phases to run
             phases_to_run = state.config.get('phases_to_run', 'all')
@@ -4128,11 +4297,11 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
 
         # Show current state (only if we have config and not in initial choice)
         if state.config:
-            deployment = DeploymentManager(state)
+            deployment = DeploymentManager(state, logger=cli_logger)
             deployment.show_deployment_status()
 
         # Create deployment manager
-        deployment = DeploymentManager(state)
+        deployment = DeploymentManager(state, logger=cli_logger)
         
         # Run specific phase or all phases
         if phase:
@@ -4175,9 +4344,11 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
 @click.option('--destroy', is_flag=True, help='Destroy entire environment (infrastructure + Kubernetes resources)')
 @click.option('--destroy-confirm', is_flag=True, help='Skip confirmation for destroy operation')
 @click.option('--cleanup', is_flag=True, help='Clean up local temporary deployment files (state files, logs, etc.)')
-def cli(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool):
+@click.option('--logging-file', type=str, help='Path to log file for deployment output (captures all CLI and deployment logs)')
+@click.option('--fix-kubeconfig', type=str, help='Fix kubeconfig file with correct gke-gcloud-auth-plugin path')
+def cli(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: Optional[str], fix_kubeconfig: Optional[str]):
     """Fast.BI Platform Deployment CLI"""
-    deploy_environment(config, interactive, phase, simple_input, state_file, show_config, keycloak_help, non_interactive, destroy, destroy_confirm, cleanup)
+    deploy_environment(config, interactive, phase, simple_input, state_file, show_config, keycloak_help, non_interactive, destroy, destroy_confirm, cleanup, logging_file, fix_kubeconfig)
 
 
 if __name__ == '__main__':
