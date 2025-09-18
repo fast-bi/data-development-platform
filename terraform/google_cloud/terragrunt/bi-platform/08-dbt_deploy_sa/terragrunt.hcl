@@ -15,6 +15,7 @@ inputs = {
   sa_names = ["dbt-deploy"]
   generate_keys_for_sa = true
   sa_display_name = "DBT deploy Service Account"
+  output_path = get_terragrunt_dir()
   project_roles = [
     "${include.root.locals.project}=>roles/artifactregistry.admin",
     "${include.root.locals.project}=>roles/storage.admin",

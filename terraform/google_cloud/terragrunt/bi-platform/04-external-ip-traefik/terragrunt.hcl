@@ -25,4 +25,5 @@ dependency "project" {
 inputs = {
  name_prefix = "traefik"
  project     = dependency.project.outputs.project_id
+ output_path = get_terragrunt_dir()
 }

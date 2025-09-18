@@ -16,6 +16,7 @@ inputs = {
   sa_names = ["data-orchestration-k8s-sa"]
   generate_keys_for_sa = false
   sa_display_name = "Data Orchestration Service Account"
+  output_path = get_terragrunt_dir()
   project_roles = [
     "${include.root.locals.project}=>roles/storage.admin",
     "${include.root.locals.project}=>roles/bigquery.admin"

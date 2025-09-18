@@ -16,6 +16,7 @@ inputs = {
   sa_names = ["cert-manager-k8s-sa"]
   generate_keys_for_sa = false
   sa_display_name = "Certificate Manager K8S Service Account"
+  output_path = get_terragrunt_dir()
   project_roles = [
     "${include.root.locals.project}=>roles/dns.admin",
     "${include.root.locals.project}=>roles/iam.serviceAccountTokenCreator"

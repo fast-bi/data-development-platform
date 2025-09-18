@@ -162,40 +162,53 @@ class CustomerDataPlatformRepositoryOperator:
                 )
 
             # Display deploy keys information immediately after loading
-            if self.repo_authentication == "deploy_keys" and self.data_orchestrator_repo_public_key and self.data_model_repo_public_key:
-                logger.info("\n" + "="*80)
-                logger.info("🔑 DEPLOY KEYS CONFIGURATION REQUIRED")
-                logger.info("="*80)
-                logger.info("")
-                logger.info("You need to add the following deploy keys to your GitLab repositories:")
-                logger.info("")
+            # Deploy keys are ALWAYS required for data orchestrator service regardless of authentication method
+            if self.data_orchestrator_repo_public_key and self.data_model_repo_public_key:
+                # Use both logger and click.echo to ensure visibility
+                import click
                 
-                # Data Orchestrator Repository
-                logger.info("📁 DATA ORCHESTRATOR REPOSITORY:")
-                logger.info(f"   Repository: {self.data_orchestrator_repo_url}")
-                logger.info("   Deploy Key Title: Fast.BI Data Orchestrator Deploy Key")
-                logger.info("   Public Key:")
-                logger.info(f"   {self.data_orchestrator_repo_public_key}")
-                logger.info("")
+                deploy_keys_message = f"""
+{"="*80}
+🔑 DEPLOY KEYS CONFIGURATION REQUIRED
+{"="*80}
+
+⚠️  ATTENTION: Deploy keys are MANDATORY for the Data Orchestrator repository
+Even if 'access_token' was selected, deploy keys are required for DAG execution.
+The Airflow service pulls DAGs from the repository using SSH keys.
+
+You need to add the following deploy keys to your GitLab repositories:
+
+📁 DATA ORCHESTRATOR REPOSITORY (REQUIRED for Airflow DAG execution):
+   Repository: {self.data_orchestrator_repo_url}
+   Deploy Key Title: Fast.BI Data Orchestrator Deploy Key
+   Public Key:
+   {self.data_orchestrator_repo_public_key}
+
+📁 DATA MODEL REPOSITORY:
+   Repository: {self.data_model_repo_url}
+   Deploy Key Title: Fast.BI Data Model Deploy Key
+   Public Key:
+   {self.data_model_repo_public_key}
+
+📋 INSTRUCTIONS:
+1. Go to each repository in GitLab
+2. Navigate to Settings > Repository > Deploy Keys
+3. Click 'Add deploy key'
+4. Enter the title and paste the corresponding public key
+5. Check 'Grant write permissions to this key' if needed
+6. Click 'Add key'
+
+⚠️ CRITICAL: The Data Orchestrator repository deploy key is MANDATORY
+The Airflow service requires SSH access to pull DAGs from the repository.
+
+{"="*80}
+"""
                 
-                # Data Model Repository
-                logger.info("📁 DATA MODEL REPOSITORY:")
-                logger.info(f"   Repository: {self.data_model_repo_url}")
-                logger.info("   Deploy Key Title: Fast.BI Data Model Deploy Key")
-                logger.info("   Public Key:")
-                logger.info(f"   {self.data_model_repo_public_key}")
-                logger.info("")
+                # Display using click.echo for CLI visibility
+                click.echo(deploy_keys_message)
                 
-                logger.info("📋 INSTRUCTIONS:")
-                logger.info("1. Go to each repository in GitLab")
-                logger.info("2. Navigate to Settings > Repository > Deploy Keys")
-                logger.info("3. Click 'Add deploy key'")
-                logger.info("4. Enter the title and paste the corresponding public key")
-                logger.info("5. Check 'Grant write permissions to this key' if needed")
-                logger.info("6. Click 'Add key'")
-                logger.info("")
-                logger.info("="*80)
-                logger.info("")
+                # Also log for file logging
+                logger.info(deploy_keys_message)
 
             # Create CI/CD Argo Server URL based on type
             if self.argo_server_url_type == "internal":
