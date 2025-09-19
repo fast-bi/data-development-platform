@@ -5,6 +5,7 @@ import yaml
 import click
 import subprocess
 import importlib.util
+import base64
 from pathlib import Path
 from typing import Dict, Optional, List
 from datetime import datetime
@@ -308,7 +309,8 @@ def load_config_from_file(config_file: str) -> Dict:
                     'gcp_state_project': gcp.get('state_project', '').replace('*', ''),
                     'gcp_state_location': gcp.get('state_location', '').replace('*', ''),
                     'gcp_state_bucket': gcp.get('state_bucket', '').replace('*', ''),
-                    'gcp_gke_deployment_type': gcp.get('gke_deployment_type')
+                    'gcp_gke_deployment_type': gcp.get('gke_deployment_type'),
+                    'gcp_project_id': gcp.get('project_id', '').replace('*', '')  # Allow custom project ID override
                 })
             
             # Handle AWS configuration
@@ -680,9 +682,20 @@ class DeploymentManager:
             else:
                 gcp_config['whitelisted_ips'] = existing_ips
         
-        # Use default project ID format (fast-bi-{customer})
-        gcp_config['project_id'] = f"fast-bi-{self.state.config['customer']}"
-        self.state.config['gcp_project_id'] = gcp_config['project_id']
+        # Project ID configuration - allow custom override
+        if 'gcp_project_id' not in self.state.config:
+            click.echo(f"\n🏗️ GCP Project ID Configuration")
+            click.echo(f"Default project ID would be: fast-bi-{self.state.config['customer']}")
+            
+            custom_project_id = safe_input(
+                "Enter GCP project ID (or press Enter to use default)",
+                default=f"fast-bi-{self.state.config['customer']}"
+            )
+            gcp_config['project_id'] = custom_project_id
+            self.state.config['gcp_project_id'] = gcp_config['project_id']
+        else:
+            gcp_config['project_id'] = self.state.config['gcp_project_id']
+            click.echo(f"\n🏗️ GCP Project ID: Using existing configuration ({gcp_config['project_id']})")
         
         # State management configuration
         if 'gcp_terraform_state' not in self.state.config or not self.state.config.get('gcp_terraform_state'):
@@ -2790,6 +2803,10 @@ class DeploymentManager:
                 # Count how many services are actually deployed
                 deployed_services_count = sum(1 for _, service_file in services_to_deploy if self.state.is_service_deployed("data_services", service_file))
                 click.echo(f"\n✅ Phase 5 completed: {deployed_services_count}/{total_services} services deployed")
+                
+                # Display ARGO_WORKFLOW_SA_TOKEN configuration instructions
+                self._display_argo_workflow_sa_token_instructions()
+                
                 return True
             else:
                 click.echo("❌ No data services were deployed successfully")
@@ -2798,6 +2815,126 @@ class DeploymentManager:
         except Exception as e:
             click.echo(f"❌ Error during data services deployment: {str(e)}")
             return False
+
+    def _fetch_argo_workflow_sa_token(self) -> str:
+        """Fetch ARGO_WORKFLOW_SA_TOKEN from Kubernetes secrets"""
+        try:
+            
+            # Set KUBECONFIG environment variable
+            if self.state.kubeconfig_path:
+                os.environ['KUBECONFIG'] = self.state.kubeconfig_path
+            
+            # Get the secret
+            cmd = [
+                'kubectl', 'get', 'secret', 
+                'data-platform-argo-workflows-workflow-controller.service-account-token',
+                '-n', 'cicd-workflows',
+                '-o', 'jsonpath={.data.token}'
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                # Decode the base64 encoded token
+                token = base64.b64decode(result.stdout.strip()).decode('utf-8')
+                return token
+            else:
+                self.log_and_echo(f"Failed to fetch ARGO_WORKFLOW_SA_TOKEN: {result.stderr}", "warning")
+                return None
+                
+        except Exception as e:
+            self.log_and_echo(f"Error fetching ARGO_WORKFLOW_SA_TOKEN: {str(e)}", "warning")
+            return None
+
+    def _display_gitlab_cicd_instructions(self, token: str, data_repo_url: str):
+        """Display GitLab CI/CD configuration instructions"""
+        click.echo("\n" + "="*80)
+        click.echo("🔧 GITLAB CI/CD CONFIGURATION REQUIRED")
+        click.echo("="*80)
+        click.echo(f"\n📋 Repository: {data_repo_url}")
+        click.echo("\n🔑 ARGO_WORKFLOW_SA_TOKEN:")
+        click.echo(f"   {token}")
+        click.echo("\n📝 Configuration Steps:")
+        click.echo("   1. Navigate to your GitLab repository")
+        click.echo("   2. Go to Settings → CI/CD")
+        click.echo("   3. Expand the 'Variables' section")
+        click.echo("   4. Click 'Add variable'")
+        click.echo("   5. Set the following:")
+        click.echo("      • Key: ARGO_WORKFLOW_SA_TOKEN")
+        click.echo("      • Value: [Copy the token above]")
+        click.echo("      • Type: Variable")
+        click.echo("      • Environment scope: All (default)")
+        click.echo("      • Protect variable: ✓ (recommended)")
+        click.echo("      • Mask variable: ✓ (recommended)")
+        click.echo("   6. Click 'Add variable'")
+        click.echo("\n✅ This token is required for Argo Workflows to authenticate with your Kubernetes cluster")
+        click.echo("="*80)
+
+    def _display_github_cicd_instructions(self, token: str, data_repo_url: str):
+        """Display GitHub CI/CD configuration instructions"""
+        click.echo("\n" + "="*80)
+        click.echo("🔧 GITHUB CI/CD CONFIGURATION REQUIRED")
+        click.echo("="*80)
+        click.echo(f"\n📋 Repository: {data_repo_url}")
+        click.echo("\n🔑 ARGO_WORKFLOW_SA_TOKEN:")
+        click.echo(f"   {token}")
+        click.echo("\n📝 Configuration Steps:")
+        click.echo("   1. Navigate to your GitHub repository")
+        click.echo("   2. Go to Settings → Security")
+        click.echo("   3. Click on 'Secrets and variables' → 'Actions'")
+        click.echo("   4. Click 'New repository secret'")
+        click.echo("   5. Set the following:")
+        click.echo("      • Name: ARGO_WORKFLOW_SA_TOKEN")
+        click.echo("      • Secret: [Copy the token above]")
+        click.echo("   6. Click 'Add secret'")
+        click.echo("\n✅ This token is required for Argo Workflows to authenticate with your Kubernetes cluster")
+        click.echo("="*80)
+
+    def _display_generic_cicd_instructions(self, token: str, data_repo_url: str):
+        """Display generic CI/CD configuration instructions for other platforms"""
+        click.echo("\n" + "="*80)
+        click.echo("🔧 CI/CD CONFIGURATION REQUIRED")
+        click.echo("="*80)
+        click.echo(f"\n📋 Repository: {data_repo_url}")
+        click.echo("\n🔑 ARGO_WORKFLOW_SA_TOKEN:")
+        click.echo(f"   {token}")
+        click.echo("\n📝 Configuration Steps:")
+        click.echo("   1. Navigate to your repository settings")
+        click.echo("   2. Find the CI/CD or Secrets section")
+        click.echo("   3. Add a new secret/variable with:")
+        click.echo("      • Key/Name: ARGO_WORKFLOW_SA_TOKEN")
+        click.echo("      • Value: [Copy the token above]")
+        click.echo("   4. Save the configuration")
+        click.echo("\n✅ This token is required for Argo Workflows to authenticate with your Kubernetes cluster")
+        click.echo("="*80)
+
+    def _display_argo_workflow_sa_token_instructions(self):
+        """Display ARGO_WORKFLOW_SA_TOKEN configuration instructions based on git provider"""
+        try:
+            # Fetch the token
+            token = self._fetch_argo_workflow_sa_token()
+            if not token:
+                click.echo("\n⚠️  Could not fetch ARGO_WORKFLOW_SA_TOKEN from Kubernetes cluster")
+                click.echo("   Please manually retrieve the token using:")
+                click.echo("   kubectl get secret data-platform-argo-workflows-workflow-controller.service-account-token -n cicd-workflows -o jsonpath={.data.token} | base64 -d")
+                return
+            
+            # Get data repository URL from configuration
+            data_repo_url = self.state.config.get('data_repo_url', 'your-data-repository')
+            
+            # Get git provider from configuration
+            git_provider = self.state.config.get('secrets_git_provider', '').lower()
+            
+            # Display instructions based on git provider
+            if git_provider == 'gitlab':
+                self._display_gitlab_cicd_instructions(token, data_repo_url)
+            elif git_provider == 'github':
+                self._display_github_cicd_instructions(token, data_repo_url)
+            else:
+                self._display_generic_cicd_instructions(token, data_repo_url)
+                
+        except Exception as e:
+            self.log_and_echo(f"Error displaying ARGO_WORKFLOW_SA_TOKEN instructions: {str(e)}", "warning")
 
     def _collect_finalization_parameters(self) -> Dict:
         """Collect parameters needed for deployment finalization"""
