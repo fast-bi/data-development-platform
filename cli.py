@@ -72,6 +72,32 @@ questionary.Style.from_dict({
     'disabled': 'fg:gray italic'
 })
 
+def validate_customer_name_strict(customer_name: str) -> None:
+    """Validate that customer name contains only lowercase letters and dashes.
+
+    Requirements:
+    - Only 'a'..'z' and '-'
+    - Must start and end with a letter (no leading/trailing '-')
+    - No consecutive dashes (i.e., segments separated by single '-')
+    - Length 1..64
+    """
+    import re
+    if not isinstance(customer_name, str):
+        raise ValueError("Customer name must be a string")
+    if not (1 <= len(customer_name) <= 64):
+        raise ValueError("Customer name must be between 1 and 64 characters")
+    pattern = r"^[a-z]+(-[a-z]+)*$"
+    if re.match(pattern, customer_name) is None:
+        raise ValueError("Customer name must contain only lowercase letters and '-' (e.g., terasky-fin)")
+
+def questionary_validate_customer_name(text: str):
+    """Questionary-compatible validator: returns True or an error string."""
+    try:
+        validate_customer_name_strict(text)
+        return True
+    except Exception as e:
+        return str(e)
+
 def safe_input(prompt: str, default: str = "", validate=None) -> str:
     """Helper function for input with better paste support"""
     while True:
@@ -274,8 +300,15 @@ def load_config_from_file(config_file: str) -> Dict:
         # Basic configuration
         if 'basic' in config_data:
             basic = config_data['basic']
+            # Validate customer name strictly (lowercase letters and '-')
+            customer_value = basic.get('customer', '').replace('*', '')
+            if customer_value:
+                try:
+                    validate_customer_name_strict(customer_value)
+                except Exception as e:
+                    raise ValueError(str(e))
             transformed_config.update({
-                'customer': basic.get('customer', '').replace('*', ''),
+                'customer': customer_value,
                 'user_email': basic.get('user_email', '').replace('*', ''),
                 'cloud_provider': basic.get('cloud_provider', '').replace('*', ''),
                 'project_region': basic.get('project_region', '').replace('*', ''),
@@ -3714,8 +3747,8 @@ def collect_basic_config(use_simple_input: bool = False) -> Dict:
     
     if use_simple_input:
         config['customer'] = safe_input(
-            "Enter customer tenant name",
-            validate=lambda text: len(text) >= 1 and len(text) <= 64
+            "Enter customer tenant name (lowercase letters and '-' only, e.g., terasky-fin)",
+            validate=lambda text: validate_customer_name_strict(text) or True
         )
         
         config['user_email'] = safe_input(
@@ -3752,8 +3785,8 @@ def collect_basic_config(use_simple_input: bool = False) -> Dict:
         )
     else:
         config['customer'] = questionary.text(
-            "Enter customer tenant name:",
-            validate=lambda text: len(text) >= 1 and len(text) <= 64
+            "Enter customer tenant name (lowercase letters and '-' only, e.g., terasky-fin):",
+            validate=questionary_validate_customer_name
         ).ask()
 
         config['user_email'] = questionary.text(
