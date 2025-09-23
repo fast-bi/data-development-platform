@@ -285,7 +285,7 @@ check_python_packages() {
     fi
     
     # Check for required Python packages
-    local required_packages=("click" "pyyaml" "questionary")
+    local required_packages=("click" "PyYAML" "questionary")
     local missing_packages=()
     
     for package in "${required_packages[@]}"; do
