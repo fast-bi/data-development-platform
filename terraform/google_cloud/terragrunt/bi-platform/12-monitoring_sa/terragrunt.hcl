@@ -16,6 +16,7 @@ inputs = {
   sa_names = ["monitoring-k8s-sa"]
   generate_keys_for_sa = false
   sa_display_name = "Platform Monitoring Service Account"
+  output_path = get_terragrunt_dir()
   project_roles = [
     "${include.root.locals.project}=>roles/monitoring.admin",
     "${include.root.locals.project}=>roles/bigquery.admin",

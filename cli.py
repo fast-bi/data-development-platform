@@ -5,6 +5,7 @@ import yaml
 import click
 import subprocess
 import importlib.util
+import base64
 from pathlib import Path
 from typing import Dict, Optional, List
 from datetime import datetime
@@ -14,6 +15,7 @@ from questionary import Style
 
 # Set required environment variables for CLI usage
 import os
+import platform
 os.environ.setdefault('SECRET_KEY', 'cli-secret-key-for-deployment')
 os.environ.setdefault('MAIL_SERVER', 'mail.smtp2go.com')
 os.environ.setdefault('MAIL_PORT', '2525')
@@ -29,6 +31,27 @@ os.environ.setdefault('GOOGLE_CLIENT_ID', 'cli-client-id')
 os.environ.setdefault('GOOGLE_CLIENT_SECRET', 'cli-client-secret')
 os.environ.setdefault('GOOGLE_REDIRECT_URI', 'http://localhost:8080/callback')
 os.environ.setdefault('GITLAB_ADMIN_ACCESS_TOKEN', 'cli-token')
+
+# Configure Terragrunt cache location based on OS to prevent long path issues
+def configure_terragrunt_cache():
+    """Configure Terragrunt cache location to prevent long path issues on Windows"""
+    if not os.environ.get('TERRAGRUNT_DOWNLOAD'):
+        system = platform.system().lower()
+        if system == 'windows':
+            cache_path = r'C:\temp\terragrunt-cache'
+        else:  # Linux, macOS, etc.
+            cache_path = '/tmp/terragrunt-cache'
+        
+        # Create the cache directory if it doesn't exist
+        try:
+            os.makedirs(cache_path, exist_ok=True)
+            os.environ['TERRAGRUNT_DOWNLOAD'] = cache_path
+            print(f"🔧 Configured Terragrunt cache location: {cache_path}")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not create Terragrunt cache directory {cache_path}: {e}")
+
+# Configure Terragrunt cache on startup
+configure_terragrunt_cache()
 
 # Import the Deployer class'es directly
 from deployers.clouds.google_cloud import GoogleCloudManager
@@ -286,7 +309,8 @@ def load_config_from_file(config_file: str) -> Dict:
                     'gcp_state_project': gcp.get('state_project', '').replace('*', ''),
                     'gcp_state_location': gcp.get('state_location', '').replace('*', ''),
                     'gcp_state_bucket': gcp.get('state_bucket', '').replace('*', ''),
-                    'gcp_gke_deployment_type': gcp.get('gke_deployment_type')
+                    'gcp_gke_deployment_type': gcp.get('gke_deployment_type'),
+                    'gcp_project_id': gcp.get('project_id', '').replace('*', '')  # Allow custom project ID override
                 })
             
             # Handle AWS configuration
@@ -405,26 +429,40 @@ def load_config_from_file(config_file: str) -> Dict:
 
 class DeploymentManager:
     """Main class to manage the entire deployment process"""
-    def __init__(self, state: DeploymentState, config_file: str = None, non_interactive: bool = False):
+    def __init__(self, state: DeploymentState, config_file: str = None, non_interactive: bool = False, logger = None):
         self.state = state
         self.secret_manager = None
         self.deployment_session_id = None
         self.realm_info = None
         self.config_file = config_file
         self.non_interactive = non_interactive
+        self.logger = logger
         
         # Load configuration from file if provided
         if config_file:
             config_data = load_config_from_file(config_file)
             self.state.config.update(config_data)
             self.state.save_state()
+    
+    def log_and_echo(self, message, level="info"):
+        """Helper method to log and echo messages"""
+        click.echo(message)
+        if self.logger:
+            if level == "info":
+                self.logger.info(message)
+            elif level == "error":
+                self.logger.error(message)
+            elif level == "warning":
+                self.logger.warning(message)
+            elif level == "debug":
+                self.logger.debug(message)
 
     def phase_1_infrastructure(self) -> bool:
         """Phase 1: Infrastructure Deployment"""
-        click.echo("\n🚀 PHASE 1: Infrastructure Deployment")
+        self.log_and_echo("\n🚀 PHASE 1: Infrastructure Deployment")
         
         if self.state.infrastructure_deployed:
-            click.echo("✅ Infrastructure already deployed")
+            self.log_and_echo("✅ Infrastructure already deployed")
             return True
 
         # In non-interactive mode, automatically choose new infrastructure deployment
@@ -568,15 +606,16 @@ class DeploymentManager:
                 refresh_token=None,
                 token_expiry=None,
                 token_key=None,
-                metadata_collector=SimpleMetadataCollector()
+                metadata_collector=SimpleMetadataCollector(),
+                logger=self.logger
             )
             
             # Execute the deployment
-            click.echo("🚀 Starting GCP infrastructure deployment...")
+            self.log_and_echo("🚀 Starting GCP infrastructure deployment...")
             result = gcp_manager.run()
             
             if "successfully" in result.lower():
-                click.echo("✅ GCP infrastructure deployed successfully")
+                self.log_and_echo("✅ GCP infrastructure deployed successfully")
                 
                 # Set kubeconfig path for next steps
                 self.state.kubeconfig_path = f"terraform/google_cloud/terragrunt/bi-platform/17-kubeconfig/kubeconfig"
@@ -584,11 +623,11 @@ class DeploymentManager:
                 self.state.save_state()
                 return True
             else:
-                click.echo(f"❌ GCP infrastructure deployment failed: {result}")
+                self.log_and_echo(f"❌ GCP infrastructure deployment failed: {result}", "error")
                 return False
                 
         except Exception as e:
-            click.echo(f"❌ Error during GCP deployment: {str(e)}")
+            self.log_and_echo(f"❌ Error during GCP deployment: {str(e)}", "error")
             return False
 
     def _collect_gcp_parameters(self) -> Dict:
@@ -643,9 +682,20 @@ class DeploymentManager:
             else:
                 gcp_config['whitelisted_ips'] = existing_ips
         
-        # Use default project ID format (fast-bi-{customer})
-        gcp_config['project_id'] = f"fast-bi-{self.state.config['customer']}"
-        self.state.config['gcp_project_id'] = gcp_config['project_id']
+        # Project ID configuration - allow custom override
+        if 'gcp_project_id' not in self.state.config:
+            click.echo(f"\n🏗️ GCP Project ID Configuration")
+            click.echo(f"Default project ID would be: fast-bi-{self.state.config['customer']}")
+            
+            custom_project_id = safe_input(
+                "Enter GCP project ID (or press Enter to use default)",
+                default=f"fast-bi-{self.state.config['customer']}"
+            )
+            gcp_config['project_id'] = custom_project_id
+            self.state.config['gcp_project_id'] = gcp_config['project_id']
+        else:
+            gcp_config['project_id'] = self.state.config['gcp_project_id']
+            click.echo(f"\n🏗️ GCP Project ID: Using existing configuration ({gcp_config['project_id']})")
         
         # State management configuration
         if 'gcp_terraform_state' not in self.state.config or not self.state.config.get('gcp_terraform_state'):
@@ -1337,6 +1387,16 @@ class DeploymentManager:
         else:
             secrets_config['git_provider'] = self.state.config['secrets_git_provider']
         
+        # Repository access method (needed before repository URL validation)
+        if 'secrets_repo_access_method' not in self.state.config:
+            secrets_config['repo_access_method'] = safe_select(
+                "Select repository access method:",
+                ['access_token', 'deploy_keys', 'ssh_keys']
+            )
+            self.state.config['secrets_repo_access_method'] = secrets_config['repo_access_method']
+        else:
+            secrets_config['repo_access_method'] = self.state.config['secrets_repo_access_method']
+        
         if 'secrets_dag_repo_url' not in self.state.config:
             while True:
                 try:
@@ -1373,15 +1433,6 @@ class DeploymentManager:
             self.state.config['secrets_data_repo_main_branch'] = secrets_config['data_repo_main_branch']
         else:
             secrets_config['data_repo_main_branch'] = self.state.config['secrets_data_repo_main_branch']
-        
-        if 'secrets_repo_access_method' not in self.state.config:
-            secrets_config['repo_access_method'] = safe_select(
-                "Select repository access method:",
-                ['access_token', 'deploy_keys', 'ssh_keys']
-            )
-            self.state.config['secrets_repo_access_method'] = secrets_config['repo_access_method']
-        else:
-            secrets_config['repo_access_method'] = self.state.config['secrets_repo_access_method']
         
         if 'secrets_git_provider_access_token' not in self.state.config:
             if safe_select("Configure Git access token?", ['Yes', 'No']) == 'Yes':
@@ -1429,7 +1480,7 @@ class DeploymentManager:
             vault_file = f"/tmp/{self.state.config['customer']}_customer_vault_structure.json"
             
             if not Path(vault_file).exists():
-                click.echo("⚠️ Vault structure file not found")
+                click.echo("⚠️ Vault structure file not found. Deploy keys will be displayed during repository configuration.")
                 return
             
             with open(vault_file, 'r') as f:
@@ -1447,13 +1498,13 @@ class DeploymentManager:
             data_model_public_key = data_model_keys.get('public', '')
             
             if orchestrator_public_key or data_model_public_key:
-                click.echo("\n🔑 DEPLOY KEYS FOR REPOSITORY CONFIGURATION")
+                click.echo("🔑 DEPLOY KEYS FOR REPOSITORY CONFIGURATION")
                 click.echo("=" * 50)
                 click.echo("Please add these public keys as deploy keys in your repositories:")
                 click.echo("")
                 
                 if orchestrator_public_key:
-                    click.echo("📁 DAG Repository Deploy Key:")
+                    click.echo("📁 DAG Repository Deploy Key (REQUIRED for Airflow DAG execution):")
                     click.echo(f"Repository: {self.state.config.get('secrets_dag_repo_url', 'Not configured')}")
                     click.echo("Public Key:")
                     click.echo(orchestrator_public_key)
@@ -1467,11 +1518,64 @@ class DeploymentManager:
                     click.echo("")
                 
                 click.echo("=" * 50)
-                click.echo("⚠️ IMPORTANT: Add these deploy keys to your repositories before proceeding to Phase 3")
+                click.echo("⚠️ CRITICAL: Deploy keys are MANDATORY for the Data Orchestrator repository")
+                click.echo("The Airflow service requires SSH access to pull DAGs from the repository.")
+                click.echo("Add these deploy keys to your repositories before proceeding.")
                 click.echo("")
+            else:
+                click.echo("⚠️ No deploy keys found in vault structure. Deploy keys will be displayed during repository configuration.")
         
         except Exception as e:
             click.echo(f"⚠️ Error reading deploy keys: {str(e)}")
+            click.echo("Deploy keys will be displayed during repository configuration.")
+
+    def _fix_kubeconfig_if_needed(self) -> bool:
+        """Fix kubeconfig file to use the correct gke-gcloud-auth-plugin path"""
+        try:
+            # Import the kubeconfig fixer
+            from utils.kubeconfig_fixer import KubeconfigFixer
+            
+            # Get kubeconfig path from state or configuration
+            kubeconfig_path = self.state.kubeconfig_path or self.state.config.get('kubeconfig_path')
+            if not kubeconfig_path or not Path(kubeconfig_path).exists():
+                click.echo("⚠️ Kubeconfig file not found, skipping kubeconfig fix")
+                return True  # Not an error, just skip
+            
+            click.echo("🔧 Checking and fixing kubeconfig file...")
+            
+            fixer = KubeconfigFixer()
+            if fixer.fix_kubeconfig(kubeconfig_path):
+                click.echo("✅ Kubeconfig file fixed successfully")
+                return True
+            else:
+                click.echo("❌ Could not fix kubeconfig file")
+                return False
+                
+        except ImportError:
+            click.echo("⚠️ Kubeconfig fixer not available, skipping kubeconfig fix")
+            return True  # Not an error, just skip
+        except Exception as e:
+            click.echo(f"❌ Error fixing kubeconfig: {str(e)}")
+            return False
+
+    def _fix_missing_gcp_config(self):
+        """Fix missing GCP configuration values with defaults"""
+        try:
+            # Fix terraform_state if null or missing
+            if not self.state.config.get('gcp_terraform_state'):
+                self.state.config['gcp_terraform_state'] = 'local'
+                click.echo("🔧 Fixed missing terraform_state: set to 'local'")
+            
+            # Fix gke_deployment_type if null or missing
+            if not self.state.config.get('gcp_gke_deployment_type'):
+                self.state.config['gcp_gke_deployment_type'] = 'zonal'
+                click.echo("🔧 Fixed missing gke_deployment_type: set to 'zonal'")
+            
+            # Save the updated configuration
+            self.state.save_state()
+            
+        except Exception as e:
+            click.echo(f"⚠️ Error fixing GCP configuration: {str(e)}")
 
     def _verify_deploy_keys_configured(self) -> bool:
         """Verify that deploy keys are configured in repositories"""
@@ -1928,11 +2032,32 @@ class DeploymentManager:
         
         # Use the new kubeconfig collection method
         if self._collect_kubeconfig_path():
+            # For GCP, we still need to collect the project ID even when using existing infrastructure
+            if self.state.config.get('cloud_provider') == 'gcp':
+                self._collect_gcp_project_id_for_existing_infrastructure()
+            
             self.state.infrastructure_deployed = True
             self.state.save_state()
             return True
         else:
             return False
+
+    def _collect_gcp_project_id_for_existing_infrastructure(self):
+        """Collect GCP project ID when using existing infrastructure"""
+        click.echo("\n🏗️ GCP Project ID Configuration")
+        click.echo(f"Default project ID would be: fast-bi-{self.state.config['customer']}")
+        
+        # Only ask if not already set
+        if 'gcp_project_id' not in self.state.config:
+            custom_project_id = safe_input(
+                "Enter GCP project ID (or press Enter to use default)",
+                default=f"fast-bi-{self.state.config['customer']}"
+            )
+            self.state.config['gcp_project_id'] = custom_project_id
+            self.state.save_state()
+            click.echo(f"✅ GCP Project ID set to: {custom_project_id}")
+        else:
+            click.echo(f"✅ Using existing GCP Project ID: {self.state.config['gcp_project_id']}")
 
     def phase_2_secrets(self) -> bool:
         """Phase 2: Generate Platform Secrets"""
@@ -2020,11 +2145,20 @@ class DeploymentManager:
             click.echo("❌ Secrets not generated. Please run Phase 2 first.")
             return False
 
-        # Check if deploy keys were configured (if using deploy keys method)
-        if self.state.config.get('secrets_repo_access_method') == 'deploy_keys':
-            if not self._verify_deploy_keys_configured():
-                click.echo("❌ Deploy keys not configured in repositories. Please add the deploy keys shown in Phase 2 to your repositories.")
-                return False
+        # Display deploy keys information - ALWAYS required for data orchestrator service
+        # DAGs are pulled from repository using SSH keys regardless of access method
+        click.echo("\n⚠️  ATTENTION: Deploy keys are MANDATORY for the Data Orchestrator repository")
+        click.echo("Even if 'access_token' was selected, deploy keys are required for DAG execution.")
+        click.echo("The data orchestrator service pulls DAGs from the repository using SSH keys.")
+        click.echo("")
+        
+        # Display deploy keys information
+        self._display_deploy_keys_for_repositories()
+        
+        # Check if deploy keys were configured
+        if not self._verify_deploy_keys_configured():
+            click.echo("❌ Deploy keys not configured in repositories. Please add the deploy keys shown above to your repositories.")
+            return False
 
         # Check DNS nameserver configuration for custom domains
         if not self._verify_dns_nameserver_configuration():
@@ -2087,6 +2221,16 @@ class DeploymentManager:
         if not self.state.config:
             click.echo("❌ No configuration found. Please run Phase 1 first.")
             return False
+
+        # Fix kubeconfig file if needed (for GCP deployments)
+        if self.state.config.get('cloud_provider') == 'gcp':
+            if not self._fix_kubeconfig_if_needed():
+                click.echo("❌ Failed to fix kubeconfig file. Please fix it manually before proceeding.")
+                return False
+
+        # Fix missing GCP configuration values
+        if self.state.config.get('cloud_provider') == 'gcp':
+            self._fix_missing_gcp_config()
 
         # Handle case where infrastructure is not deployed but user wants to use existing infrastructure
         if not self.state.infrastructure_deployed:
@@ -2504,6 +2648,16 @@ class DeploymentManager:
                 click.echo("❌ Kubeconfig configuration failed. Please ensure Phase 1 completed successfully or provide a valid kubeconfig path.")
                 return False
 
+        # Fix kubeconfig file if needed (for GCP deployments)
+        if self.state.config.get('cloud_provider') == 'gcp':
+            if not self._fix_kubeconfig_if_needed():
+                click.echo("❌ Failed to fix kubeconfig file. Please fix it manually before proceeding.")
+                return False
+
+        # Fix missing GCP configuration values
+        if self.state.config.get('cloud_provider') == 'gcp':
+            self._fix_missing_gcp_config()
+
         # Check if Keycloak SSO is configured (prerequisite)
         if not self._verify_keycloak_configuration():
             click.echo("❌ Keycloak SSO is not configured. Please complete Keycloak configuration before deploying data services.")
@@ -2534,7 +2688,7 @@ class DeploymentManager:
             services_to_deploy = [
                 ("CICD Workload Runner", "1.0_cicd_workload_runner"),
                 ("Object Storage Operator", "2.0_object_storage_operator"),
-                ("Argo Workflows", "3.0_data-cicd-workflows"),
+                ("Argo Workflows", "3.0_data_cicd_workflows"),
                 ("Data Replication", "4.0_data_replication"),
                 ("Data Orchestration", "5.0_data_orchestration"),
                 ("Data Modeling", "6.0_data_modeling"),
@@ -2604,7 +2758,7 @@ class DeploymentManager:
                 expected_class_names = {
                     "1.0_cicd_workload_runner": "Platformk8sGitRunner",
                     "2.0_object_storage_operator": "PlatformObjectStorage",
-                    "3.0_data-cicd-workflows": "PlatformDataCicdWorkflows",
+                    "3.0_data_cicd_workflows": "PlatformDataCicdWorkflows",
                     "4.0_data_replication": "PlatformDataReplication",
                     "5.0_data_orchestration": "PlatformDataOrchestration",
                     "6.0_data_modeling": "PlatformDataModeling",
@@ -2670,6 +2824,10 @@ class DeploymentManager:
                 # Count how many services are actually deployed
                 deployed_services_count = sum(1 for _, service_file in services_to_deploy if self.state.is_service_deployed("data_services", service_file))
                 click.echo(f"\n✅ Phase 5 completed: {deployed_services_count}/{total_services} services deployed")
+                
+                # Display ARGO_WORKFLOW_SA_TOKEN configuration instructions
+                self._display_argo_workflow_sa_token_instructions()
+                
                 return True
             else:
                 click.echo("❌ No data services were deployed successfully")
@@ -2678,6 +2836,126 @@ class DeploymentManager:
         except Exception as e:
             click.echo(f"❌ Error during data services deployment: {str(e)}")
             return False
+
+    def _fetch_argo_workflow_sa_token(self) -> str:
+        """Fetch ARGO_WORKFLOW_SA_TOKEN from Kubernetes secrets"""
+        try:
+            
+            # Set KUBECONFIG environment variable
+            if self.state.kubeconfig_path:
+                os.environ['KUBECONFIG'] = self.state.kubeconfig_path
+            
+            # Get the secret
+            cmd = [
+                'kubectl', 'get', 'secret', 
+                'data-platform-argo-workflows-workflow-controller.service-account-token',
+                '-n', 'cicd-workflows',
+                '-o', 'jsonpath={.data.token}'
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                # Decode the base64 encoded token
+                token = base64.b64decode(result.stdout.strip()).decode('utf-8')
+                return token
+            else:
+                self.log_and_echo(f"Failed to fetch ARGO_WORKFLOW_SA_TOKEN: {result.stderr}", "warning")
+                return None
+                
+        except Exception as e:
+            self.log_and_echo(f"Error fetching ARGO_WORKFLOW_SA_TOKEN: {str(e)}", "warning")
+            return None
+
+    def _display_gitlab_cicd_instructions(self, token: str, data_repo_url: str):
+        """Display GitLab CI/CD configuration instructions"""
+        click.echo("\n" + "="*80)
+        click.echo("🔧 GITLAB CI/CD CONFIGURATION REQUIRED")
+        click.echo("="*80)
+        click.echo(f"\n📋 Repository: {data_repo_url}")
+        click.echo("\n🔑 ARGO_WORKFLOW_SA_TOKEN:")
+        click.echo(f"   {token}")
+        click.echo("\n📝 Configuration Steps:")
+        click.echo("   1. Navigate to your GitLab repository")
+        click.echo("   2. Go to Settings → CI/CD")
+        click.echo("   3. Expand the 'Variables' section")
+        click.echo("   4. Click 'Add variable'")
+        click.echo("   5. Set the following:")
+        click.echo("      • Key: ARGO_WORKFLOW_SA_TOKEN")
+        click.echo("      • Value: [Copy the token above]")
+        click.echo("      • Type: Variable")
+        click.echo("      • Environment scope: All (default)")
+        click.echo("      • Protect variable: ✓ (recommended)")
+        click.echo("      • Mask variable: ✓ (recommended)")
+        click.echo("   6. Click 'Add variable'")
+        click.echo("\n✅ This token is required for Argo Workflows to authenticate with your Kubernetes cluster")
+        click.echo("="*80)
+
+    def _display_github_cicd_instructions(self, token: str, data_repo_url: str):
+        """Display GitHub CI/CD configuration instructions"""
+        click.echo("\n" + "="*80)
+        click.echo("🔧 GITHUB CI/CD CONFIGURATION REQUIRED")
+        click.echo("="*80)
+        click.echo(f"\n📋 Repository: {data_repo_url}")
+        click.echo("\n🔑 ARGO_WORKFLOW_SA_TOKEN:")
+        click.echo(f"   {token}")
+        click.echo("\n📝 Configuration Steps:")
+        click.echo("   1. Navigate to your GitHub repository")
+        click.echo("   2. Go to Settings → Security")
+        click.echo("   3. Click on 'Secrets and variables' → 'Actions'")
+        click.echo("   4. Click 'New repository secret'")
+        click.echo("   5. Set the following:")
+        click.echo("      • Name: ARGO_WORKFLOW_SA_TOKEN")
+        click.echo("      • Secret: [Copy the token above]")
+        click.echo("   6. Click 'Add secret'")
+        click.echo("\n✅ This token is required for Argo Workflows to authenticate with your Kubernetes cluster")
+        click.echo("="*80)
+
+    def _display_generic_cicd_instructions(self, token: str, data_repo_url: str):
+        """Display generic CI/CD configuration instructions for other platforms"""
+        click.echo("\n" + "="*80)
+        click.echo("🔧 CI/CD CONFIGURATION REQUIRED")
+        click.echo("="*80)
+        click.echo(f"\n📋 Repository: {data_repo_url}")
+        click.echo("\n🔑 ARGO_WORKFLOW_SA_TOKEN:")
+        click.echo(f"   {token}")
+        click.echo("\n📝 Configuration Steps:")
+        click.echo("   1. Navigate to your repository settings")
+        click.echo("   2. Find the CI/CD or Secrets section")
+        click.echo("   3. Add a new secret/variable with:")
+        click.echo("      • Key/Name: ARGO_WORKFLOW_SA_TOKEN")
+        click.echo("      • Value: [Copy the token above]")
+        click.echo("   4. Save the configuration")
+        click.echo("\n✅ This token is required for Argo Workflows to authenticate with your Kubernetes cluster")
+        click.echo("="*80)
+
+    def _display_argo_workflow_sa_token_instructions(self):
+        """Display ARGO_WORKFLOW_SA_TOKEN configuration instructions based on git provider"""
+        try:
+            # Fetch the token
+            token = self._fetch_argo_workflow_sa_token()
+            if not token:
+                click.echo("\n⚠️  Could not fetch ARGO_WORKFLOW_SA_TOKEN from Kubernetes cluster")
+                click.echo("   Please manually retrieve the token using:")
+                click.echo("   kubectl get secret data-platform-argo-workflows-workflow-controller.service-account-token -n cicd-workflows -o jsonpath={.data.token} | base64 -d")
+                return
+            
+            # Get data repository URL from configuration
+            data_repo_url = self.state.config.get('data_repo_url', 'your-data-repository')
+            
+            # Get git provider from configuration
+            git_provider = self.state.config.get('secrets_git_provider', '').lower()
+            
+            # Display instructions based on git provider
+            if git_provider == 'gitlab':
+                self._display_gitlab_cicd_instructions(token, data_repo_url)
+            elif git_provider == 'github':
+                self._display_github_cicd_instructions(token, data_repo_url)
+            else:
+                self._display_generic_cicd_instructions(token, data_repo_url)
+                
+        except Exception as e:
+            self.log_and_echo(f"Error displaying ARGO_WORKFLOW_SA_TOKEN instructions: {str(e)}", "warning")
 
     def _collect_finalization_parameters(self) -> Dict:
         """Collect parameters needed for deployment finalization"""
@@ -3293,12 +3571,34 @@ class DeploymentManager:
         if 'namespace' in service_config:
             params['namespace'] = service_config['namespace']
         
-        # Add chart versions
-        if 'chart_version' in service_config:
-            params['chart_version'] = service_config['chart_version']
-        
-        if 'app_version' in service_config:
-            params['app_version'] = service_config['app_version']
+        # Add chart versions - handle provider/system specific versions
+        if service_file == "1.0_cicd_workload_runner":
+            # Use git provider specific chart versions
+            git_provider = data_config.get('git_provider', 'github')
+            if 'providers' in service_config and git_provider in service_config['providers']:
+                provider_config = service_config['providers'][git_provider]
+                params['chart_version'] = provider_config.get('chart_version', service_config.get('chart_version', '0.80.1'))
+            else:
+                # Fallback to default version
+                params['chart_version'] = service_config.get('chart_version', '0.80.1')
+        elif service_file == "8.0_data_analysis":
+            # Use BI system specific chart and app versions
+            bi_system = data_config.get('bi_system', 'superset')
+            if 'bi_systems' in service_config and bi_system in service_config['bi_systems']:
+                bi_config = service_config['bi_systems'][bi_system]
+                params['chart_version'] = bi_config.get('chart_version', service_config.get('chart_version', '0.15.0'))
+                params['app_version'] = bi_config.get('app_version', service_config.get('app_version', '5.0.0'))
+            else:
+                # Fallback to default versions
+                params['chart_version'] = service_config.get('chart_version', '0.15.0')
+                params['app_version'] = service_config.get('app_version', '5.0.0')
+        else:
+            # Use default chart and app versions for other services
+            if 'chart_version' in service_config:
+                params['chart_version'] = service_config['chart_version']
+            
+            if 'app_version' in service_config:
+                params['app_version'] = service_config['app_version']
         
         if 'operator_chart_version' in service_config:
             params['operator_chart_version'] = service_config['operator_chart_version']
@@ -3331,8 +3631,8 @@ class DeploymentManager:
             params['tsb_fastbi_web_core_image_version'] = data_config.get('tsb_fastbi_web_core_image_version', 'v2.1.6')
             params['tsb_dbt_init_core_image_version'] = data_config.get('tsb_dbt_init_core_image_version', 'v0.5.4')
         
-        # Add app_version for services that need it
-        if service_file in ["5.0_data_orchestration", "6.0_data_modeling", "7.0_data_dcdq_meta_collect", "8.0_data_analysis"]:
+        # Add app_version for services that need it (excluding data_analysis as it's handled above)
+        if service_file in ["5.0_data_orchestration", "6.0_data_modeling", "7.0_data_dcdq_meta_collect"]:
             if 'app_version' in service_config:
                 params['app_version'] = service_config['app_version']
         
@@ -3581,7 +3881,7 @@ class EnvironmentDestroyer:
             "6.0_data_modeling",
             "5.0_data_orchestration",
             "4.0_data_replication",
-            "3.0_data-cicd-workflows",
+            "3.0_data_cicd_workflows",
             "2.0_object_storage_operator",
             "1.0_cicd_workload_runner"
         ]
@@ -3873,8 +4173,128 @@ class EnvironmentDestroyer:
         # as they contain important state information for local state deployments
 
 
-def deploy_environment(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool):
+def cleanup_local_environment():
+    """Clean up local temporary deployment files (state files, logs, etc.) - SAFE VERSION"""
+    import shutil
+    import os
+    from pathlib import Path
+    
+    click.echo("🧹 Cleaning up local temporary deployment files...")
+    
+    # Only clean up temporary and generated files, NOT infrastructure templates
+    cleanup_paths = [
+        "cli/state/",
+        "local_environment/",
+        "deployment_*.log",
+        "*.tmp",
+        "temp_*",
+        "*.tfstate.backup"  # Only backup files, not main state files
+    ]
+    
+    cleaned_count = 0
+    
+    for path_pattern in cleanup_paths:
+        try:
+            if path_pattern.endswith('/'):
+                # Directory cleanup - only temporary directories
+                dir_path = Path(path_pattern)
+                if dir_path.exists() and dir_path.is_dir():
+                    shutil.rmtree(dir_path)
+                    click.echo(f"  🗑️  Removed directory: {path_pattern}")
+                    cleaned_count += 1
+            else:
+                # File pattern cleanup - only temporary files
+                import glob
+                for file_path in glob.glob(path_pattern):
+                    if os.path.exists(file_path):
+                        # Double-check: don't remove important config files
+                        if not any(important in file_path for important in ['values.yaml', 'template', 'README', 'deployment_configuration']):
+                            os.remove(file_path)
+                            click.echo(f"  🗑️  Removed file: {file_path}")
+                            cleaned_count += 1
+        except Exception as e:
+            click.echo(f"  ⚠️  Could not remove {path_pattern}: {str(e)}")
+    
+    if cleaned_count == 0:
+        click.echo("  ℹ️  No temporary deployment files found to clean up")
+    else:
+        click.echo(f"  ✅ Cleaned up {cleaned_count} temporary items")
+
+
+def deploy_environment(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: Optional[str] = None, fix_kubeconfig: Optional[str] = None):
     """Deploy Fast.BI environment with configuration file or interactive setup."""
+    
+    # Handle fix-kubeconfig option
+    if fix_kubeconfig:
+        try:
+            from utils.kubeconfig_fixer import KubeconfigFixer
+            
+            click.echo(f"🔧 Fixing kubeconfig file: {fix_kubeconfig}")
+            
+            if not Path(fix_kubeconfig).exists():
+                click.echo(f"❌ Kubeconfig file not found: {fix_kubeconfig}")
+                return
+            
+            fixer = KubeconfigFixer()
+            if fixer.fix_kubeconfig(fix_kubeconfig):
+                click.echo("✅ Kubeconfig file fixed successfully")
+            else:
+                click.echo("❌ Failed to fix kubeconfig file")
+            
+            return
+            
+        except ImportError:
+            click.echo("❌ Kubeconfig fixer not available. Please install required dependencies.")
+            return
+        except Exception as e:
+            click.echo(f"❌ Error fixing kubeconfig: {str(e)}")
+            return
+    
+    # Setup centralized logging if logging_file is provided
+    cli_logger = None
+    if logging_file:
+        import logging
+        import sys
+        from datetime import datetime
+        
+        # Create logger
+        cli_logger = logging.getLogger('fast_bi_cli')
+        cli_logger.setLevel(logging.INFO)
+        
+        # Clear any existing handlers
+        for handler in cli_logger.handlers[:]:
+            cli_logger.removeHandler(handler)
+        
+        # Create file handler
+        file_handler = logging.FileHandler(logging_file, mode='w')
+        file_handler.setLevel(logging.INFO)
+        
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        
+        # Add handler to logger
+        cli_logger.addHandler(file_handler)
+        
+        # Log startup
+        cli_logger.info("=" * 80)
+        cli_logger.info("Fast.BI Platform Deployment CLI Started")
+        cli_logger.info(f"Timestamp: {datetime.now().isoformat()}")
+        cli_logger.info(f"Log file: {logging_file}")
+        cli_logger.info("=" * 80)
+    
+    # Helper function to log and echo
+    def log_and_echo(message, level="info"):
+        click.echo(message)
+        if cli_logger:
+            if level == "info":
+                cli_logger.info(message)
+            elif level == "error":
+                cli_logger.error(message)
+            elif level == "warning":
+                cli_logger.warning(message)
+            elif level == "debug":
+                cli_logger.debug(message)
     
     try:
         # Initialize deployment state
@@ -3900,6 +4320,17 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
             destroy_manager.destroy_environment()
             return
         
+        # Handle cleanup operation
+        if cleanup:
+            click.echo("🧹 Starting cleanup of local temporary deployment files...")
+            try:
+                cleanup_local_environment()
+                click.echo("✅ Cleanup completed successfully!")
+                return
+            except Exception as e:
+                click.echo(f"❌ Cleanup failed: {str(e)}")
+                return
+        
         # Determine if we should run in non-interactive mode
         run_non_interactive = non_interactive or (config and not interactive)
         
@@ -3909,7 +4340,7 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
                 click.echo("❌ No deployment configuration found. Please run a deployment first.")
                 return
             
-            deployment = DeploymentManager(state)
+            deployment = DeploymentManager(state, logger=cli_logger)
             deployment.show_configuration_summary()
             return
         
@@ -3919,7 +4350,7 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
                 click.echo("❌ No deployment configuration found. Please run a deployment first.")
                 return
             
-            deployment = DeploymentManager(state)
+            deployment = DeploymentManager(state, logger=cli_logger)
             deployment._show_keycloak_setup_help()
             return
         
@@ -3952,7 +4383,7 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
                 click.echo("ℹ️  Confirmations will be shown for critical steps (e.g., Keycloak configuration)")
             
             # Create deployment manager
-            deployment = DeploymentManager(state, config_file=config, non_interactive=True)
+            deployment = DeploymentManager(state, config_file=config, non_interactive=True, logger=cli_logger)
             
             # Determine which phases to run
             phases_to_run = state.config.get('phases_to_run', 'all')
@@ -4046,11 +4477,11 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
 
         # Show current state (only if we have config and not in initial choice)
         if state.config:
-            deployment = DeploymentManager(state)
+            deployment = DeploymentManager(state, logger=cli_logger)
             deployment.show_deployment_status()
 
         # Create deployment manager
-        deployment = DeploymentManager(state)
+        deployment = DeploymentManager(state, logger=cli_logger)
         
         # Run specific phase or all phases
         if phase:
@@ -4092,9 +4523,12 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
 @click.option('--non-interactive', is_flag=True, help='Run in non-interactive mode (requires config file)')
 @click.option('--destroy', is_flag=True, help='Destroy entire environment (infrastructure + Kubernetes resources)')
 @click.option('--destroy-confirm', is_flag=True, help='Skip confirmation for destroy operation')
-def cli(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool):
+@click.option('--cleanup', is_flag=True, help='Clean up local temporary deployment files (state files, logs, etc.)')
+@click.option('--logging-file', type=str, help='Path to log file for deployment output (captures all CLI and deployment logs)')
+@click.option('--fix-kubeconfig', type=str, help='Fix kubeconfig file with correct gke-gcloud-auth-plugin path')
+def cli(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: Optional[str], fix_kubeconfig: Optional[str]):
     """Fast.BI Platform Deployment CLI"""
-    deploy_environment(config, interactive, phase, simple_input, state_file, show_config, keycloak_help, non_interactive, destroy, destroy_confirm)
+    deploy_environment(config, interactive, phase, simple_input, state_file, show_config, keycloak_help, non_interactive, destroy, destroy_confirm, cleanup, logging_file, fix_kubeconfig)
 
 
 if __name__ == '__main__':

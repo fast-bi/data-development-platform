@@ -16,6 +16,7 @@ inputs = {
   sa_names = ["dbt-sa"]
   generate_keys_for_sa = false
   sa_display_name = "DBT WorkLoad Service Account"
+  output_path = get_terragrunt_dir()
   project_roles = [
     "${include.root.locals.project}=>roles/iam.serviceAccountTokenCreator",
     "${include.root.locals.project}=>roles/storage.admin",

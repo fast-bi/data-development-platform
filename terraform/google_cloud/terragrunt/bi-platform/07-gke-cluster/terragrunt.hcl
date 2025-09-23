@@ -100,5 +100,4 @@ inputs = {
     "roles/container.clusterAdmin"
   ]
 
-
 }

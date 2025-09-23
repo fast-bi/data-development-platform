@@ -31,7 +31,7 @@ from google.auth.transport.requests import Request
 import time
 import datetime
 
-# Configure logging - only set up once
+# Configure logging - only set up when explicitly called
 def setup_logging(log_file="gcp_deployment.log", debug=False):
     """Setup logging configuration to avoid duplication"""
     # Clear any existing handlers to prevent duplication
@@ -62,15 +62,15 @@ def setup_logging(log_file="gcp_deployment.log", debug=False):
     
     return logging.getLogger('gcp_deployer')
 
-# Initialize logger
-logger = setup_logging()
+# Initialize logger as None - will be set up when needed
+logger = None
 
 class GoogleCloudManager:
     def __init__(self, deployment, billing_account_id, parent_folder, customer, domain_name, admin_email, whitelisted_ips, region, project_id=None, cloud_provider=None, 
                  cidr_block=None, cluster_ipv4_cidr_block=None, services_ipv4_cidr_block=None, private_service_connect_cidr=None,
                  lb_subnet_cidr=None, shared_host=None, kubernetes_version=None, gke_machine_type=None, gke_spot=None, k8s_master_ipv4_cidr_block=None,
                  terraform_state=None, state_project=None, state_location=None, state_bucket=None, gke_deployment_type=None,
-                 service_account_key=None, access_token=None, refresh_token=None, token_expiry=None, token_key=None, metadata_collector=None):
+                 service_account_key=None, access_token=None, refresh_token=None, token_expiry=None, token_key=None, metadata_collector=None, logger=None):
         # Add these new attributes
         self.service_account_key = service_account_key
         self.access_token = access_token
@@ -78,6 +78,7 @@ class GoogleCloudManager:
         self.token_expiry = token_expiry
         self.token_key = token_key
         self.metadata_collector = metadata_collector
+        self.logger = logger or logging.getLogger(__name__)
         #Service specific tf - Basic
         self.cloud_provider = cloud_provider if cloud_provider else "gcp"
         self.deployment_environemnt = deployment
@@ -155,7 +156,7 @@ class GoogleCloudManager:
         # Get GitLab access token from environment variables
         gitlab_access_token = os.environ.get('PUBLIC_ACCESS_TOKEN', '')
         if not gitlab_access_token:
-            logger.warning("PUBLIC_ACCESS_TOKEN environment variable not set. GitLab module downloads may fail.")
+            self.logger.warning("PUBLIC_ACCESS_TOKEN environment variable not set. GitLab module downloads may fail.")
         
         context = {
             'customer': self.customer,
@@ -189,14 +190,14 @@ class GoogleCloudManager:
         """Handle token refresh for API/website usage when tokens are provided"""
         if self.access_token and self.refresh_token:
             if self.is_token_expired():
-                logger.info("Token is expired, attempting to refresh")
+                self.logger.info("Token is expired, attempting to refresh")
                 try:
                     creds = Credentials.from_authorized_user_info(
                         {"refresh_token": self.refresh_token, "client_id": Config.CLIENT_ID, "client_secret": Config.CLIENT_SECRET},
                         scopes=['https://www.googleapis.com/auth/cloud-platform']
                     )
                     creds.refresh(Request())
-                    logger.info("Token refreshed successfully")
+                    self.logger.info("Token refreshed successfully")
                     self.access_token = creds.token
                     
                     # Calculate new expiry
@@ -206,26 +207,26 @@ class GoogleCloudManager:
                         # If expiry is not set, default to 1 hour from now
                         self.token_expiry = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).timestamp()
                     
-                    logger.info(f"New token expiry set to: {self.token_expiry}")
+                    self.logger.info(f"New token expiry set to: {self.token_expiry}")
                     
                     # Update the token in the database if metadata_collector is available
                     if self.metadata_collector and hasattr(self.metadata_collector, 'save_token'):
                         self.metadata_collector.save_token(self.token_key, self.access_token, self.refresh_token, self.token_expiry)
-                        logger.info("Token updated in database")
+                        self.logger.info("Token updated in database")
                 except Exception as e:
-                    logger.error(f"Error refreshing token: {str(e)}")
+                    self.logger.error(f"Error refreshing token: {str(e)}")
             else:
-                logger.info("Token is still valid, no refresh needed")
+                self.logger.info("Token is still valid, no refresh needed")
         else:
-            logger.info("No access token or refresh token provided, will use local gcloud authentication")
+            self.logger.info("No access token or refresh token provided, will use local gcloud authentication")
 
     def is_token_expired(self):
         if self.token_expiry is None:
-            logger.info("Token expiry is None, considering as expired")
+            self.logger.info("Token expiry is None, considering as expired")
             return True
         current_time = time.time()
         is_expired = self.token_expiry <= current_time + 300
-        logger.info(f"Token expiry: {datetime.datetime.fromtimestamp(self.token_expiry)}, "
+        self.logger.info(f"Token expiry: {datetime.datetime.fromtimestamp(self.token_expiry)}, "
                     f"Current time: {datetime.datetime.fromtimestamp(current_time)}, "
                     f"Is expired: {is_expired}")
         return is_expired
@@ -237,14 +238,20 @@ class GoogleCloudManager:
         try:
             # Change to the Terragrunt directory
             os.chdir(self.terragrunt_dir)
-            logger.info("Changed directory to: %s", os.getcwd())
-            logger.info("Executing command: %s", ' '.join(command))
+            self.logger.info("Changed directory to: %s", os.getcwd())
+            self.logger.info("Executing command: %s", ' '.join(command))
 
             env = os.environ.copy()
             if 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
                 env['GOOGLE_APPLICATION_CREDENTIALS'] = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
 
-            result = subprocess.run(command, env=env, check=True, capture_output=True, text=True)
+            # Use shell=True only for commands that need it (like terragrunt)
+            if command[0] in ["terragrunt", "terraform"]:
+                # Convert command list to string for shell=True
+                command_str = ' '.join(command)
+                result = subprocess.run(command_str, env=env, check=True, capture_output=True, text=True, shell=True)
+            else:
+                result = subprocess.run(command, env=env, check=True, capture_output=True, text=True)
             
             # Save the result to a file
             with open(output_file_path, 'w') as f:
@@ -253,15 +260,15 @@ class GoogleCloudManager:
             
             return result.stdout + result.stderr, None
         except subprocess.CalledProcessError as e:
-            logger.error("Command failed: %s", e.cmd)
-            logger.error("Status code: %s", e.returncode)
-            logger.error("Output: %s", e.stdout)
-            logger.error("Error: %s", e.stderr)
+            self.logger.error("Command failed: %s", e.cmd)
+            self.logger.error("Status code: %s", e.returncode)
+            self.logger.error("Output: %s", e.stdout)
+            self.logger.error("Error: %s", e.stderr)
             return e.stdout + e.stderr, e
         finally:
             # Change back to the original directory
             os.chdir(original_dir)
-            logger.info("Returned to original directory: %s", os.getcwd())
+            self.logger.info("Returned to original directory: %s", os.getcwd())
 
 
     def cleanup_terraform_states(self):
@@ -275,7 +282,7 @@ class GoogleCloudManager:
                 if name == ".terragrunt-cache":
                     full_path = os.path.join(root, name)
                     shutil.rmtree(full_path)
-                    logger.info(f"Removed .terragrunt-cache: {full_path}")
+                    self.logger.info(f"Removed .terragrunt-cache: {full_path}")
                 elif name == ".terraform":
                     # For .terraform directories, check if they contain state files
                     terraform_dir = os.path.join(root, name)
@@ -283,38 +290,64 @@ class GoogleCloudManager:
                     
                     # If this .terraform directory contains customer state files, preserve it
                     if os.path.exists(customer_state_dir):
-                        logger.info(f"Preserving .terraform directory with state files: {terraform_dir}")
+                        self.logger.info(f"Preserving .terraform directory with state files: {terraform_dir}")
                         continue
                     else:
                         # This .terraform directory doesn't contain our customer's state files, safe to remove
                         shutil.rmtree(terraform_dir)
-                        logger.info(f"Removed .terraform directory without state files: {terraform_dir}")
+                        self.logger.info(f"Removed .terraform directory without state files: {terraform_dir}")
 
             # Remove .terraform.lock.hcl files (these are safe to remove and will be regenerated)
             for name in files:
                 if name == ".terraform.lock.hcl":
                     full_path = os.path.join(root, name)
                     os.remove(full_path)
-                    logger.info(f"Removed .terraform.lock.hcl: {full_path}")
+                    self.logger.info(f"Removed .terraform.lock.hcl: {full_path}")
         
-        logger.info("Cleanup completed successfully.")
+        self.logger.info("Cleanup completed successfully.")
+
+    def is_wsl_environment(self):
+        """Check if we're running in WSL environment"""
+        try:
+            # Check for WSL-specific environment variables
+            if os.environ.get('WSL_DISTRO_NAME') or os.environ.get('WSLENV'):
+                return True
+            # Check for WSL in uname
+            result = subprocess.run(['uname', '-r'], capture_output=True, text=True)
+            if result.returncode == 0 and 'microsoft' in result.stdout.lower():
+                return True
+            return False
+        except:
+            return False
 
     def check_gcloud_auth(self):
         """Check if gcloud authentication is properly configured"""
         try:
+            # Try without shell=True first (better for WSL2)
             result = subprocess.run(["gcloud", "auth", "list", "--filter=status:ACTIVE", "--format=value(account)"], 
                                   capture_output=True, text=True, check=True)
             if result.stdout.strip():
-                logger.info(f"gcloud authentication found for account: {result.stdout.strip()}")
+                self.logger.info(f"gcloud authentication found for account: {result.stdout.strip()}")
                 return True
             else:
-                logger.warning("No active gcloud authentication found")
+                self.logger.warning("No active gcloud authentication found")
                 return False
-        except subprocess.CalledProcessError:
-            logger.error("gcloud command failed")
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"gcloud command failed with return code {e.returncode}")
+            self.logger.error(f"Error output: {e.stderr}")
             return False
         except FileNotFoundError:
-            logger.error("gcloud CLI not found")
+            if self.is_wsl_environment():
+                self.logger.error("gcloud CLI not found in WSL2 environment")
+                self.logger.error("Please install Google Cloud SDK in your WSL2 environment:")
+                self.logger.error("  curl https://sdk.cloud.google.com | bash")
+                self.logger.error("  exec -l $SHELL")
+                self.logger.error("  gcloud init")
+            else:
+                self.logger.error("gcloud CLI not found - please install Google Cloud SDK")
+            return False
+        except Exception as e:
+            self.logger.error(f"Unexpected error checking gcloud auth: {str(e)}")
             return False
 
     def deploy_gcp_terragrunt(self, max_retries=3):
@@ -326,7 +359,7 @@ class GoogleCloudManager:
                 
                 # Handle different authentication methods
                 if self.access_token and self.refresh_token:
-                    logger.info("Using OAuth2 access token for authentication (API/Website mode)")
+                    self.logger.info("Using OAuth2 access token for authentication (API/Website mode)")
                     # Create a temporary credentials file for OAuth2 tokens
                     creds_file = os.path.join(self.terragrunt_dir, 'temp_creds.json')
                     with open(creds_file, 'w') as f:
@@ -339,22 +372,27 @@ class GoogleCloudManager:
                         }, f)
                     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_file
                 elif self.service_account_key:
-                    logger.info("Using service account key for authentication")
+                    self.logger.info("Using service account key for authentication")
                     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = self.service_account_key
                 else:
-                    logger.info("Using local gcloud authentication (CLI mode)")
+                    self.logger.info("Using local gcloud authentication (CLI mode)")
                     # Check if user is authenticated with gcloud
                     try:
                         result = subprocess.run(["gcloud", "auth", "list", "--filter=status:ACTIVE", "--format=value(account)"], 
                                               capture_output=True, text=True, check=True)
                         if result.stdout.strip():
-                            logger.info(f"Using gcloud authentication for account: {result.stdout.strip()}")
+                            self.logger.info(f"Using gcloud authentication for account: {result.stdout.strip()}")
                         else:
                             raise Exception("No active gcloud authentication found. Please run 'gcloud auth login' first.")
-                    except subprocess.CalledProcessError:
-                        raise Exception("gcloud command failed. Please ensure gcloud CLI is installed and run 'gcloud auth login' first.")
+                    except subprocess.CalledProcessError as e:
+                        self.logger.error(f"gcloud command failed with return code {e.returncode}")
+                        self.logger.error(f"Error output: {e.stderr}")
+                        raise Exception(f"gcloud command failed. Please ensure gcloud CLI is installed and run 'gcloud auth login' first. Error: {e.stderr}")
                     except FileNotFoundError:
-                        raise Exception("gcloud CLI not found. Please install Google Cloud SDK and run 'gcloud auth login' first.")
+                        if self.is_wsl_environment():
+                            raise Exception("gcloud CLI not found in WSL2 environment. Please install Google Cloud SDK in WSL2:\n  curl https://sdk.cloud.google.com | bash\n  exec -l $SHELL\n  gcloud init")
+                        else:
+                            raise Exception("gcloud CLI not found. Please install Google Cloud SDK and run 'gcloud auth login' first.")
 
                 # Run Terragrunt
                 output_message, exc = self.execute_command([
@@ -378,7 +416,7 @@ class GoogleCloudManager:
                         "output": str(e),
                         "status": "failure"
                     }
-                logger.warning("Retry %s/%s after error: %s", retry_count, max_retries, e)
+                self.logger.warning("Retry %s/%s after error: %s", retry_count, max_retries, e)
                 time.sleep(5)  # wait for 5 seconds before retrying
             finally:
                 self.cleanup_terraform_states()
@@ -388,10 +426,10 @@ class GoogleCloudManager:
 
     def run(self):
         """Main execution method"""
-        logger.info("Starting GCP infrastructure deployment for customer: %s", self.customer)
+        self.logger.info("Starting GCP infrastructure deployment for customer: %s", self.customer)
         try:
             # Render all template files
-            logger.info("Rendering Terraform template files")
+            self.logger.info("Rendering Terraform template files")
             if self.terraform_state == "remote":
                 self.render_backend_tf()
             self.render_defaults_yaml()
@@ -399,11 +437,11 @@ class GoogleCloudManager:
             self.render_terragrunt_hcl()
             
             # Deploy infrastructure
-            logger.info("Deploying GCP infrastructure using Terragrunt")
+            self.logger.info("Deploying GCP infrastructure using Terragrunt")
             result = self.deploy_gcp_terragrunt()
             
             if result["status"] == "success":
-                logger.info("GCP infrastructure deployment completed successfully")
+                self.logger.info("GCP infrastructure deployment completed successfully")
                 
                 # Add deployment record to metadata collector if available
                 if self.metadata_collector:
@@ -417,21 +455,22 @@ class GoogleCloudManager:
                         "status": "success"
                     }
                     self.metadata_collector.add_deployment_record(deployment_record)
-                    logger.info("Deployment record added to metadata collector")
+                    self.logger.info("Deployment record added to metadata collector")
                 
                 return "GCP infrastructure deployed successfully"
             else:
-                logger.error("GCP infrastructure deployment failed")
+                self.logger.error("GCP infrastructure deployment failed")
                 return f"GCP infrastructure deployment failed: {result['output']}"
                 
         except Exception as e:
-            logger.error("Deployment failed: %s", str(e))
+            self.logger.error("Deployment failed: %s", str(e))
             raise
 
     @classmethod
-    def from_cli_args(cls, args):
+    def from_cli_args(cls, args, logger=None):
         """Create a GoogleCloudManager instance from CLI arguments"""
-        logger.info("Creating GoogleCloudManager instance from CLI arguments")
+        if logger:
+            logger.info("Creating GoogleCloudManager instance from CLI arguments")
         return cls(
             deployment=args.deployment,
             billing_account_id=args.billing_account_id,
@@ -463,7 +502,8 @@ class GoogleCloudManager:
             refresh_token=args.refresh_token,
             token_expiry=args.token_expiry,
             token_key=args.token_key,
-            metadata_collector=args.metadata_collector
+            metadata_collector=args.metadata_collector,
+            logger=logger
         )
 
 

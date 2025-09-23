@@ -16,6 +16,7 @@ inputs = {
   sa_names = ["external-dns-k8s-sa"]
   generate_keys_for_sa = false
   sa_display_name = "External DNS Service Account"
+  output_path = get_terragrunt_dir()
   project_roles = [
     "${include.root.locals.project}=>roles/dns.admin"
   ]

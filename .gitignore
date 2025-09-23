@@ -31,12 +31,11 @@ local_environment/*
 terraform/aws_cloud/helm/external-dns/*
 terraform/aws_cloud/terragrunt/backend.tf
 terraform/aws_cloud/terragrunt/defaults.yaml
-terraform/aws_cloud/terragrunt/empty.yaml
 terraform/aws_cloud/terragrunt/env.yaml
 terraform/aws_cloud/terragrunt/terragrunt.hcl
 terraform/google_cloud/terragrunt/backend.tf
 terraform/google_cloud/terragrunt/defaults.yaml
-terraform/google_cloud/terragrunt/empty.yaml
 terraform/google_cloud/terragrunt/env.yaml
 terraform/google_cloud/terragrunt/terragrunt.hcl
 .development_README.MD
+cli/state/deployment_state.json

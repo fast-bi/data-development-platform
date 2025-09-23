@@ -389,7 +389,7 @@ spec:
       serviceAccountName: database-init-script-sa
       containers:
       - name: create-script
-        image: bitnami/kubectl:latest
+        image: bitnamilegacy/kubectl:1.33.4
         command: ["/bin/sh", "-c"]
         env:
         - name: IDP_SSO_DB_SECRET

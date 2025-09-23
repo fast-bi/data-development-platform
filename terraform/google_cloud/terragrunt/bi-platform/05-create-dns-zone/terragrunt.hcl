@@ -1,5 +1,5 @@
 terraform {
-  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/cloud-dns?ref=v2.0.4"
+  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/cloud-dns?ref=v1.0.0"
 }
 
 include "root" {
@@ -21,4 +21,5 @@ inputs = {
   project     = dependency.project.outputs.project_id
   zone_name = include.root.locals.zone_name
   domain_name = include.root.locals.domain_name
+  output_path = get_terragrunt_dir()
 }

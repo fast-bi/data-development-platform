@@ -98,8 +98,8 @@ curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
 sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
 sudo apt-get update && sudo apt-get install terraform
 
-# Install Terragrunt
-sudo curl -fsSL -o /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.45.0/terragrunt_linux_amd64
+# Install Terragrunt v0.84.0
+sudo curl -fsSL -o /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.84.0/terragrunt_linux_amd64
 sudo chmod +x /usr/local/bin/terragrunt
 
 # Install Helm
@@ -109,14 +109,25 @@ curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 sudo apt install git docker.io jq
 ```
 
-#### Windows
+#### Windows (WSL2)
 ```powershell
-# Install using Chocolatey
-choco install python kubectl gcloudsdk terraform terragrunt kubernetes-helm git docker-desktop jq
-
-# Or use the Windows installer script
+# Fast.BI CLI now requires WSL2 for Windows compatibility
+# The installer will automatically install WSL2 and Ubuntu if needed
 .\cli\prerequisites\install-prerequisites.ps1
+
+# After WSL2 installation, complete setup in WSL2:
+wsl -d Ubuntu
+git clone https://github.com/fast-bi/data-development-platform.git
+cd data-development-platform
+chmod +x cli/prerequisites/install-prerequisites.sh
+./cli/prerequisites/install-prerequisites.sh
+python3 cli.py
 ```
+
+**Why WSL2?**
+- Eliminates Windows-specific compatibility issues
+- Provides consistent behavior across all platforms
+- Native Linux environment for all tools
 
 ### Cloud Provider Setup
 

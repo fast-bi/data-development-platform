@@ -6,8 +6,8 @@
 fullnameOverride: "data-platform-user-console-psql"
 image:
   registry: docker.io
-  repository: bitnami/postgresql
-  tag: 16.2.0
+  repository: bitnamilegacy/postgresql
+  tag: 16.6.0
 architecture: standalone
 replication:
   synchronousCommit: "on"
