@@ -300,11 +300,28 @@ install_terragrunt() {
     
     if command_exists terragrunt; then
         local current_version=$(terragrunt --version | head -n1)
-        if [[ "$current_version" == *"v0.84.0"* || "$current_version" == *"0.84.0"* ]]; then
-            log "Terragrunt v0.84.0 already installed"
+        # Extract semantic version like X.Y.Z
+        local current_semver=$(echo "$current_version" | sed -E 's/.*v?([0-9]+)\.([0-9]+)\.([0-9]+).*/\1.\2.\3/')
+        local required_min="0.84.0"
+        # Compare versions: return 0 if $1 >= $2
+        version_ge() {
+            local IFS=.
+            local a=($1) b=($2)
+            # pad with zeros to length 3
+            while [ ${#a[@]} -lt 3 ]; do a+=(0); done
+            while [ ${#b[@]} -lt 3 ]; do b+=(0); done
+            for i in 0 1 2; do
+                if ((10#${a[i]} > 10#${b[i]})); then return 0; fi
+                if ((10#${a[i]} < 10#${b[i]})); then return 1; fi
+            done
+            return 0
+        }
+
+        if version_ge "$current_semver" "$required_min"; then
+            log "Terragrunt $current_semver already installed (>= $required_min)"
             return 0
         else
-            warn "Terragrunt $current_version installed, but v0.84.0 is required"
+            warn "Terragrunt $current_semver installed, but >= $required_min is required"
             log "Updating to Terragrunt v0.84.0..."
         fi
     fi
@@ -322,11 +339,24 @@ install_terragrunt() {
     
     # Verify installation
     if command_exists terragrunt; then
-        local version=$(terragrunt --version | head -n1)
-        if [[ "$version" == *"v0.84.0"*  || "$version" == *"0.84.0"* ]]; then
-            success "Terragrunt v0.84.0 installed successfully: $version"
+        local version_line=$(terragrunt --version | head -n1)
+        local installed_semver=$(echo "$version_line" | sed -E 's/.*v?([0-9]+)\.([0-9]+)\.([0-9]+).*/\1.\2.\3/')
+        local required_min="0.84.0"
+        version_ge() {
+            local IFS=.
+            local a=($1) b=($2)
+            while [ ${#a[@]} -lt 3 ]; do a+=(0); done
+            while [ ${#b[@]} -lt 3 ]; do b+=(0); done
+            for i in 0 1 2; do
+                if ((10#${a[i]} > 10#${b[i]})); then return 0; fi
+                if ((10#${a[i]} < 10#${b[i]})); then return 1; fi
+            done
+            return 0
+        }
+        if version_ge "$installed_semver" "$required_min"; then
+            success "Terragrunt installed successfully: $version_line (>= $required_min)"
         else
-            error "Terragrunt version mismatch. Expected v0.84.0, got: $version"
+            error "Terragrunt version too low. Required >= $required_min, got: $version_line"
             exit 1
         fi
     else
