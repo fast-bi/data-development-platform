@@ -2,43 +2,40 @@
 # Minimal set for CLI usage (tools, configs, cloud, security, data catalog)
 
 # Flask
-flask
+flask==3.1.2
 
 # Core CLI framework
-click>=8.0.0
+click>=8.3.0
 
 # YAML configuration support
-pyyaml>=6.0
+pyyaml>=6.0.2
 
 # Kubernetes client
-kubernetes
-
+kubernetes==33.1.0
 
 # Google Cloud libraries (core + selected services)
-google-api-core
-google-api-python-client
-google-auth
-google-cloud-core
-google-cloud-compute
-google-cloud-container
-google-cloud-bigquery
-google-cloud-datacatalog
-google-cloud-resource-manager
+google-api-core==2.25.1
+google-api-python-client==2.182.0
+google-auth==2.40.3
+google-cloud-core==2.4.3
+google-cloud-compute==1.38.0
+google-cloud-container==2.59.0
+google-cloud-bigquery==3.38.0
+google-cloud-datacatalog==3.27.1
+google-cloud-resource-manager==1.14.2
+google-api-python-client==2.182.0
+google-auth==2.40.3
+google-cloud==0.34.0
 
 # Security
-cryptography
+cryptography==46.0.1
 argon2-cffi==23.1.0
 
-click
-questionary
-jinja2
-=======
+click==8.3.0
+questionary==2.1.1
+jinja2==3.1.6
+
 # Additional useful packages (optional but recommended)
 requests>=2.28.0
 colorama>=0.4.6
 tabulate>=0.9.0
-
-# Google Cloud
-google-api-python-client
-google-auth
-google-cloud

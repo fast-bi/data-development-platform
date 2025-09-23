@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env zsh#
 
 # Fast.BI CLI Prerequisites Installer for macOS
 # Installs all required tools using Homebrew and other methods
@@ -44,7 +44,7 @@ check_macos_version() {
     
     log "macOS version: $macos_version"
     
-    if [[ $major_version -lt 10 ]] || ([[ $major_version -eq 10 ]] && [[ $minor_version -lt 14 ]); then
+    if [[ $major_version -lt 10 ]] || ([[ $major_version -eq 10 ]] && [ $minor_version -lt 14 ]); then
         error "macOS 10.14 (Mojave) or later is required"
         error "Current version: $macos_version"
         exit 1
@@ -170,12 +170,20 @@ ensure_python_shims() {
 install_python_requirements() {
     log "Installing Python dependencies..."
     
-    # Resolve repo root and requirements path
+    # Resolve requirements path: prefer git root, fallback to local path
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local repo_root
-    repo_root="$(cd "$script_dir/../../.." && pwd)"
-    local requirements_file="$repo_root/prerequisites/requirements.txt"
+    local requirements_file=""
+    if command -v git >/dev/null 2>&1; then
+        local git_root
+        git_root="$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null || echo "")"
+        if [[ -n "$git_root" && -f "$git_root/cli/prerequisites/requirements.txt" ]]; then
+            requirements_file="$git_root/cli/prerequisites/requirements.txt"
+        fi
+    fi
+    if [[ -z "$requirements_file" ]]; then
+        requirements_file="$script_dir/../requirements.txt"
+    fi
     
     if [[ ! -f "$requirements_file" ]]; then
         warn "requirements.txt not found at $requirements_file; skipping"
@@ -190,10 +198,25 @@ install_python_requirements() {
     
     # Upgrade pip tooling (best effort)
     python3 -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true
+    # Set pip defaults to avoid silent hangs and reduce noise
+    export PIP_DEFAULT_TIMEOUT=60
+    export PIP_DISABLE_PIP_VERSION_CHECK=1
     
-    # Install requirements for current user (macOS typically doesn't have externally-managed-environment)
-    log "Installing Python packages from requirements.txt..."
-    python3 -m pip install --user -r "$requirements_file"
+    # Proactively remove any already-installed conflicting packages from the user site
+    log "Cleaning previously installed packages listed in requirements.txt (user site)..."
+    # Extract base package names from requirements (strip version specifiers and comments)
+    local pkgs
+    pkgs=$(grep -E '^[A-Za-z0-9_.-]+' "$requirements_file" | sed 's/[[:space:]]#.*$//' | sed 's/[<>=!~].*$//' | sed 's/[[:space:]]//g' | sort -u)
+    for pkg in $pkgs; do
+        if python3 -m pip show "$pkg" >/dev/null 2>&1; then
+            log "Uninstalling existing $pkg from user site..."
+            python3 -m pip uninstall -y "$pkg" >/dev/null 2>&1 || true
+        fi
+    done
+
+    # Install requirements into user site to comply with PEP 668 (Homebrew-managed Python)
+    log "Installing Python packages from requirements.txt (clean, verbose, non-interactive, user site)..."
+    python3 -m pip install --user -r "$requirements_file" --upgrade --force-reinstall -vvv --no-input --no-cache-dir --progress-bar off --no-warn-script-location
     
     success "Python dependencies installed"
 }
@@ -277,7 +300,7 @@ install_terragrunt() {
     
     if command_exists terragrunt; then
         local current_version=$(terragrunt --version | head -n1)
-        if [[ "$current_version" == *"v0.84.0"* ]]; then
+        if [[ "$current_version" == *"v0.84.0"* || "$current_version" == *"0.84.0"* ]]; then
             log "Terragrunt v0.84.0 already installed"
             return 0
         else
@@ -300,7 +323,7 @@ install_terragrunt() {
     # Verify installation
     if command_exists terragrunt; then
         local version=$(terragrunt --version | head -n1)
-        if [[ "$version" == *"v0.84.0"* ]]; then
+        if [[ "$version" == *"v0.84.0"*  || "$version" == *"0.84.0"* ]]; then
             success "Terragrunt v0.84.0 installed successfully: $version"
         else
             error "Terragrunt version mismatch. Expected v0.84.0, got: $version"
@@ -419,15 +442,20 @@ configure_shell_profiles() {
         success "Homebrew path added to $shell_profile"
     fi
     
-    # Add gcloud CLI to profile if not already there
+    # Add gcloud CLI to profile with shell-appropriate init scripts
     if [[ -f "$shell_profile" ]] && grep -q "google-cloud-sdk" "$shell_profile"; then
         log "gcloud CLI path already configured in $shell_profile"
     else
         log "Adding gcloud CLI to $shell_profile..."
         echo "" >> "$shell_profile"
         echo "# Google Cloud SDK" >> "$shell_profile"
-        echo 'source "$(brew --prefix)/share/google-cloud-sdk/path.bash.inc"' >> "$shell_profile"
-        echo 'source "$(brew --prefix)/share/google-cloud-sdk/completion.bash.inc"' >> "$shell_profile"
+        if [[ "$SHELL" == *"zsh"* ]]; then
+            echo 'source "$(brew --prefix)/share/google-cloud-sdk/path.zsh.inc"' >> "$shell_profile"
+            echo 'source "$(brew --prefix)/share/google-cloud-sdk/completion.zsh.inc"' >> "$shell_profile"
+        else
+            echo 'source "$(brew --prefix)/share/google-cloud-sdk/path.bash.inc"' >> "$shell_profile"
+            echo 'source "$(brew --prefix)/share/google-cloud-sdk/completion.bash.inc"' >> "$shell_profile"
+        fi
         success "gcloud CLI path added to $shell_profile"
     fi
     
@@ -446,10 +474,10 @@ configure_shell_profiles() {
     mkdir -p /tmp/terragrunt-cache
     success "Created Terragrunt cache directory: /tmp/terragrunt-cache"
     
-    # Reload shell profile for current session
-    if [[ -f "$shell_profile" ]]; then
-        source "$shell_profile"
-    fi
+    # Do not source zsh/bash profiles from this bash script to avoid shell builtin errors (e.g., zsh 'autoload')
+    # Prompt user to reload manually instead
+    warn "Profile updates made to $shell_profile. Restart your terminal or run:"
+    echo "   source $shell_profile"
 }
 
 # Function to verify all installations
