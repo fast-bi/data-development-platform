@@ -1,0 +1,342 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+
+nameOverride: "{{ data_analysis_deployment_name }}"
+namespace: "{{ namespace }}"
+image:
+  name: "{{ data_analysis_app_name }}"
+  tag: "{{ data_analysis_app_version }}"
+
+manifests:
+{%- if method == "external_infisical" %}
+{%- if local_postgresql != true %}
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-analysis-database-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-analysis/database-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-analysis-db-secrets
+            secretNamespace: "{{ namespace }}"
+{%- endif %}
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-analysis-redis-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-analysis/redis-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-analysis-redis-secrets
+            secretNamespace: "{{ namespace }}"
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-analysis-buckets-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-analysis/buckets-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-analysis-buckets-secrets
+            secretNamespace: "{{ namespace }}"
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-analysis-sso-clients-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-analysis/sso-clients-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-analysis-sso-clients-secrets
+            secretNamespace: "{{ namespace }}"
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-analysis-smtp-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-analysis/smtp-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-analysis-smtp-secrets
+            secretNamespace: "{{ namespace }}"
+{%- if bi_system == "lightdash" %}
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-analysis-lightdash-root-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-analysis/lightdash/root-secrets"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-analysis-lightdash-root-secrets
+            secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- if bi_system == "superset" %}
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-analysis-superset-root-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-analysis/superset/root-secrets"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-analysis-superset-root-secrets
+            secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- if bi_system == "metabase" %}
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-analysis-metabase-root-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-analysis/metabase/root-secrets"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-analysis-metabase-root-secrets
+            secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- endif %}
+{%- if method == "local_vault" %}
+{%- if local_postgresql != true %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-analysis-database-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-analysis-db-secrets
+    dataFrom:
+      - extract:
+          key: "data-analysis/database-secrets"
+{%- endif %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-analysis-redis-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-analysis-redis-secrets
+    dataFrom:
+      - extract:
+          key: "data-analysis/redis-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-analysis-buckets-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h  
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-analysis-buckets-secrets
+    dataFrom:
+      - extract:
+          key: "data-analysis/buckets-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-analysis-sso-clients-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-analysis-sso-clients-secrets
+    dataFrom:
+      - extract:
+          key: "data-analysis/sso-clients-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-analysis-smtp-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-analysis-smtp-secrets
+    dataFrom:
+      - extract:
+          key: "data-analysis/smtp-secrets"
+{%- if bi_system == "lightdash" %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-analysis-lightdash-root-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-analysis-lightdash-root-secrets
+    dataFrom:
+      - extract:
+          key: "data-analysis/lightdash/root-secrets"
+{%- endif %}
+{%- if bi_system == "superset" %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-analysis-superset-root-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-analysis-superset-root-secrets
+    dataFrom:
+      - extract:
+          key: "data-analysis/superset/root-secrets"
+{%- endif %}
+{%- if bi_system == "metabase" %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-analysis-metabase-root-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-analysis-metabase-root-secrets
+    dataFrom:
+      - extract:
+          key: "data-analysis/metabase/root-secrets"
+{%- endif %}
+{%- endif %}
+{%- if bi_system == "lightdash" %}
+{%- raw %}
+- apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: setup-lightdash-organization-job
+  spec:
+    template:
+      spec:
+        containers:
+        - name: setup-lightdash-organization
+          image: 4fastbi/data-analysis-ld-init-job:0.1.0
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: BI_CUSTOMER_ROOT_USER_API_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: data-analysis-lightdash-root-secrets
+                key: api_key
+          - name: BI_DB
+            valueFrom:
+              secretKeyRef:
+                name: data-analysis-db-secrets
+                key: database
+          - name: BI_DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: data-analysis-db-secrets
+                key: username
+          - name: BI_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: data-analysis-db-secrets
+                key: password
+{%- endraw %}
+          - name: BI_DB_PORT
+            value: "{{ bi_psql_port }}"
+          - name: BI_DB_HOST
+            value: "{{ bi_psql_host }}"
+          - name: BI_CUSTOMER_ROOT_DOMAIN
+            value: "{{ customer_root_domain }}"
+        restartPolicy: Never
+    backoffLimit: 4
+
+{% endif %}

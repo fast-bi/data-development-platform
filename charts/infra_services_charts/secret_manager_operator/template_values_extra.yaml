@@ -1,0 +1,111 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+#
+{% if method == "local_vault" %}
+---
+# cluster-secret-store.yaml
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "http://vault.vault.svc.cluster.local:8200"
+      path: "secret"
+      version: "v2"
+      auth:
+        tokenSecretRef:
+          name: "vault-init"
+          key: "root-token"
+          namespace: "{{ namespace }}"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: test-idp-sso-database-secrets
+  namespace: vault
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: test-idp-sso-database-secrets
+  dataFrom:
+    - extract:
+        key: "idp-sso/database-secrets"
+{% endif %}
+{% if method == "external_infisical" %}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: universal-auth-credentials
+  namespace: "{{ namespace }}"
+type: Opaque
+stringData:
+  clientId: "{{ secret_manager_client_id }}"
+  clientSecret: "{{ secret_manager_client_secret }}" 
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-root-idp-sso-manager
+spec:
+    resyncInterval: 86400
+    hostAPI: "{{ external_infisical_host }}"
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: "{{ infisical_environment | default('prod') }}"
+                secretsPath: "/idp-sso/root-secrets/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: "{{ namespace }}"
+    managedSecretReference:
+        secretName: root-secrets-idp-sso-manager-test
+        secretNamespace: "{{ namespace }}"
+{% endif %}
+# --- #examples
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata:
+#   name: test-idp-sso-root-secrets
+#   namespace: vault  # Ensure this is in the correct namespace
+# spec:
+#   refreshInterval: "24h"
+#   secretStoreRef:
+#     name: vault-backend
+#     kind: ClusterSecretStore
+#   target:
+#     name: test-idp-sso-root-secrets
+#   data:
+#   - secretKey: adminUser
+#     remoteRef:
+#       key: idp-sso/root-secrets
+#       property: adminUser
+#   - secretKey: adminPassword
+#     remoteRef:
+#       key: idp-sso/root-secrets
+#       property: adminPassword
+# ---
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata:
+#   name: test-idp-sso-database-secrets
+#   namespace: test-secrets
+# spec:
+#   refreshInterval: "24h"
+#   secretStoreRef:
+#     name: vault-backend
+#     kind: ClusterSecretStore
+#   target:
+#     name: test-idp-sso-database-secrets
+#   dataFrom:
+#     - extract:
+#         key: "idp-sso/sso-clients-secrets/data-replication"

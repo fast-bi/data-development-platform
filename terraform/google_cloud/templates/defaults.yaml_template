@@ -1,0 +1,4 @@
+region: "{{ region }}"
+location: "{{ region }}"
+project: "{{ project_id }}"
+customer: "{{ customer }}"

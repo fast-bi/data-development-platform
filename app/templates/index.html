@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Fast.BI Tenant Initialization Wizard</title>
+  <link href="https://fonts.googleapis.com/css?family=Karla:400,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.materialdesignicons.com/4.8.95/css/materialdesignicons.min.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/bd-wizard.css">
+  <style>
+    .content-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    .btn-primary {
+      background-color: #6788ff;
+      border-color: #6788ff;
+    }
+    .btn-primary:hover {
+      background-color: #5070ff;
+      border-color: #5070ff;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="navbar navbar-expand-sm navbar-light bg-white">
+      <div class="container">
+        <a class="navbar-brand" href="#"><img src="assets/images/favicon.png" alt="logo"></a>
+        <button class="navbar-toggler d-lg-none" type="button" data-toggle="collapse" data-target="#collapsibleNavId"
+          aria-controls="collapsibleNavId" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="collapsibleNavId">
+          <ul class="navbar-nav ml-auto mt-2 mt-lg-0">
+            {% if username %}
+            <li class="nav-item">
+            <h3 class="welcome-user">Hi, <span class="gradiant-text">{{username}}</span>!</h3>
+            </li>
+            {% endif %}
+            <li class="nav-item">
+              <a class="nav-link" href="#" id="themeToggle"><i class="fas fa-adjust"></i></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/about">About</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/contacts">Contacts</a>
+            </li>
+            {% if username %}
+            <li class="nav-item">
+              <a class="nav-link" href="/logout">Logout</a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+  <main class="d-flex align-items-center">
+    <div class="content-wrapper">
+      <h1 class="text-center mb-4">Welcome to Fast.BI Customer Deployment Wizard</h1>
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title">Streamline Customer Fast.BI Deployment</h5>
+          <p class="card-text">
+            Fast.BI Tenant Initialization Wizard is designed to simplify the process of setting up new Customer environment. This comprehensive guide will walk you through the following key stages:
+          </p>
+          <ol>
+            <li>Cloud Provider</li> 
+            <li>Customer values Input</li>
+            <li>Secrets Generation</li>
+            <li>Infrastructure Deployment</li>
+            <li>System Services Deployment</li>
+            <li>Identity Provider (IDP) Configuration</li>
+            <li>Data Repository Setup</li>
+            <li>Data Services Deployment</li>
+            <li>CI/CD Pipeline Configuration</li>
+            <li>Deployment Finalization</li>
+          </ol>
+          <p>
+            By following this wizard new Customer tenant will be deployed and integrated into the Fast.BI environment, ensuring all necessary components for Fast.BI Data Platform.
+          </p>
+          <div class="text-center mt-4">
+            <a href="/wizard" class="btn btn-primary btn-lg">Start Deployment</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script>
+    window.bearerToken = "{{ bearer_auth }}";
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="assets/js/base.js"></script>
+  <script src="assets/js/token-management.js"></script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Fast.BI Tenant Initialization Wizard</title>
+  <link href="https://fonts.googleapis.com/css?family=Karla:400,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.materialdesignicons.com/4.8.95/css/materialdesignicons.min.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/bd-wizard.css">
+</head>
+<body>
+  <header>
+    <nav class="navbar navbar-expand-sm navbar-light bg-white">
+      <div class="container">
+        <a class="navbar-brand" href="#"><img src="assets/images/favicon.png" alt="logo"></a>
+        <button class="navbar-toggler d-lg-none" type="button" data-toggle="collapse" data-target="#collapsibleNavId"
+          aria-controls="collapsibleNavId" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="collapsibleNavId">
+          <ul class="navbar-nav ml-auto mt-2 mt-lg-0">
+            <li class="nav-item">
+              <a class="nav-link" href="#" id="themeToggle"><i class="fas fa-adjust"></i></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/about">About</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/contacts">Contacts</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+  <main class="d-flex align-items-center">
+    <div class="container">
+      <script>
+        window.bearerToken = "{{ bearer_auth }}";
+        window.deployer_external_ip = "{{ external_ip }}";
+      </script>
+        <div id="wizard">
+          <h3>Step 1 Title</h3>
+          <section>
+           <h5 class="bd-wizard-step-title">Step 1</h5>
+           <h2 class="section-heading">Select Cloud Provider </h2>
+           <p> Select the cloud provider that best fits your needs. Our platform supports multiple cloud providers, each with its own strengths and benefits. Please choose one of the following options </p>
+           <div class="purpose-radios-wrapper">
+            <div class="purpose-radio" id="gcp-block" data-provider="gcp" data-service="bigquery" data-token-key="">
+              <input type="radio" name="purpose" id="gcp" class="purpose-radio-input" value="gcp">
+              <label for="gcp" class="purpose-radio-label">
+                <span class="label-icon">
+                  <img src="assets/images/google-cloud-icon.webp" alt="provider" class="label-icon-default">
+                  <img src="assets/images/google-cloud-icon.webp" alt="provider" class="label-icon-active">
+                </span>
+                <span class="label-text">Google Cloud Platform</span>
+                <span class="label-small-text-available">Now Available!</span>
+              </label>
+            </div>
+            <div class="purpose-radio" id="aws-block" data-provider="aws" data-service="redshift" data-token-key="">
+              <input type="radio" name="purpose" id="aws" class="purpose-radio-input" value="aws">
+              <label for="aws" class="purpose-radio-label">
+                <span class="label-icon">
+                  <img src="assets/images/aws-icon.webp" alt="provider" class="label-icon-default">
+                  <img src="assets/images/aws-icon.webp" alt="provider" class="label-icon-active">
+                </span>
+                <span class="label-text">Amazon Cloud Platform</span>
+                <span class="label-small-text-comming">Comming Soon!</span>
+              </label>
+            </div>
+            <div class="purpose-radio" id="azure-block" data-provider="azure" data-service="fabric" data-token-key="">
+              <input type="radio" name="purpose" id="azure" class="purpose-radio-input" value="azure">
+              <label for="azure" class="purpose-radio-label">
+                <span class="label-icon">
+                  <img src="assets/images/azure-icon.webp" alt="provider" class="label-icon-default">
+                  <img src="assets/images/azure-icon.webp" alt="provider" class="label-icon-active">
+                </span>
+                <span class="label-text">Azure Cloud Platform</span>
+                <span class="label-small-text-comming">Comming Soon!</span>
+              </label>
+            </div>
+            <div class="purpose-radio" id="on-premise-block" data-provider="on-premise" data-service="postgres" data-token-key="">
+              <input type="radio" name="purpose" id="on-premise" class="purpose-radio-input" value="on-premise">
+              <label for="on-premise" class="purpose-radio-label">
+                <span class="label-icon">
+                  <img src="assets/images/tanzu-icon.png" alt="provider" class="label-icon-default">
+                  <img src="assets/images/tanzu-icon.png" alt="provider" class="label-icon-active">
+                </span>
+                <span class="label-text">On-Premise</span>
+                <span class="label-small-text-comming">Comming Soon!</span>
+              </label>
+            </div>
+          </div>
+          </section>
+          <h3>Step 2 Title</h3>
+          <section>
+            <h5 class="bd-wizard-step-title">Step 2</h5>
+            <h2 class="section-heading">Enter Customer Tenant Details</h2>
+            <!-- GCP CUSTOMER FORM -->
+            <div class="form-group" data-provider="gcp">
+              <label for="tokenKeyValue" class="sr-only">Deployment Key</label>
+              <div id="token-key-display"></div>
+              <input type="text" name="tokenKeyValue" id="tokenKeyValue" class="form-control" placeholder="Deployment Key" readonly>
+            </div>
+            <div class="form-group" data-provider="gcp">
+              <label for="gcp-billingAccountID" class="sr-only">Billing Account ID</label>
+              <input type="text" name="gcp-billingAccountID" id="gcp-billingAccountID" class="form-control" placeholder="Billing Account ID" required>
+            </div>
+            <div class="form-group" data-provider="gcp">
+              <label for="gcp-orgFolderId" class="sr-only">Parent Org. Folder ID</label>
+              <input type="text" name="gcp-orgFolderId" id="gcp-orgFolderId" class="form-control" placeholder="Parent Org. Folder ID" required>
+            </div>
+            <div class="form-group" data-provider="gcp">
+              <label for="gcp-customerName" class="sr-only">Customer Name</label>
+              <input type="text" name="gcp-customerName" id="gcp-customerName" class="form-control" placeholder="Customer Name" required>
+            </div>
+            <div class="form-group" data-provider="gcp">
+              <label for="gcp-adminEmailAddress" class="sr-only">Platform Owner Email Address</label>
+              <input type="email" name="gcp-adminEmailAddress" id="gcp-adminEmailAddress" class="form-control" placeholder="Platform Owner Email Address" required>
+            </div>
+            <div class="form-group" data-provider="gcp">
+              <label for="gcp-region" class="sr-only">Region</label>
+              <input type="text" name="gcp-region" id="gcp-region" class="form-control" placeholder="Region" required>
+            </div>
+            <div class="form-group" data-provider="gcp">
+              <label for="gcp-projectID" class="sr-only">Project ID</label>
+              <input type="text" name="gcp-projectID" id="gcp-projectID" class="form-control" placeholder="Project ID" required>
+            </div>
+            <div class="form-group" data-provider="gcp">
+              <label for="gcp-whitelistIPs" class="sr-only">Whitelist IP’s</label>
+              <input type="text" name="gcp-whitelistIPs" id="gcp-whitelistIPs" class="form-control" placeholder="Whitelist IP’s" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <!-- AWS CUSTOMER FORM -->
+            <div class="form-group" data-provider="aws">
+              <label for="aws-billingAccountID" class="sr-only">Billing Account ID</label>
+              <input type="text" name="aws-billingAccountID" id="aws-billingAccountID" class="form-control" placeholder="Billing Account ID" required>
+            </div>
+            <div class="form-group" data-provider="aws">
+              <label for="aws-customerName" class="sr-only">Customer Name</label>
+              <input type="text" name="aws-customerName" id="aws-customerName" class="form-control" placeholder="Customer Name" required>
+            </div>
+            <div class="form-group" data-provider="aws">
+              <label for="aws-adminEmailAddress" class="sr-only">Platform Owner Email Address</label>
+              <input type="email" name="aws-adminEmailAddress" id="aws-adminEmailAddress" class="form-control" placeholder="Platform Owner Email Address" required>
+            </div>
+            <div class="form-group" data-provider="aws">
+              <label for="aws-region" class="sr-only">Region</label>
+              <input type="text" name="aws-region" id="aws-region" class="form-control" placeholder="Region" required>
+            </div>
+            <div class="form-group" data-provider="aws">
+              <label for="aws-whitelistIPs" class="sr-only">Whitelist IP’s</label>
+              <input type="text" name="aws-whitelistIPs" id="aws-whitelistIPs" class="form-control" placeholder="Whitelist IP’s" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <!-- AZURE CUSTOMER FORM -->
+            <div class="form-group" data-provider="azure">
+              <label for="azure-billingAccountID" class="sr-only">Billing Account ID</label>
+              <input type="text" name="azure-billingAccountID" id="azure-billingAccountID" class="form-control" placeholder="Billing Account ID" required>
+            </div>
+            <div class="form-group" data-provider="azure">
+              <label for="azure-customerName" class="sr-only">Customer Name</label>
+              <input type="text" name="azure-customerName" id="azure-customerName" class="form-control" placeholder="Customer Name" required>
+            </div>
+            <div class="form-group" data-provider="azure">
+              <label for="azure-adminEmailAddress" class="sr-only">Platform Owner Email Address</label>
+              <input type="email" name="azure-adminEmailAddress" id="azure-adminEmailAddress" class="form-control" placeholder="Platform Owner Email Address" required>
+            </div>
+            <div class="form-group" data-provider="azure">
+              <label for="azure-region" class="sr-only">Region</label>
+              <input type="text" name="azure-region" id="azure-region" class="form-control" placeholder="Region" required>
+            </div>
+            <div class="form-group" data-provider="azure">
+              <label for="azure-whitelistIPs" class="sr-only">Whitelist IP’s</label>
+              <input type="text" name="azure-whitelistIPs" id="azure-whitelistIPs" class="form-control" placeholder="Whitelist IP’s" required>
+              <div class="invalid-feedback"></div>
+            </div>
+            <!-- on-prem CUSTOMER FORM -->
+            <div class="form-group" data-provider="on-premise">
+              <label for="on-premise-customerName" class="sr-only">Customer Name</label>
+              <input type="text" name="on-premise-customerName" id="on-premise-customerName" class="form-control" placeholder="Customer Name" required>
+            </div>
+            <div class="form-group" data-provider="on-premise">
+              <label for="on-premise-adminEmailAddress" class="sr-only">Platform Owner Email Address</label>
+              <input type="email" name="on-premise-adminEmailAddress" id="on-premise-adminEmailAddress" class="form-control" placeholder="Platform Owner Email Address" required>
+            </div>
+            <div class="form-group" data-provider="on-premise">
+              <label for="on-premise-k8s-endpoint" class="sr-only">Kubernetes Custer Endpoint</label>
+              <input type="text" name="on-premise-k8s-endpoint" id="on-premise-k8s-endpoint" class="form-control" placeholder="Kubernetes Custer Endpoint" required>
+            </div>
+            <div class="form-group" data-provider="on-premise">
+              <label for="on-premise-whitelistIPs" class="sr-only">Whitelist IP’s</label>
+              <input type="text" name="on-premise-whitelistIPs" id="on-premise-whitelistIPs" class="form-control" placeholder="Whitelist IP’s" required>
+              <div class="invalid-feedback"></div>
+            </div>
+          </section>
+          <h3>Step 3 Title</h3>
+          <section>
+            <h5 class="bd-wizard-step-title">Step 3</h5>
+            <h2 class="section-heading mb-5">Generate secrets.</h2>
+            <h3 class="mb-5">Review Customer Tenant Details</h3>
+            <p>Please review the customer tenant details below, fill required fields for Vault Secret generation and click "Submit" to generate secrets.</p>
+            
+            <h6 class="font-weight-bold">Inputs</h6>
+            <div id="reviewDetails">
+                <p><strong>Customer Name:</strong> <span id="reviewCustomerName"></span></p>
+                <p><strong>Platform Owner Email Address:</strong> <span id="reviewEmail"></span></p>
+            </div>
+            
+            <form id="vaultForm">
+              <!-- Username Field for Client ID -->
+              <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+                  <label for="vaultClientId">Vault Client ID</label>
+                  <input type="text" id="vaultClientId" class="form-control" name="username" autocomplete="username" required>
+              </div>
+          
+              <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+                  <label for="vaultClientSecret">Vault Client Secret</label>
+                  <input type="password" id="vaultClientSecret" class="form-control" autocomplete="new@password" required>
+              </div>
+              
+              <div id="loadingOverlayGS" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:9999;">
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; color:white;">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p id="loadingMessageGS">Generating secrets...</p>
+                </div>
+            </div>
+          </form>
+          </section>
+          <h3>Step 4 Title</h3>
+          <section>
+              <h5 class="bd-wizard-step-title">Step 4</h5>
+              <!-- Add Terraform-Terragrunt Icon -->
+              <h2 class="section-heading mb-5">Deploy Infrastructure.</h2>
+              <h3 class="mb-5">Review Customer Tenant IaaS details:</h3>
+              <p class="lead">Please review the customer tenant infrastructure details below and click "Submit" button to start deployment.</p>
+              <h6 class="font-weight-bold">Inputs</h6>
+              <section>
+                <form id="deploymentTypeForm">
+                    <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+                        <label for="deploymentType">Deployment Type</label>
+                        <select name="deploymentType" id="deploymentType" class="form-control">
+                            <option value="advanced">Advanced</option>
+                            <option value="basic" selected>Basic</option>
+                        </select>
+                    </div>
+                </form>
+            </section>
+            <section>
+                <div id="reviewDetails">
+                    <p><strong>Cloud Provider:</strong> <span id="reviewTFCloudProvider"></span></p>
+                    <p><strong>Deployment Token Key:</strong> <span id="reviewTFTokenKey"></span></p>
+                    <p><strong>Billing Account ID:</strong> <span id="reviewTFBillingAccount"></span></p>
+                    <p><strong>Folder ID:</strong> <span id="reviewTForgFolderId"></span></p>
+                    <p><strong>Region:</strong> <span id="reviewTFRegion"></span></p>
+                    <p><strong>Project ID:</strong> <span id="reviewProjectID"></span></p>
+                    <p><strong>Customer Name:</strong> <span id="reviewTFCustomerName"></span></p>
+                    <p><strong>Platform Owner Email Address:</strong> <span id="reviewTFEmail"></span></p>
+                    <p><strong>Whitelist IP's:</strong> <span id="reviewTFWhitelistIPs"></span></p>
+                </div>
+                <div class="form-group mt-4">
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="confirmationTFCheckbox">
+                        <label class="custom-control-label" for="confirmationTFCheckbox">I confirm that I have reviewed and approved all the provided values.</label>
+                    </div>
+                </div>
+                <div id="loadingOverlayTF" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:9999;">
+                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; color:white;">
+                        <div class="spinner-border" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                        <p id="loadingMessageTF">Deploying Infrastructure...</p>
+                    </div>
+                </div>
+            </section>
+          </section>
+          <h3>Step 5 Title</h3>
+          <section>
+              <h5 class="bd-wizard-step-title">Step 4</h5>
+              <h2 class="section-heading mb-5">Deploy Infrastructure Services.</h2>
+              <h3 class="mb-5">Review Customer Tenant System Kubernetes Services:</h3>
+              <p class="lead">Please review the customer tenant system kubernetes services details below, select service versions, confirm, and click "Submit" button to start deployment.</p>
+                <div id="reviewDetails">
+                    <p><strong>Deployment Token Key:</strong> <span id="reviewDSSTokenKey"></span></p>
+                    <p><strong>Cloud Provider:</strong> <span id="reviewDSSCloudProvider"></span></p>
+                    <p><strong>Region:</strong> <span id="reviewDSSRegion"></span></p>
+                    <p><strong>Project ID:</strong> <span id="reviewDSSProjectID"></span></p>
+                    <p><strong>Customer Name:</strong> <span id="reviewDSSCustomerName"></span></p>
+                    <p><strong>External DNS Name:</strong> <span id="reviewDSSExternalDNS"></span></p>
+                    <p><strong>Platform Owner Email Address:</strong> <span id="reviewDSSEmail"></span></p>
+                    <p><strong>Whitelist IP's:</strong> <span id="reviewDSSWhitelistIPs"></span></p>
+                </div>
+              <hr> 
+              <!-- System Infrastructure Services Form -->
+              <form id="systemInfraServicesForm">
+                <section>
+                  {% for service in system_infra_services %}
+                    <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+                      <label for="{{ service.name }}">{{ service.name }}</label>
+                      <select name="{{ service.name }}" id="{{ service.name }}" class="form-control">
+                        {% for version in service.versions %}
+                          <option value="{{ version.version }}" 
+                                  {% if version.tag == 'Current' %}selected{% endif %}>
+                            {{ version.version }} ({{ version.tag }})
+                          </option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  {% endfor %}
+                </section>
+              </form>
+            <div class="form-group mt-4 step-5-only">
+              <div class="custom-control custom-checkbox">
+                <input type="checkbox" class="custom-control-input" id="confirmationDSSCheckbox">
+                <label class="custom-control-label" for="confirmationDSSCheckbox">I confirm that I have reviewed and approved all the provided values.</label>
+              </div>
+            </div>
+          <div id="loadingOverlayDSS" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:9999;">
+              <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; color:white;">
+                  <div class="spinner-border" role="status">
+                      <span class="sr-only">Loading...</span>
+                  </div>
+                  <p id="loadingMessageDSS">Deploying System Services...</p>
+              </div>
+          </div>
+          </section>
+          <h3>Step 6 Title</h3>
+          <section>
+              <h5 class="bd-wizard-step-title">Step 6</h5>
+              <!-- Add Terraform-Terragrunt Icon -->
+              <h2 class="section-heading mb-5">Retriev & Configure IDP Realm Environment.</h2>
+              <h3 class="mb-5">IDP configuration required:</h3>
+              <p class="lead">Please click on the retriev button, and finish the IDP setup, confirm, and click "Next" button to continue.</p>
+              <section>
+                <div id="realmConfigurationContent"></div>
+              </section>
+          </section>
+          <h3>Step 7 Title</h3>
+          <section>
+              <h5 class="bd-wizard-step-title">Step 7</h5>
+              <!-- Add Terraform-Terragrunt Icon -->
+              <h2 class="section-heading mb-5">Configure Data Repository.</h2>
+              <h3 class="mb-5">.git repo configuration:</h3>
+              <p class="lead">Please review the customer tenant details below, select and fill required fields, click "Submit" button to start configuration.</p>
+              <h6 class="font-weight-bold">Inputs</h6>
+              <section>
+                <form id="globalRepoProvider">
+                  <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+                    <label for="repoProviderType">Repository Provider</label>
+                    <select name="repoProviderType" id="repoProviderType" class="form-control">
+                        <option value="fastbi" selected>gitlab.fast.bi</option>
+                        <option value="gitlab">gitlab.com</option>
+                        <option value="github">github.com</option>
+                        <option value="bitbucket">bitbucket.org</option>
+                    </select>
+                    </div>
+                    <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+                        <label for="fastbiCICDVersion">Fast.BI CICD Version</label>
+                        <input type="text" id="fastbiCICDVersion" class="form-control" value="v2.1.2">
+                    </div>
+                    <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+                          <label for="repoGitGlobalAccessToken">Group Access Token</label>
+                          <input type="password" id="repoGitGlobalAccessToken" class="form-control" autocomplete="new@password" required>
+                    </div>
+                    <div id="loadingOverlayGIT" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:9999;">
+                        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; color:white;">
+                            <div class="spinner-border" role="status">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                            <p id="loadingMessageGS">Configuring Data Repository...</p>
+                        </div>
+                    </div>
+                </form>
+            </section>
+            <section>
+                <div id="reviewDetails">
+                    <p><strong>Cloud Provider:</strong> <span id="reviewGITCloudProvider"></span></p>
+                    <p><strong>Customer Name:</strong> <span id="reviewGITCustomerName"></span></p>
+                    <p><strong>Project ID:</strong> <span id="reviewGITProjectID"></span></p>
+                </div>
+            </section>
+          </section>
+          <h3>Step 8 Title</h3>
+          <section>
+              <h5 class="bd-wizard-step-title">Step 8</h5>
+              <!-- Add Terraform-Terragrunt Icon -->
+              <h2 class="section-heading mb-5">Deploy Data Services.</h2>
+              <h3 class="mb-5">Review Customer Tenant Data Kubernetes Services:</h3>
+              <p class="lead">Please review the customer tenant data kubernetes services details below, select service versions, confirm, and click "Submit" button to start deployment.</p>
+              <h6 class="font-weight-bold">Inputs</h6>
+              <div id="reviewDetails">
+                <p><strong>Deployment Token Key:</strong> <span id="reviewDDSTokenKey"></span></p>
+                <p><strong>Cloud Provider:</strong> <span id="reviewDDSCloudProvider"></span></p>
+                <p><strong>Region:</strong> <span id="reviewDDSRegion"></span></p>
+                <p><strong>Project ID:</strong> <span id="reviewDDSProjectID"></span></p>
+                <p><strong>Customer Name:</strong> <span id="reviewDDSCustomerName"></span></p>
+                <p><strong>External DNS Name:</strong> <span id="reviewDDSExternalDNS"></span></p>
+                <p><strong>Platform Owner Email Address:</strong> <span id="reviewDDSEmail"></span></p>
+                <p><strong>Whitelist IP's:</strong> <span id="reviewDDSWhitelistIPs"></span></p>
+                <p><strong>Data Repository Provider:</strong> <span id="reviewDDSRepoProvider"></span></p>
+            </div>
+            <hr>
+            <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+              <label for="dataVisualisationType">Data Visualisation</label>
+              <select name="repoProviderType" id="dataVisualisationType" class="form-control">
+                  <option value="superset" selected>Superset</option>
+                  <option value="lightdash">Lightdash</option>
+                  <option value="metabase">Metabase</option>
+                  <option value="looker">Looker</option>
+              </select>
+            <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+              <label for="dataDestinationType">Data Destination</label>
+              <select name="repoProviderType" id="dataDestinationType" class="form-control">
+                  <option value="bigquery" selected>BigQuery</option>
+                  <option value="snowflake">SnowFlake</option>
+                  <option value="redshift">RedShift</option>
+                  <option value="fabric">MS Fabric</option>
+              </select>
+            </div>
+            <hr>
+            <!-- Data and FastBI Services Form -->
+            <form id="dataAndFastbiServicesForm">
+              {% for service in data_fastbi_data_services %}
+                <div class="form-group" data-provider="non-cloud-dependent" style="display: block;">
+                  <label for="{{ service.name }}">{{ service.name }} ({{ service.category }})</label>
+                  <select name="{{ service.name }}" id="{{ service.name }}" class="form-control">
+                    {% for version in service.versions %}
+                      <option value="{{ version.version }}" 
+                              {% if version.tag == 'Current' %}selected{% endif %}>
+                        {{ version.version }} ({{ version.tag }})
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+              {% endfor %}
+            </form>
+            <div class="form-group mt-4 step-8-only">
+              <div class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input" id="confirmationDDSCheckbox">
+                  <label class="custom-control-label" for="confirmationDDSCheckbox">I confirm that I have reviewed and approved all the provided values.</label>
+              </div>
+            </div>
+            <div id="loadingOverlayDDS" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:9999;">
+              <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; color:white;">
+                  <div class="spinner-border" role="status">
+                      <span class="sr-only">Loading...</span>
+                  </div>
+                  <p id="loadingMessageDDS">Deploying Data Services...</p>
+              </div>
+            </div>
+        </section>
+          </section>
+          <h3>Step 9 Title</h3>
+          <section>
+              <h5 class="bd-wizard-step-title">Step 9</h5>
+              <!-- Add Terraform-Terragrunt Icon -->
+              <h2 class="section-heading mb-5">Upload Tenant Configuration CI Values.</h2>
+              <h3 class="mb-5">.git repo CI configuration:</h3>
+              <p class="lead">Please review the customer tenant details below, select and fill required fields, click "Submit" button to finish the configuration.</p>
+              <h6 class="font-weight-bold">Inputs</h6>
+              <section>
+                  <div id="reviewDetails">
+                      <p><strong>Cloud Provider:</strong> <span id="reviewGITFINCloudProvider"></span></p>
+                      <p><strong>Customer Name:</strong> <span id="reviewGITFINCustomerName"></span></p>
+                      <p><strong>Project ID:</strong> <span id="reviewGITFINProjectID"></span></p>
+                      <p><strong>Data Repository Provider:</strong> <span id="reviewGITFINgitProvider"></span></p>
+                      <p><strong>Data Analysis Selected:</strong> <span id="reviewGITFINdataAnalysis"></span></p>
+                      <p><strong>Data Orchestration Selected:</strong> <span id="reviewGITFINdataOrchestration"></span></p>
+                  </div>
+              </section>
+              <hr>
+              <div class="form-group mt-4 step-9-only">
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" id="confirmationGITFINCheckbox">
+                    <label class="custom-control-label" for="confirmationGITFINCheckbox">I confirm that I have reviewed and approved all the provided values.</label>
+                </div>
+              </div>
+              <div id="loadingOverlayGITFIN" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:9999;">
+                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; color:white;">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                    <p id="loadingMessageGITFIN">Data Repository Finalising...</p>
+                </div>
+              </div>
+          </section>
+          <h3>Step 10 Title</h3>
+          <section>
+              <h5 class="bd-wizard-step-title">Step 10</h5>
+              <!-- Add Terraform-Terragrunt Icon -->
+              <h2 class="section-heading mb-5">Finalising Tenant Deployment.</h2>
+              <h3 class="mb-5">Customer Tenant deployment finalising:</h3>
+              <p class="lead">Customer new tenant deployment finished, upload all deployment files to Fast.BI Customer infrastructure repository and send mail to owner, confirm, and click "Submit" button to finish the deployment.</p>
+              <h6 class="font-weight-bold">Inputs</h6>
+              <section>
+                <div id="reviewDetails">
+                    <p><strong>Cloud Provider:</strong> <span id="reviewTDFCloudProvider"></span></p>
+                    <p><strong>Customer Name:</strong> <span id="reviewTDFCustomerName"></span></p>
+                    <p><strong>Project ID:</strong> <span id="reviewTDFProjectID"></span></p>
+                    <p><strong>Owner Email Address:</strong> <span id="reviewTDFownerEmail"></span></p>
+                </div>
+            </section>
+            <hr>
+            <div class="form-group mt-4 step-10-only">
+              <div class="custom-control custom-checkbox">
+                  <input type="checkbox" class="custom-control-input" id="confirmationTDFCheckbox">
+                  <label class="custom-control-label" for="confirmationTDFCheckbox">I confirm that I have reviewed and approved all the provided values.</label>
+              </div>
+            </div>
+            <div id="loadingOverlayTDF" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background-color:rgba(0,0,0,0.5); z-index:9999;">
+              <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center; color:white;">
+                  <div class="spinner-border" role="status">
+                      <span class="sr-only">Loading...</span>
+                  </div>
+                  <p id="loadingMessageTDF">Tenant Deployment Final Step...</p>
+              </div>
+            </div>
+          </section>
+        </div>
+    </div>
+  </main>
+  <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+  <script src="assets/js/jquery.steps.min.js"></script>
+  <script src="assets/js/bd-wizard.js"></script>
+  <script src="assets/js/base.js"></script>
+</body>
+</html>

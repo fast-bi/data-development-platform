@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Contact Fast.BI - "One" Data Analysis Platform</title>
+  <link href="https://fonts.googleapis.com/css?family=Karla:400,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.materialdesignicons.com/4.8.95/css/materialdesignicons.min.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/bd-wizard.css">
+  <style>
+    .content-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      margin-top: 100px;
+    }
+    .contact-info {
+      background-color: #f8f9fa;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .contact-info i {
+      color: #6788ff;
+      font-size: 24px;
+      margin-right: 10px;
+    }
+    .contact-form .form-control {
+      border-radius: 0;
+      border: none;
+      border-bottom: 2px solid #6788ff;
+      padding: 10px 5px;
+    }
+    .contact-form .form-control:focus {
+      box-shadow: none;
+      border-color: #4a6bff;
+    }
+    .contact-form label {
+      color: #6788ff;
+      font-weight: bold;
+    }
+    .btn-primary {
+      background-color: #6788ff;
+      border-color: #6788ff;
+    }
+    .btn-primary:hover {
+      background-color: #4a6bff;
+      border-color: #4a6bff;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="navbar navbar-expand-sm navbar-light bg-white">
+      <div class="container">
+        <a class="navbar-brand" href="#"><img src="assets/images/favicon.png" alt="logo"></a>
+        <button class="navbar-toggler d-lg-none" type="button" data-toggle="collapse" data-target="#collapsibleNavId"
+          aria-controls="collapsibleNavId" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="collapsibleNavId">
+          <ul class="navbar-nav ml-auto mt-2 mt-lg-0">
+            <li class="nav-item">
+              <a class="nav-link" href="#" id="themeToggle"><i class="fas fa-adjust"></i></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/about">About</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/contacts">Contacts</a>
+            </li>
+            {% if username %}
+            <li class="nav-item">
+              <a class="nav-link" href="/logout">Logout</a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+  <main>
+    <div class="content-wrapper">
+      <h1 class="text-center mb-5">Contact Fast.BI</h1>
+      
+      <div class="row">
+        <div class="col-md-6">
+          <div class="contact-info">
+            <h3 class="mb-4">Get in Touch</h3>
+            <p><i class="fas fa-envelope"></i> Primary: <a href="mailto:gediminas@terasky.com">gediminas@terasky.com</a></p>
+            <p><i class="fas fa-envelope"></i> Support: <a href="mailto:support@fast.bi">support@fast.bi</a></p>
+            <p><i class="fas fa-phone-alt"></i> Phone: <a href="tel:+37065834053">+370-658-34053</a></p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <form id="contactForm" class="contact-form">
+            <div class="form-group">
+              <label for="name"><i class="fas fa-user"></i> Name</label>
+              <input type="text" class="form-control" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+              <label for="email"><i class="fas fa-envelope"></i> Your Email Address</label>
+              <input type="email" class="form-control" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+              <label for="subject"><i class="fas fa-tag"></i> Subject</label>
+              <input type="text" class="form-control" id="subject" name="subject" required>
+            </div>
+            <div class="form-group">
+              <label for="message"><i class="fas fa-comment"></i> Message</label>
+              <textarea class="form-control" id="message" name="message" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Send Message</button>
+          </form>
+          <div id="formStatus" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script>
+    window.bearerToken = "{{ bearer_auth }}";
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="assets/js/base.js"></script>
+  <script src="assets/js/token-management.js"></script>
+  <script>
+    document.getElementById('contactForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      var formData = new FormData(this);
+      
+      fetch('/send_email', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('formStatus').innerHTML = data.message;
+        if (data.status === 'success') {
+          document.getElementById('contactForm').reset();
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('formStatus').innerHTML = 'An error occurred. Please try again.';
+      });
+    });
+  </script>
+</body>
+</html>

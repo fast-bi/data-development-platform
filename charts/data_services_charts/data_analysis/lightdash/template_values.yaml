@@ -1,0 +1,354 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+{%- raw %}
+
+## @section Global Parameters
+
+## @param global.imageRegistry Global Docker image registry
+## @param global.storageClass Global StorageClass for Persistent Volume(s)
+##
+global:
+  imageRegistry: ""
+  storageClass: ""
+
+## @section Common Parameters
+
+## @param nameOverride String to partially override airbyte.fullname template with a string (will prepend the release name)
+##
+nameOverride: ""
+## @param fullnameOverride String to fully override airbyte.fullname template with a string
+##
+fullnameOverride: "data-analysis-hub"
+{%- endraw %}
+configMap:
+  # -- Secure Cookies
+  SECURE_COOKIES: "true"
+  # -- Trust the reverse proxy when setting secure cookies (via the "X-Forwarded-Proto" header)
+  TRUST_PROXY: "true"
+  # -- Port for lightdash
+  PORT: "8080"
+  # -- Path to your local dbt project. Only set this value if you are mounting a DBT project
+  DBT_PROJECT_DIR: ""
+  # -- Public URL of your instance including protocol e.g. https://lightdash.myorg.com
+  SITE_URL: "https://{{ ingress_host }}"
+  # -- Oauth OpenID Authentication
+  AUTH_OIDC_METADATA_DOCUMENT_URL: "{{ oauth_real_well_known_url }}"
+  AUTH_OIDC_SCOPES: "openid profile email groups"
+  AUTH_DISABLE_PASSWORD_AUTHENTICATION: "true"
+  AUTH_ENABLE_OIDC_LINKING: "true"
+  AUTH_ENABLE_GROUP_SYNC: "true"
+  GROUPS_ENABLED: "true"
+  # -- Bucket configuration for logs and file storage.
+  S3_ENDPOINT: "{{ s3_enpoint }}"
+  S3_REGION: "local"
+  S3_FORCE_PATH_STYLE: "true"
+  S3_EXPIRATION_TIME: "259200"
+  LIGHTDASH_QUERY_MAX_LIMIT: "100000"
+  SCHEDULER_ENABLED: "true"
+  ## -- Optional Values
+  ## Slack
+  SLACK_APP_TOKEN: ""
+  SLACK_CLIENT_ID: ""
+  SLACK_CLIENT_SECRET: ""
+  SLACK_SIGNING_SECRET: ""
+  SLACK_STATE_SECRET: ""
+  ## Email
+  EMAIL_SMTP_HOST: "{{ bi_smtp_host }}"
+  EMAIL_SMTP_PORT: "{{ bi_smtp_port }}"
+  EMAIL_SMTP_SECURE: "true"
+  EMAIL_SMTP_SENDER_EMAIL: "{{ bi_smtp_mail_from }}"
+
+secrets:
+  # -- 	This is the secret used to sign the session ID cookie and to encrypt sensitive information. Do not share this secret!
+  LIGHTDASH_SECRET: "{{ bi_cookie_secret }}"
+
+extraEnv:
+{%- if cloud_provider == "self-managed" %}
+  - name: NODE_TLS_REJECT_UNAUTHORIZED
+    value: "0"
+{%- endif %}
+  - name: LIGHTDASH_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: data-analysis-lightdash-root-secrets
+        key: LIGHTDASH_SECRET
+  - name: S3_BUCKET
+    valueFrom:
+      secretKeyRef:
+        name: data-analysis-buckets-secrets
+        key: bucket
+  - name: S3_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: data-analysis-buckets-secrets
+        key: S3_ACCESS_KEY
+  - name: S3_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        name: data-analysis-buckets-secrets
+        key: S3_SECRET_KEY
+  - name: AUTH_OIDC_CLIENT_ID
+    valueFrom:
+      secretKeyRef:
+        name: data-analysis-sso-clients-secrets
+        key: CLIENT_ID
+  - name: AUTH_OIDC_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: data-analysis-sso-clients-secrets
+        key: CLIENT_SECRET
+  - name: EMAIL_SMTP_USER
+    valueFrom:
+      secretKeyRef:
+        name: data-analysis-smtp-secrets
+        key: smtp_username
+  - name: EMAIL_SMTP_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: data-analysis-smtp-secrets
+        key: password
+schedulerExtraEnv: []
+
+# -- Specify the number of lightdash instances.
+replicaCount: 1
+
+image:
+  repository: lightdash/lightdash
+  pullPolicy: IfNotPresent
+  tag: "{{ bi_app_version | default('') }}"
+
+imagePullSecrets: []
+
+podAnnotations: 
+  fastbi: data-analysis-hub
+
+podLabels:
+  fastbi: data-analysis-hub
+
+{%- raw %}
+podSecurityContext:
+  {}
+  # fsGroup: 2000
+
+securityContext:
+  {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+{%- endraw %}
+ingress:
+  enabled: true
+  className: "traefik"
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: {{ ingress_host }}
+    # cert-manager.io/cluster-issuer: lets-encrypt-issuer
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-ingress-redirect-https@kubernetescrd
+  hosts:
+    - host: {{ ingress_host }}
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: {}  # Using Fast.BI WildCard Certificate namespace traefik-ingress
+    # - secretName: lightdash-tls-cert
+    #   hosts:
+    #     - {{ ingress_host }}
+livenessProbe:
+  initialDelaySeconds: 30
+  timeoutSeconds: 60
+  periodSeconds: 30
+
+readinessProbe:
+  initialDelaySeconds: 30
+  periodSeconds: 60
+  timeoutSeconds: 30
+{% raw %}
+resources:
+
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  limits: {}
+  requests:
+    cpu: 600m
+    memory: 1024Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 70
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+## Browserless Chrome chart configuration
+## ref: https://github.com/sagikazarmark/helm-charts/tree/master/charts/browserless-chrome
+## @param browserless-chrome.enabled default true - whether to enable headless browser
+## @param browserless-chrome.replicaCount total replicas
+## @param browserless-chrome.resources custom limits and requests for resources
+## @param browserless-chrome.image.tag override appVersion in chart
+## @param browserless-chrome.image.port override default port of service
+browserless-chrome:
+  enabled: true
+  replicaCount: 1
+  resources:
+    limits:
+      memory: '512Mi'
+      cpu: '500m'
+    requests:
+      memory: '512Mi'
+      cpu: '500m'
+  image:
+    repository: "ghcr.io/browserless/chromium"
+    tag: "v2.24.3"
+  service:
+    port: 80
+  env:
+    CONNECTION_TIMEOUT: "180000"
+## @section Lightdash Database parameters
+
+## PostgreSQL chart configuration
+## ref: https://github.com/bitnami/charts/blob/master/bitnami/postgresql/values.yaml
+## @param postgresql.enabled Switch to enable or disable the PostgreSQL helm chart (i.e. deploy postgres in k8s)
+## @param postgresql.auth.username Lightdash Postgresql username (creates non-admin user)
+## @param postgresql.auth.password Lightdash Postgresql password (creates non-admin user)
+## @param postgresql.auth.database Lightdash Postgresql database (creates new database)
+## @param postgresql.auth.existingSecret An existing secret to use for the postgres password
+## @param postgresql.auth.secretKeys.userPasswordKey Key  in the existingSecret to use for the postgres password
+## @param postgresql.commonAnnotations.helm.sh/hook It will determine when the hook should be rendered
+## @param postgresql.commonAnnotations.helm.sh/hook-weight The order in which the hooks are executed. If weight is lower, it has higher priority
+##
+{% endraw %}
+postgresql:
+  enabled: false
+  ## with Postgres 10 helm chart, user "postgres" has superuser privileges (fixing lightdash uuid)
+  auth:
+    username: {{ bi_psql_username }}
+    password: ""
+    database: {{ bi_psql_database }}
+    existingSecret: "data-analysis-db-secrets"
+    secretKeys:
+      userPasswordKey: "password"
+  commonAnnotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-1"
+## External PostgreSQL configuration
+## All of these values are only used when postgresql.enabled is set to false
+## @param externalDatabase.host Database host
+## @param externalDatabase.user non-root Username for Lightdash Database
+## @param externalDatabase.password Database password
+## @param externalDatabase.existingSecret Name of an existing secret resource containing the DB password. If not set a secret will be created from the value in externalDatabase.password
+## @param externalDatabase.secretKeys.passwordKey (only used when externalDatabase.existingSecret is set) Key in the existing secret resource containing the DB password
+## @param externalDatabase.database Database name
+## @param externalDatabase.port Database port number
+##
+externalDatabase:
+  host: {{ bi_psql_host }}
+  user: {{ bi_psql_username }}
+  password: ""
+  existingSecret: "data-analysis-db-secrets"
+  secretKeys:
+    passwordKey: "password"
+  database: {{ bi_psql_database }}
+  port: {{ bi_psql_port }}
+
+## SSL configuration
+## @param ssl.enabled Enable SSL/TLS for the Lightdash Database connection
+## @param ssl.mountPath Path to mount the SSL certificate
+## @param ssl.certFileName Name of the certificate file
+ssl:
+  enabled: false
+  mountPath: "/etc/ssl/certs"
+  certFileName: ""
+  configMapName: ""
+
+## @param additional main containers for the backend and worker deployments
+## @param additional sidecar containers for the lightdash image
+extraContainers: []
+
+## @param initContainers for the backend and worker deployments- these can be normal initContainers or side containers are just init containers with Always restart policy - docs: https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/
+initContainers: []
+
+## @param additional k8s manifests to deploy with the helm chart
+extraObjects: []
+
+## Create service account for workload identity
+## @param serviceAccount.create create a service account for workload identity
+## @param serviceAccount.name name for the created service account
+## @param serviceAccount.annotations
+serviceAccount:
+  create: true
+  name: ""
+  annotations:
+{%- if cloud_provider == "gcp" %}
+{% if bi_data_k8s_sa %}
+      iam.gke.io/gcp-service-account: {{ bi_data_k8s_sa }}
+{%- else %}
+      {}
+{%- endif %}
+{%- else %}
+      {}
+{%- endif %}
+## Customise backend configuration for GCP
+backendConfig:
+  create: false
+
+
+## Backend deployment specific configuration
+lightdashBackend:
+  terminationGracePeriodSeconds: 90
+  livenessProbe:
+    initialDelaySeconds: 10
+    timeoutSeconds: 5
+    periodSeconds: 10
+  readinessProbe:
+    ## If the value of periodSeconds is greater than initialDelaySeconds then the initialDelaySeconds would be ignored
+    ## https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#configure-probes
+    initialDelaySeconds: 35
+    timeoutSeconds: 30
+    periodSeconds: 35
+  extraVolumeMounts: []
+  extraVolumes: []
+
+## Scheduler deployment specific configuration
+scheduler:
+  port: 8080
+  enabled: true
+  replicas: 1
+  concurrency: 3
+  db:
+    maxConnections:
+  resources:
+    requests:
+      memory: 725Mi
+      cpu: 475m
+      ephemeral-storage: 1Gi
+  terminationGracePeriodSeconds: 90
+  livenessProbe:
+    initialDelaySeconds: 10
+    timeoutSeconds: 5
+    periodSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 35
+    timeoutSeconds: 30
+    periodSeconds: 35
+  tasks:
+    exclude:
+    include:
+  extraVolumeMounts: []
+  extraVolumes: []

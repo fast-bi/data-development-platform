@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="icon" href="assets/images/favicon.png">
+    <title>Login</title>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .product-icon {
+            margin-bottom: 55px;
+            width: 250px;
+            height: 250px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="assets/images/favicon.png" alt="Product Icon" class="product-icon">
+        <form id="user-form" class="round-corners" action="{{ url_for('app_frontend_bp.login') }}" method="post">
+            {{ form.hidden_tag() }}
+            <div class="form-item">
+                {{ form.username.label(for="user-username") }}
+                {{ form.username(id="user-username", class="form-input round-corners", required=true) }}
+            </div>
+            <div class="form-item">
+                {{ form.password.label(for="user-password") }}
+                {{ form.password(id="user-password", class="form-input round-corners", required=true) }}
+            </div>
+            <div class="form-item">
+                {{ form.remember_me() }}
+                {{ form.remember_me.label }}
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+              {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {{ form.submit(id="form-submit", class="form-item round-corners", value="Login") }}
+
+            <div id="switch-form">
+                <p>Don't have an account? <a class="text-link" href="/register">Register</a></p>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,509 @@
+{
+  "idp-sso": {
+      "root-secrets": {
+        "adminUser": "root-fastbi-idp-admin",
+        "adminPassword": "random"
+      },
+      "database-secrets": {
+        "postgresPassword": "random",
+        "replicationUsername": "repl_user",
+        "replicationPassword": "random",
+        "username": "keycloak",
+        "password": "random",
+        "database": "keycloak"
+      },
+      "sso-clients-secrets": {
+          "data-replication": {
+            "ClientID": "airbyte-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "data-orchestration": {
+            "ClientID": "airflow-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "bi": {
+            "ClientID": "bi-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "data-catalog": {
+            "ClientID": "data-catalog-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "data-quality": {
+            "ClientID": "data-quality-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "data-governance": {
+            "ClientID": "datahub-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "data-modeling": {
+            "ClientID": "ide-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "platform-monitoring": {
+            "ClientID": "monitoring-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "platform-object-storage": {
+            "ClientID": "object-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "data-cicd-workflows": {
+            "ClientID": "argo-workflows-fastbi-data-platform",
+            "ClientSecret": "random"
+          },
+          "user-console": {
+            "ClientID": "user-console-fastbi-data-platform",
+            "ClientSecret": "random"
+          }
+      }
+  },
+  "data-platform-storage": {
+    "root-minio-secrets": {
+      "MINIO_ROOT_USER": "storage-root-admin",
+      "MINIO_ROOT_PASSWORD": "random"
+    },
+    "root-buckets-secrets": {
+      "airbyte-fast-bi-bucket-admin": {
+        "CONSOLE_ACCESS_KEY": "AirbyteStorageAgent",
+        "CONSOLE_SECRET_KEY": "random"
+      },
+      "airflow-fast-bi-bucket-admin": {
+        "CONSOLE_ACCESS_KEY": "AirflowStorageAgent",
+        "CONSOLE_SECRET_KEY": "random"
+      },
+      "bi-fast-bi-bucket-admin": {
+        "CONSOLE_ACCESS_KEY": "BiStorageAgent",
+        "CONSOLE_SECRET_KEY": "random"
+      },
+      "data-fast-bi-bucket-admin": {
+        "CONSOLE_ACCESS_KEY": "DataStorageAgent",
+        "CONSOLE_SECRET_KEY": "random"
+      }
+    },
+    "sso-clients-secrets": {
+      "MINIO_IDENTITY_OPENID_CLIENT_ID": "ref:idp-sso/sso-clients-secrets/platform-object-storage/ClientID",
+      "MINIO_IDENTITY_OPENID_CLIENT_SECRET": "ref:idp-sso/sso-clients-secrets/platform-object-storage/ClientSecret"
+    }
+  },
+  "data-platform-runner": {
+    "git_provider_repo_urls": {
+      "data_repo_url": "data_repo_url",
+      "dag_repo_url": "dag_repo_url"
+    },
+    "ci-access-tokens": {
+      "PRIVATE-TOKEN": "git_provider_access_token",
+      "PRIVATE-TOKEN-NAME": "git_provider_access_token_name",
+      "RUNNER-REGISTRATION-TOKEN": "runner_registration_token"
+    },
+    "ssh-keys-data-orchestrator-repo": {
+      "private": "private_key_orchestrator",
+      "public": "public_key_orchestrator"
+    },
+    "ssh-keys-data-model-repo": {
+      "private": "private_key_data_model",
+      "public": "public_key_data_model"
+    },
+    "gcp-cloud-dwh-service-accounts": {
+      "DATA_ANALYSIS_GCP_SA_EMAIL": "data_analysis_gcp_sa_email",
+      "DATA_ANALYSIS_GCP_SA_SECRET": "data_analysis_gcp_sa_secret",
+      "DBT_DEPLOY_GCP_SA_EMAIL": "data_platform_gcp_sa_email",
+      "DBT_DEPLOY_GCP_SA_SECRET": "data_platform_gcp_sa_secret",
+      "BIGQUERY_PROJECT_ID": "bigquery_project_id",
+      "BIGQUERY_REGION": "bigquery_region"
+    },
+    "aws-cloud-dwh-service-accounts": {
+      "REDSHIFT_HOST": "redshift_host",
+      "REDSHIFT_DATABASE": "redshift_database",
+      "REDSHIFT_PORT": "5439",
+      "REDSHIFT_USER": "redshift_user",
+      "REDSHIFT_PASSWORD": "redshift_password",
+      "AWS_ACCESS_KEY_ID": "aws_access_key_id",
+      "AWS_SECRET_ACCESS_KEY": "aws_secret_access_key",
+      "AWS_REGION": "aws_region"
+    },
+    "snowflake-cloud-dwh-service-accounts": {
+      "SNOWFLAKE_ACCOUNT": "snowflake_account",
+      "SNOWFLAKE_USER": "snowflake_user",
+      "SNOWFLAKE_PASSWORD": "snowflake_password",
+      "SNOWFLAKE_WAREHOUSE": "snowflake_warehouse",
+      "SNOWFLAKE_DATABASE": "snowflake_database",
+      "SNOWFLAKE_PRIVATE_KEY": "snowflake_private_key",
+      "SNOWFLAKE_PUBLIC_KEY": "snowflake_public_key",
+      "SNOWFLAKE_PASSPHRASE": "snowflake_passphrase"
+    },
+    "azure-cloud-dwh-service-accounts": {
+      "FABRIC_SERVER": "fabric_server",
+      "FABRIC_DATABASE": "fabric_database",
+      "FABRIC_PORT": "1433", 
+      "FABRIC_USER": "fabric_user",
+      "FABRIC_PASSWORD": "fabric_password",
+      "FABRIC_AUTHENTICATION": "fabric_authentication"
+    }
+  },
+  "data-replication": {
+      "database-secrets": {
+        "postgresPassword": "ref:idp-sso/database-secrets/postgresPassword",
+        "replicationUsername": "repl_user",
+        "replicationPassword": "random",
+        "username": "airbyte",
+        "password": "random",
+        "database": "airbyte",
+        "database_temporal": "airbyte_temporal",
+        "database_visibility": "airbyte_visibility"
+      },
+      "sso-cache-secrets":{
+        "redis-password": "random",
+        "redis-sentinel-password": "random"
+      },
+      "sso-clients-secrets": {
+        "client-id": "ref:idp-sso/sso-clients-secrets/data-replication/ClientID",
+        "client-secret": "ref:idp-sso/sso-clients-secrets/data-replication/ClientSecret",
+        "cookie-secret": "random"
+      },
+      "buckets-secrets": {
+        "bucket": "airbyte-fast-bi-bucket",
+        "accessKey": "ref:data-platform-storage/root-buckets-secrets/airbyte-fast-bi-bucket-admin/CONSOLE_ACCESS_KEY",
+        "secretKey": "ref:data-platform-storage/root-buckets-secrets/airbyte-fast-bi-bucket-admin/CONSOLE_SECRET_KEY"
+      }
+  },
+  "data-orchestration": {
+      "root-secrets": {
+        "webserver-secret-key": "random",
+        "fernet-key": "fernet_random",
+        "username": "root-fastbi-airflow-admin",
+        "password": "random"
+      },
+      "database-secrets": {
+        "postgresPassword": "ref:idp-sso/database-secrets/postgresPassword",
+        "replicationUsername": "repl_user",
+        "replicationPassword": "random",
+        "username": "airflow",
+        "password": "random",
+        "database": "airflow"
+      },
+      "cache-secrets": {
+        "password": "random"
+      },
+      "sso-clients-secrets": {
+        "CLIENT_ID": "ref:idp-sso/sso-clients-secrets/data-orchestration/ClientID",
+        "CLIENT_SECRET": "ref:idp-sso/sso-clients-secrets/data-orchestration/ClientSecret"
+      },
+      "git-secrets": {
+        "data-orchestration-dag_repo_url": "ref:data-platform-runner/git_provider_repo_urls/dag_repo_url",
+        "gitSshKey": "ref:data-platform-runner/ssh-keys-data-orchestrator-repo/private"
+      },
+      "buckets-secrets": {
+        "bucket": "airflow-fast-bi-bucket",
+        "accessKey": "ref:data-platform-storage/root-buckets-secrets/airflow-fast-bi-bucket-admin/CONSOLE_ACCESS_KEY",
+        "secretKey": "ref:data-platform-storage/root-buckets-secrets/airflow-fast-bi-bucket-admin/CONSOLE_SECRET_KEY"
+      },
+      "system-connection-secrets": {
+        "AIRFLOW_CONN_GOOGLE_CLOUD_DEFAULT": "google-cloud-platform://?scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform&num_retries=5",
+        "AIRFLOW_CONN_AWS": "airflow_conn_aws",
+        "AIRFLOW_CONN_DATA_REPLICATION_CONN": "airbyte://?host=http://data-replication-airbyte-server-svc.data-replication.svc.cluster.local:8001"
+      }
+  },
+  "data-modeling": {
+    "sso-clients-secrets": {
+      "client_id": "ref:idp-sso/sso-clients-secrets/data-modeling/ClientID",
+      "client_secret": "ref:idp-sso/sso-clients-secrets/data-modeling/ClientSecret",
+      "secret_token": "cookie_random"
+    },
+    "database-secrets": {
+        "postgresPassword": "ref:idp-sso/database-secrets/postgresPassword",
+        "replicationUsername": "repl_user",
+        "replicationPassword": "random",
+        "username": "ide_hub",
+        "password": "random",
+        "database": "ide_hub"
+      }
+  },
+  "data-dcdq-meta-collect": {
+    "database-secrets": {
+      "postgresPassword": "ref:idp-sso/database-secrets/postgresPassword",
+      "replicationUsername": "repl_user",
+      "replicationPassword": "random",
+      "username": "dcdqmeta",
+      "password": "random",
+      "database": "dcdqmeta"
+    },
+    "root-secrets": {
+      "secret_key": "random",
+      "debug": "False"
+    },
+    "smtp-secrets": {
+      "smtp_host": "smtp_host",
+      "smtp_username": "smtp_username",
+      "smtp_port": "smtp_port",
+      "password": "smtp_password"
+    }
+  },
+  "data-quality": {
+    "sso-clients-secrets": {
+      "client-id": "ref:idp-sso/sso-clients-secrets/data-quality/ClientID",
+      "client-secret": "ref:idp-sso/sso-clients-secrets/data-quality/ClientSecret",
+      "cookie-secret": "random"
+    },
+    "sso-cache-secrets":{
+      "redis-password": "random",
+      "redis-sentinel-password": "random"
+    },
+    "root-secrets": {
+      "COMPOSE_PROJECT_NAME": "data-quality-fastbi-data-platform",
+      "APP_KEY": "random"
+    }
+  },
+  "data-catalog": {
+    "sso-clients-secrets": {
+      "client-id": "ref:idp-sso/sso-clients-secrets/data-catalog/ClientID",
+      "client-secret": "ref:idp-sso/sso-clients-secrets/data-catalog/ClientSecret",
+      "cookie-secret": "random"
+    },
+    "sso-cache-secrets":{
+      "redis-password": "random",
+      "redis-sentinel-password": "random"
+    },
+    "root-secrets": {
+      "COMPOSE_PROJECT_NAME": "data-catalog-fastbi-data-platform",
+      "APP_KEY": "random"
+    }
+  },
+  "data-governance": {
+    "sso-clients-secrets": {
+      "clientId": "ref:idp-sso/sso-clients-secrets/data-governance/ClientID",
+      "clientSecret": "ref:idp-sso/sso-clients-secrets/data-governance/ClientSecret",
+      "cookieSecret": "random"
+    },
+    "database-secrets": {
+      "postgresPassword": "ref:idp-sso/database-secrets/postgresPassword",
+      "replicationUsername": "repl_user",
+      "replicationPassword": "random",
+      "username": "datahub",
+      "password": "random",
+      "database": "datahub"
+    },
+    "datahub-auth-secrets": {
+      "system_client_secret": "random",
+      "token_service_signing_key": "random",
+      "token_service_salt": "random"
+    },
+    "datahub-encryption-secrets": {
+      "encryption_key_secret": "random"
+    },
+    "datahub-sys-es-elastic-user": {
+      "elastic": "random"
+    },
+    "root-secrets": {
+      "accessToken": "",
+      "default_admin_user": "datahub",
+      "adminUser": "root-fastbi-data-governance-admin",
+      "adminPassword": "random",
+      "viewerUser": "datahub-user",
+      "viewerPassword": "random"
+    },
+    "neo4j-secrets": {
+      "username": "neo4j",
+      "password": "random",
+      "NEO4J_AUTH": "datahub_neo4j_credentials"
+    }
+  },
+  "data-analysis": {
+      "smtp-secrets": {
+        "smtp_host": "smtp_host",
+        "smtp_username": "smtp_username",
+        "smtp_port": "smtp_port",
+        "password": "smtp_password"
+      },
+      "buckets-secrets": {
+        "bucket": "bi-fast-bi-bucket",
+        "S3_ACCESS_KEY": "ref:data-platform-storage/root-buckets-secrets/bi-fast-bi-bucket-admin/CONSOLE_ACCESS_KEY",
+        "S3_SECRET_KEY": "ref:data-platform-storage/root-buckets-secrets/bi-fast-bi-bucket-admin/CONSOLE_SECRET_KEY"
+      },
+      "sso-clients-secrets": {
+        "CLIENT_ID": "ref:idp-sso/sso-clients-secrets/bi/ClientID",
+        "CLIENT_SECRET": "ref:idp-sso/sso-clients-secrets/bi/ClientSecret",
+        "COOKIE_SECRET": "random"
+      },
+      "database-secrets": {
+        "postgresPassword": "ref:idp-sso/database-secrets/postgresPassword",
+        "replicationUsername": "repl_user",
+        "replicationPassword": "random",
+        "username": "bi",
+        "password": "random",
+        "database": "bi"
+      },
+      "redis-secrets": {
+        "password": "random_10"
+      },
+      "lightdash": {
+        "root-secrets": {
+          "LIGHTDASH_SECRET": "ref:data-analysis/sso-clients-secrets/COOKIE_SECRET",
+          "adminPassword": "random",
+          "api_key": "random"
+        }
+      },
+      "superset": {
+        "root-secrets": {
+          "SUPERSET_SECRET_KEY": "ref:data-analysis/sso-clients-secrets/COOKIE_SECRET",
+          "username": "root-fastbi-bi-admin",
+          "password": "random"
+        }
+      },
+      "metabase": {
+        "root-secrets": {
+          "METABASE_API_KEY": "ref:data-analysis/sso-clients-secrets/COOKIE_SECRET",
+          "METABASE_USER": "root-fastbi-bi-admin",
+          "METABASE_PASSWORD": "random"
+        }
+      }
+  },
+  "data-platform-monitoring": {
+    "sso-clients-secrets": {
+      "CLIENT_ID": "ref:idp-sso/sso-clients-secrets/platform-monitoring/ClientID",
+      "CLIENT_SECRET": "ref:idp-sso/sso-clients-secrets/platform-monitoring/ClientSecret"
+    },
+    "root-secrets": {
+      "adminUser": "root-fastbi-monitoring-admin",
+      "adminPassword": "random"
+    },
+    "smtp-secrets": {
+      "username": "smtp_username",
+      "password": "smtp_password",
+      "smtp_host": "smtp_host",
+      "smtp_port": "smtp_port"
+    }
+  },
+  "user-console": {
+    "sso-clients-secrets": {
+      "client_id": "ref:idp-sso/sso-clients-secrets/user-console/ClientID",
+      "client_secret": "ref:idp-sso/sso-clients-secrets/user-console/ClientSecret"
+    },
+    "smtp-secrets": {
+      "smtp_host": "smtp_host",
+      "smtp_username": "smtp_username",
+      "smtp_port": "smtp_port",
+      "password": "smtp_password"
+    },
+    "database-secrets": {
+      "postgresPassword": "ref:idp-sso/database-secrets/postgresPassword",
+      "replicationUsername": "repl_user",
+      "replicationPassword": "random",
+      "username": "fastbi",
+      "password": "random",
+      "database": "fastbi"
+    },
+    "internal-monitoring": {
+        "datasoucers": {
+          "dataOrchestrator": {
+            "user": "ref:data-orchestration/database-secrets/username",
+            "password": "ref:data-orchestration/database-secrets/password"
+          },
+          "dataReplication": { 
+            "user": "ref:data-replication/database-secrets/username",
+            "password": "ref:data-replication/database-secrets/password"
+          }
+        }
+     },
+    "root-secrets": {
+        "DBT_INIT_API_KEY": "random",
+        "FN_FLASK_SECRET_KEY": "random",
+        "MONITORING_BASIC_AUTH_USER": "ref:data-platform-monitoring/root-secrets/adminUser",
+        "MONITORING_BASIC_AUTH_PASS": "ref:data-platform-monitoring/root-secrets/adminPassword",
+        "BASIC_AUTH_PASSWORD": "random",
+        "BASIC_AUTH_USERNAME": "root-fastbi-api-admin",
+        "API_KEY": "random",
+        "REDIS_PASSWORD": "random",
+        "DB_USER": "ref:user-console/database-secrets/username",
+        "DB_PASSWORD": "ref:user-console/database-secrets/password",
+        "DB_NAME": "ref:user-console/database-secrets/database",
+        "MAIL_USERNAME": "ref:user-console/smtp-secrets/smtp_username",
+        "MAIL_PASSWORD": "ref:user-console/smtp-secrets/password",
+        "MAIL_SERVER": "ref:user-console/smtp-secrets/smtp_host",
+        "MAIL_PORT": "ref:user-console/smtp-secrets/smtp_port",
+        "DC_DQ_BEARER_TOKEN": "ref:data-dcdq-meta-collect/root-secrets/secret_key",
+        "BQ_PROJECT_ID": "ref:data-platform-runner/gcp-cloud-dwh-service-accounts/BIGQUERY_PROJECT_ID",
+        "BQ_REGION": "ref:data-platform-runner/gcp-cloud-dwh-service-accounts/BIGQUERY_REGION",
+        "CUSTOMER": "customer",
+        "DATA_ORCHESTRATOR_BASE_USER": "ref:data-orchestration/root-secrets/username",
+        "DATA_ORCHESTRATOR_BASE_USER_PASSWORD": "ref:data-orchestration/root-secrets/password",
+        "GCP_SA_SECRET": "ref:data-platform-runner/gcp-cloud-dwh-service-accounts/DATA_ANALYSIS_GCP_SA_SECRET",
+        "MINIO_ACCESS_KEY": "ref:data-platform-storage/root-buckets-secrets/data-fast-bi-bucket-admin/CONSOLE_ACCESS_KEY",
+        "MINIO_SECRET_KEY": "ref:data-platform-storage/root-buckets-secrets/data-fast-bi-bucket-admin/CONSOLE_SECRET_KEY"
+    }
+  },
+  "data-cicd-workflows": {
+    "database-secrets": {
+      "postgresPassword": "ref:idp-sso/database-secrets/postgresPassword",
+      "replicationUsername": "repl_user",
+      "replicationPassword": "random",
+      "username": "argo",
+      "password": "random",
+      "database": "argo"
+    },
+    "sso-clients-secrets": {
+      "client-id": "ref:idp-sso/sso-clients-secrets/data-cicd-workflows/ClientID",
+      "client-secret": "ref:idp-sso/sso-clients-secrets/data-cicd-workflows/ClientSecret"
+    },
+    "customer-cicd-variables": {
+        "AIRFLOW_PASSWORD": "ref:data-orchestration/root-secrets/password",
+        "AIRFLOW_USER": "ref:data-orchestration/root-secrets/username",
+        "AIRFLOW_URL": "http://data-orchestration-webserver.data-orchestration.svc.cluster.local",
+        "AIRFLOW_SECRET_FILE_NAME": "dbt_airflow_variables.yml",
+        "CUSTOMER": "customer",
+        "DOMAIN": "domain",
+        "DAG_REPO_PUSH": "dag_repo_push",
+        "DATAHUB_GMS_TOKEN": "random",
+        "DATAHUB_GMS_URL": "http://data-governance-datahub-gms.data-governance.svc.cluster.local:8080",
+        "DATA_ANALYSIS_PLATFORM": "data_analysis_platform",
+        "DATA_WAREHOUSE_PLATFORM": "data_warehouse_platform",
+        "DCDQ_METADATACOLLECTOR_API_TOKEN": "ref:data-dcdq-meta-collect/root-secrets/secret_key",
+        "DCDQ_METADATACOLLECTOR_API_URL": "http://data-dcdq-metacollect.data-dcdq-metacollect.svc.cluster.local",
+        "DBT_API_SERVER_CONTROLLER_SECRET": "ref:data-orchestration/root-secrets/webserver-secret-key",
+        "GCP_DATA_ANALYSIS_SA_SECRET": "ref:data-platform-runner/gcp-cloud-dwh-service-accounts/DATA_ANALYSIS_GCP_SA_SECRET",
+        "GCP_PROJECT_NAME": "project_id",
+        "GCP_SA_EMAIL": "ref:data-platform-runner/gcp-cloud-dwh-service-accounts/DBT_DEPLOY_GCP_SA_EMAIL",
+        "GCP_SA_SECRET": "ref:data-platform-runner/gcp-cloud-dwh-service-accounts/DBT_DEPLOY_GCP_SA_SECRET",
+        "GIT_BRANCH_MAIN": "data_repo_main_branch",
+        "GIT_PROVIDER": "git_provider",
+        "GIT_REPO_URL": "data_repo_url",
+        "GIT_USER_EMAIL": "default_git_user_email",
+        "PLATFORM": "orchestrator_platform",
+        "PRIVATE_ACCESS_NAME": "access_token_name",
+        "PRIVATE_ACCESS_TOKEN": "ref:data-platform-runner/ci-access-tokens/PRIVATE-TOKEN",
+        "SECRET_DBT_PACKAGE_REPO_TOKEN": "ref:data-cicd-workflows/customer-cicd-variables/PRIVATE_ACCESS_TOKEN",
+        "SECRET_PACKAGE_REPO_TOKEN_NAME": "ref:data-cicd-workflows/customer-cicd-variables/PRIVATE_ACCESS_NAME",
+        "SUPERSET_BASE_URL": "http://data-analysis-hub.data-analysis.svc.cluster.local:8088",
+        "SUPERSET_USER": "ref:data-analysis/superset/root-secrets/username",
+        "SUPERSET_USER_PASSWORD": "ref:data-analysis/superset/root-secrets/password",
+        "METABASE_URL": "http://data-analysis-hub.data-analysis.svc.cluster.local",
+        "METABASE_API_KEY": "random",
+        "LIGHTDASH_API_KEY": "ref:data-analysis/lightdash/root-secrets/api_key",
+        "LIGHTDASH_URL": "http://data-analysis-hub.data-analysis.svc.cluster.local:8080",
+        "LOOKERSDK_BASE_URL": "lookersdk_base_url",
+        "LOOKERSDK_CLIENT_ID": "lookersdk_client_id",
+        "LOOKERSDK_CLIENT_SECRET": "lookersdk_client_secret",
+        "LOOKER_REPO_TOKEN_NAME": "ref:data-cicd-workflows/customer-cicd-variables/PRIVATE_ACCESS_NAME",
+        "LOOKER_REPO_ACCESS_TOKEN": "ref:data-cicd-workflows/customer-cicd-variables/PRIVATE_ACCESS_TOKEN",
+        "REDSHIFT_HOST": "ref:data-platform-runner/aws-cloud-dwh-service-accounts/REDSHIFT_HOST",
+        "REDSHIFT_DATABASE": "ref:data-platform-runner/aws-cloud-dwh-service-accounts/REDSHIFT_DATABASE",
+        "REDSHIFT_PORT": "ref:data-platform-runner/aws-cloud-dwh-service-accounts/REDSHIFT_PORT",
+        "REDSHIFT_USER": "ref:data-platform-runner/aws-cloud-dwh-service-accounts/REDSHIFT_USER",
+        "REDSHIFT_PASSWORD": "ref:data-platform-runner/aws-cloud-dwh-service-accounts/REDSHIFT_PASSWORD",
+        "SNOWFLAKE_ACCOUNT": "ref:data-platform-runner/snowflake-cloud-dwh-service-accounts/SNOWFLAKE_ACCOUNT",
+        "SNOWFLAKE_USER": "ref:data-platform-runner/snowflake-cloud-dwh-service-accounts/SNOWFLAKE_USER",
+        "SNOWFLAKE_PASSWORD": "ref:data-platform-runner/snowflake-cloud-dwh-service-accounts/SNOWFLAKE_PASSWORD",
+        "SNOWFLAKE_WAREHOUSE": "ref:data-platform-runner/snowflake-cloud-dwh-service-accounts/SNOWFLAKE_WAREHOUSE",
+        "SNOWFLAKE_DATABASE": "ref:data-platform-runner/snowflake-cloud-dwh-service-accounts/SNOWFLAKE_DATABASE",
+        "SNOWFLAKE_PRIVATE_KEY": "ref:data-platform-runner/snowflake-cloud-dwh-service-accounts/SNOWFLAKE_PRIVATE_KEY",
+        "SNOWFLAKE_PASSPHRASE": "ref:data-platform-runner/snowflake-cloud-dwh-service-accounts/SNOWFLAKE_PASSPHRASE",
+        "FABRIC_SERVER": "ref:data-platform-runner/azure-cloud-dwh-service-accounts/FABRIC_SERVER",
+        "FABRIC_DATABASE": "ref:data-platform-runner/azure-cloud-dwh-service-accounts/FABRIC_DATABASE",
+        "FABRIC_PORT": "ref:data-platform-runner/azure-cloud-dwh-service-accounts/FABRIC_PORT",
+        "FABRIC_USER": "ref:data-platform-runner/azure-cloud-dwh-service-accounts/FABRIC_USER",
+        "FABRIC_PASSWORD": "ref:data-platform-runner/azure-cloud-dwh-service-accounts/FABRIC_PASSWORD",
+        "FABRIC_AUTHENTICATION": "ref:data-platform-runner/azure-cloud-dwh-service-accounts/FABRIC_AUTHENTICATION"
+    }
+  }
+}

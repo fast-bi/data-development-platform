@@ -1,0 +1,453 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+#
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: data-orchestration
+  labels:
+    name: data-orchestration
+{%- if method == "external_infisical" %}
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-orchestration-system-connection-secrets
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-orchestration/system-connection-secrets/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: airflow-system-connections
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-orchestration-git-secrets
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-orchestration/git-secrets/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: airflow-gke-git-secret
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-orchestration-root-secrets
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-orchestration/root-secrets/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: airflow-root-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-orchestration-idp-sso-secrets
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-orchestration/sso-clients-secrets/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: airflow-sso-clients-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-orchestration-database-secrets
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-orchestration/database-secrets/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-orchestration-database-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-orchestration-cache-secrets
+spec:
+    resyncInterval: 86400
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-orchestration/cache-secrets/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-orchestration-cache-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-warehouse-bigquery-secrets
+spec:
+    resyncInterval: 15
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-platform-runner/gcp-cloud-dwh-service-accounts/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-warehouse-bigquery-secrets
+        secretNamespace: "{{ namespace }}"
+--- 
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-warehouse-snowflake-secrets
+spec:
+    resyncInterval: 15
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-platform-runner/snowflake-cloud-dwh-service-accounts/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-warehouse-snowflake-secrets
+        secretNamespace: "{{ namespace }}"
+--- 
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-warehouse-redshift-secrets
+spec:
+    resyncInterval: 15
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-platform-runner/aws-cloud-dwh-service-accounts/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-warehouse-redshift-secrets
+        secretNamespace: "{{ namespace }}"
+---
+apiVersion: secrets.infisical.com/v1alpha1
+kind: InfisicalSecret
+metadata:
+    name: infisicalsecret-data-warehouse-fabric-secrets
+spec:
+    resyncInterval: 15
+    authentication:
+        universalAuth:
+            secretsScope:
+                projectSlug: "{{ project_slug }}"
+                envSlug: prod
+                secretsPath: "/data-platform-runner/azure-cloud-dwh-service-accounts/"
+            credentialsRef:
+                secretName: universal-auth-credentials
+                secretNamespace: infisical-operator-system
+    managedSecretReference:
+        secretName: data-warehouse-fabric-secrets
+        secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- if method == "local_vault" %}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-orchestration-system-connection-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: airflow-system-connections
+  dataFrom:
+    - extract:
+        key: "data-orchestration/system-connection-secrets/"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-orchestration-git-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: airflow-gke-git-secret
+  dataFrom:
+    - extract:
+        key: "data-orchestration/git-secrets/"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-orchestration-root-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: airflow-root-secrets
+  dataFrom:
+    - extract:
+        key: "data-orchestration/root-secrets/"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-orchestration-idp-sso-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend 
+    kind: ClusterSecretStore
+  target:
+    name: airflow-sso-clients-secrets
+  dataFrom:
+    - extract:
+        key: "data-orchestration/sso-clients-secrets/"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-orchestration-database-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-orchestration-database-secrets
+  dataFrom:
+    - extract:
+        key: "data-orchestration/database-secrets/"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-orchestration-cache-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: "24h"
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-orchestration-cache-secrets
+  dataFrom:
+    - extract:
+        key: "data-orchestration/cache-secrets/"
+--- 
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-warehouse-bigquery-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-warehouse-bigquery-secrets
+  dataFrom:
+    - extract:
+        key: "data-platform-runner/gcp-cloud-dwh-service-accounts/"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-warehouse-snowflake-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-warehouse-snowflake-secrets
+  dataFrom:
+    - extract:
+        key: "data-platform-runner/snowflake-cloud-dwh-service-accounts/"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-warehouse-redshift-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-warehouse-redshift-secrets
+  dataFrom:
+    - extract:
+        key: "data-platform-runner/aws-cloud-dwh-service-accounts/"
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: hashicorp-data-warehouse-fabric-secrets
+  namespace: "{{ namespace }}"
+spec:
+  refreshInterval: 24h
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+  target:
+    name: data-warehouse-fabric-secrets
+  dataFrom:
+    - extract:
+        key: "data-platform-runner/azure-cloud-dwh-service-accounts/"
+{%- endif %}
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: airflow-database-metadata-connection
+type: Opaque
+data:
+  connection: "{{ airflow_database_metadata_connection }}"
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: airflow-cache-metadata-connection
+type: Opaque
+data:
+  connection: "{{ airflow_redis_metadata_connection }}"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: airflow-package-manager
+  namespace: "{{ namespace }}"
+rules:
+- apiGroups: ["apps"]
+  resources: ["statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["statefulsets/scale"]
+  verbs: ["patch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments/scale"]
+  verbs: ["patch"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+  resourceNames: ["airflow-config-pypi"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: airflow-package-manager
+  namespace: "{{ namespace }}"
+subjects:
+- kind: ServiceAccount
+  name: data-orchestration-webserver
+  namespace: "{{ namespace }}"
+- kind: ServiceAccount
+  name: data-orchestration-worker
+  namespace: "{{ namespace }}"
+- kind: ServiceAccount
+  name: data-orchestration-scheduler
+  namespace: "{{ namespace }}"
+- kind: ServiceAccount
+  name: data-orchestration-triggerer
+  namespace: "{{ namespace }}"
+roleRef:
+  kind: Role
+  name: airflow-package-manager
+  apiGroup: rbac.authorization.k8s.io
+# ---
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: dbt-server
+# ---
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: dbt-server-sa
+#   namespace: dbt-server
+#   annotations:
+# {%- if cloud_provider == "gcp" %}
+# {%- if data_orchestration_k8s_sa %}
+#     iam.gke.io/gcp-service-account: {{ data_orchestration_dbt_server_k8s_sa }}
+# {%- else %}
+#       {}
+# {%- endif %}
+# {%- else %}
+#       {}
+# {%- endif %}
+# ---

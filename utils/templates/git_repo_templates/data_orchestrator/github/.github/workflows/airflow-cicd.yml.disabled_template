@@ -1,0 +1,101 @@
+{% raw %}
+# -----------------------------------------------------------------------------
+# TEMPLATE: Airflow DAG Validation CI Pipeline
+# -----------------------------------------------------------------------------
+# PURPOSE:
+#   This pipeline validates Airflow DAG files for syntax errors, import errors,
+#   and checks for cyclic dependencies before deployment.
+#
+# HOW TO USE:
+#   1. Copy this file to `.github/workflows/dag-validation.yml`
+#   2. Configure the environment variables section below
+#   3. Customize the Python version if needed
+#   4. Adjust the DAG directory path if different from 'dags/'
+#
+# REQUIREMENTS:
+#   - GitHub repository with Airflow DAGs
+#   - Python 3.8+ environment
+#
+# CUSTOMIZATION POINTS:
+#   - PYTHON_VERSION: Change to match your Airflow environment
+#   - DAG_DIRECTORY: Change if your DAGs are not in 'dags/'
+#   - AIRFLOW_VERSION: Specify to match your production environment
+# -----------------------------------------------------------------------------
+
+name: Airflow DAG Validation
+
+# UNCOMMENT TO ENABLE:
+# on:
+#   pull_request:
+#     paths:
+#       - 'dags/**'
+#   push:
+#     branches: [main, develop]
+#     paths:
+#       - 'dags/**'
+
+# REMOVE THIS LINE TO ENABLE:
+on: workflow_dispatch
+
+# ⚠️ CUSTOMIZE THESE VARIABLES ⚠️
+env:
+  PYTHON_VERSION: '3.9'
+  DAG_DIRECTORY: 'dags/'
+  AIRFLOW_VERSION: '2.5.1'
+
+jobs:
+  validate-dags:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install apache-airflow==${{ env.AIRFLOW_VERSION }}
+          # Add your custom dependencies here
+          # pip install -r requirements.txt
+      
+      - name: Validate DAGs
+        run: |
+          python -c "
+          import logging
+          import os
+          from airflow.models import DagBag
+          
+          # Setup logging
+          logging.basicConfig(level=logging.INFO)
+          logger = logging.getLogger()
+          
+          # Path to DAGs
+          dag_folder = os.environ['DAG_DIRECTORY'] 
+          
+          # Validate DAGs
+          logger.info(f'Validating DAGs in {dag_folder}')
+          dag_bag = DagBag(dag_folder=dag_folder, include_examples=False)
+          
+          # Check for import errors
+          if dag_bag.import_errors:
+              logger.error('DAG import errors:')
+              for file, error in dag_bag.import_errors.items():
+                  logger.error(f'File: {file}, Error: {error}')
+              exit(1)
+          else:
+              logger.info(f'Successfully loaded {len(dag_bag.dags)} DAGs')
+          
+          # Check for DAG cycles
+          for dag_id, dag in dag_bag.dags.items():
+              logger.info(f'Checking DAG: {dag_id}')
+              if dag.test_cycle():
+                  logger.error(f'Cycle detected in DAG: {dag_id}')
+                  exit(1)
+          
+          logger.info('All DAGs validated successfully')
+          "
+{% endraw %}

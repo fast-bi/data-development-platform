@@ -1,0 +1,226 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+
+nameOverride: "{{ data_dcdq_metacollect_deployment_name }}"
+namespace: "{{ namespace }}"
+image:
+  name: "{{ data_dcdq_metacollect_app_name }}"
+  tag: "{{ data_dcdq_metacollect_app_version }}"
+
+manifests:
+{%- if method == "external_infisical" %}
+{%- if local_postgresql != true %}
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-dcdq-meta-collect-database-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-dcdq-meta-collect/database-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-dcdq-metacollect-db-secrets
+          secretNamespace: "{{ namespace }}"
+{%- endif %}
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-dcdq-meta-collect-smtp-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-dcdq-meta-collect/smtp-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-dcdq-meta-collect-smtp-secrets
+          secretNamespace: "{{ namespace }}"
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-dcdq-meta-root-secrets
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-dcdq-meta-collect/root-secrets/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-dcdq-meta-collect-root-secrets
+          secretNamespace: "{{ namespace }}"
+{%- endif %}
+{%- if method == "local_vault" %}
+{%- if local_postgresql != true %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-dcdq-metacollect-database-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-dcdq-metacollect-db-secrets
+    dataFrom:
+      - extract:
+          key: "data-dcdq-meta-collect/database-secrets"
+{%- endif %}
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-dcdq-metacollect-smtp-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-dcdq-meta-collect-smtp-secrets
+    dataFrom:
+      - extract:
+          key: "data-dcdq-meta-collect/smtp-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-dcdq-metacollect-root-secrets
+    namespace: "{{ namespace }}"
+  spec: 
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-dcdq-meta-collect-root-secrets
+    dataFrom:
+      - extract:
+          key: "data-dcdq-meta-collect/root-secrets"
+{%- endif %}
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: "{{ data_dcdq_metacollect_deployment_name }}"
+  spec:
+    serviceName: "data-dcdq-metacollect"
+    replicas: 1
+    selector:
+      matchLabels:
+        app: data-dcdq-metacollect
+    template:
+      metadata:
+        labels:
+          app: data-dcdq-metacollect
+          fastbi: data-dcdq-metacollect
+      spec:
+        serviceAccountName: data-dcdq-metacollect-sa
+        containers:
+        - name: tsb-fastbi-meta-api-core
+          image: "{{ data_dcdq_metacollect_app_name }}:{{ data_dcdq_metacollect_app_version }}"
+{%- raw %}
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits: {}
+          ports:
+          - containerPort: 8080
+          env:
+          - name: DEBUG
+            valueFrom:
+              secretKeyRef:
+                name: data-dcdq-meta-collect-root-secrets
+                key: debug
+          - name: SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: data-dcdq-meta-collect-root-secrets
+                key: secret_key
+          - name: MAIL_SERVER
+            valueFrom:
+              secretKeyRef:
+                name: data-dcdq-meta-collect-smtp-secrets
+                key: smtp_host
+          - name: MAIL_PORT
+            valueFrom:
+              secretKeyRef:
+                name: data-dcdq-meta-collect-smtp-secrets
+                key: smtp_port
+          - name: MAIL_USE_TLS
+            value: "False"
+          - name: MAIL_USE_SSL
+            value: "False"
+          - name: MAIL_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: data-dcdq-meta-collect-smtp-secrets
+                key: smtp_username
+          - name: MAIL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: data-dcdq-meta-collect-smtp-secrets
+                key: password
+{%- endraw %}
+          - name: MAIL_DEFAULT_SENDER
+            value: "{{ data_service_smtp_sender }}"
+          - name: DB_HOST
+            value: "{{ data_dcdq_metacollect_psql_host }}"
+          - name: DB_PORT
+            value: "{{ data_dcdq_metacollect_psql_port }}"
+{%- raw %}
+          - name: DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: data-dcdq-metacollect-db-secrets
+                key: username
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: data-dcdq-metacollect-db-secrets
+                key: password
+          - name: DB_NAME
+            valueFrom:
+              secretKeyRef:
+                name: data-dcdq-metacollect-db-secrets
+                key: database
+          - name: DB_SSL_MODE
+            value: "prefer"
+          - name: DB_CONNECT_TIMEOUT
+            value: "10"
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: data-dcdq-metacollect
+  spec:
+    ports:
+    - port: 80
+      targetPort: 8080
+    selector:
+      app: data-dcdq-metacollect
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: data-dcdq-metacollect-sa
+{%- endraw %}
