@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 - This is the initial public release. Future minor versions will iterate on features and stability.
 
-## [1.0.0] - 2025-09-XX
+## [0.0.9] - 2025-09-XX
 
 ### Added
 - 🚀 **Initial Release**: Fast.BI Data Development Platform
@@ -70,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Encryption**: TLS/SSL encryption for all communications
 - **Audit Logging**: Comprehensive activity logging
 
-## [0.9.0] - 2024-XX-XX
+## [0.0.1] - 2024-XX-XX
 
 ### Added
 - 🧪 **Beta Release**: Initial testing version
