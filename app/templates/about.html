@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>About Fast.BI - "One" Data Analysis Platform</title>
+  <link href="https://fonts.googleapis.com/css?family=Karla:400,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.materialdesignicons.com/4.8.95/css/materialdesignicons.min.css">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="assets/css/bd-wizard.css">
+  <style>
+    .content-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      margin-top: 25px;
+    }
+    .section-title {
+      color: #6788ff;
+      font-weight: bold;
+      margin-top: 30px;
+    }
+    .feature-list {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    .feature-list li {
+      margin-bottom: 10px;
+    }
+    .feature-list li:before {
+      content: "•";
+      color: #6788ff;
+      font-weight: bold;
+      display: inline-block;
+      width: 1em;
+      margin-left: -1em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav class="navbar navbar-expand-sm navbar-light bg-white">
+      <div class="container">
+        <a class="navbar-brand" href="#"><img src="assets/images/favicon.png" alt="logo"></a>
+        <button class="navbar-toggler d-lg-none" type="button" data-toggle="collapse" data-target="#collapsibleNavId"
+          aria-controls="collapsibleNavId" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="collapsibleNavId">
+          <ul class="navbar-nav ml-auto mt-2 mt-lg-0">
+            <li class="nav-item">
+              <a class="nav-link" href="#" id="themeToggle"><i class="fas fa-adjust"></i></a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/">Home</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/about">About</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/contacts">Contacts</a>
+            </li>
+            {% if username %}
+            <li class="nav-item">
+              <a class="nav-link" href="/logout">Logout</a>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+  </header>
+  <main>
+    <div class="content-wrapper">
+      <h1 class="text-center mb-4">About Fast.BI - "One" Data Analysis Platform</h1>
+      
+      <section>
+        <h2 class="section-title">Product Concept</h2>
+        <p>Fast.BI is a cloud-agnostic, microservices-based, data-driven solution that enables companies to interact with business data and extract business insights by focusing solely on data modeling. Our platform leverages a single-page application (SPA) architecture to deliver modern end-to-end data preparation and data-analysis services.</p>
+      </section>
+
+      <section>
+        <h2 class="section-title">Key Features</h2>
+        <ul class="feature-list">
+          <li>Data Movement: Airbyte-based data replication with Fast.BI enhancements</li>
+          <li>Data Transformation: dbt (data build tool) with Fast.BI workload moderator and visualization</li>
+          <li>Data Visualization: LightDash-based BI layer with Google Looker extensions for enterprise</li>
+          <li>Data Governance: DataHub-based metadata platform with Fast.BI collectors</li>
+          <li>Data Quality: Integrated quality checks and visualizations</li>
+          <li>Online IDE: Web-based Visual Studio Code for data modeling</li>
+          <li>Observability: Comprehensive monitoring and alerting for the entire platform</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="section-title">Value Proposition</h2>
+        <h3>For Small and Medium Businesses:</h3>
+        <ul class="feature-list">
+          <li>Rapid Insights: Quickly unlock business insights without infrastructure hassles</li>
+          <li>Streamlined Workflow: Consolidate your data-driven workflow in one user-friendly platform</li>
+          <li>Time Efficiency: Minimize setup time and focus on your data</li>
+        </ul>
+        <h3>For Data Resellers:</h3>
+        <ul class="feature-list">
+          <li>Cleaned and Prepared Data: Effortlessly collect, refine, and resell high-quality data</li>
+          <li>Maximize Revenue: Turn your data into a valuable asset</li>
+          <li>Cloud Agnosticism: Freedom to choose from existing Cloud Data Warehouse solutions</li>
+        </ul>
+        <h3>For Enterprise Businesses:</h3>
+        <ul class="feature-list">
+          <li>Seamless Transition: Effortlessly move heavy data workloads to a cloud-based SaaS solution</li>
+          <li>Full Automation: Streamline data operations with minimal manual effort</li>
+          <li>Comprehensive Governance: Ensure data accuracy, consistency, and compliance</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="section-title">Technology Stack</h2>
+        <p>Fast.BI leverages a robust stack of open-source technologies, including:</p>
+        <ul class="feature-list">
+          <li>Backend: Airbyte, Airflow, dbt core, DataHub, Re_data, Lightdash, Coder (VSCode), Grafana, and more</li>
+          <li>Frontend: React with Next.js framework</li>
+          <li>Infrastructure: Cloud-agnostic (Google Cloud, AWS, Azure, On-Prem), Kubernetes, Docker</li>
+          <li>Data Warehouse Support: BigQuery, Snowflake, RedShift, PostgreSQL</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 class="section-title">Get Started</h2>
+        <p>Experience the power of Fast.BI and transform your data analysis workflow. Whether you're a small business looking for quick insights, a data reseller aiming to maximize value, or an enterprise transitioning to the cloud, Fast.BI has the tools and capabilities to meet your needs.</p>
+        <div class="text-center mt-4">
+          <a href="/wizard" class="btn btn-primary btn-lg">Launch Tenant Initialization Wizard</a>
+        </div>
+      </section>
+    </div>
+  </main>
+  <script>
+    window.bearerToken = "{{ bearer_auth }}";
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="assets/js/base.js"></script>
+  <script src="assets/js/token-management.js"></script>
+</body>
+</html>

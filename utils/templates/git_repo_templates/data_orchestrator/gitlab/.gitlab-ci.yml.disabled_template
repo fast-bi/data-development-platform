@@ -1,0 +1,87 @@
+# -----------------------------------------------------------------------------
+# TEMPLATE: Airflow DAG Validation CI Pipeline for GitLab
+# -----------------------------------------------------------------------------
+# PURPOSE:
+#   This pipeline validates Airflow DAG files for syntax errors, import errors,
+#   and checks for cyclic dependencies before deployment.
+#
+# HOW TO USE:
+#   1. Copy this file to `.gitlab-ci.yml` in your repository root
+#   2. Configure the variables section below
+#   3. Customize the Python version if needed
+#   4. Adjust the DAG directory path if different from 'dags/'
+#
+# REQUIREMENTS:
+#   - GitLab repository with Airflow DAGs
+#   - Python 3.8+ environment
+#
+# CUSTOMIZATION POINTS:
+#   - PYTHON_VERSION: Change to match your Airflow environment
+#   - DAG_DIRECTORY: Change if your DAGs are not in 'dags/'
+#   - AIRFLOW_VERSION: Specify to match your production environment
+# -----------------------------------------------------------------------------
+
+# UNCOMMENT AND MODIFY TO ENABLE:
+# workflow:
+#   rules:
+#     - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+#     - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop"
+#     - changes:
+#         - dags/**/*
+
+# ⚠️ CUSTOMIZE THESE VARIABLES ⚠️
+variables:
+  PYTHON_VERSION: "3.9"
+  DAG_DIRECTORY: "dags/"
+  AIRFLOW_VERSION: "2.10.3"
+
+stages:
+  - validate
+
+validate-dags:
+  stage: validate
+  image: python:${PYTHON_VERSION}
+  script:
+    - pip install --upgrade pip
+    - pip install apache-airflow==${AIRFLOW_VERSION}
+    # Add your custom dependencies here
+    # - pip install -r requirements.txt
+    - |
+      python -c "
+      import logging
+      import os
+      import sys
+      from airflow.models import DagBag
+      
+      # Setup logging
+      logging.basicConfig(level=logging.INFO)
+      logger = logging.getLogger()
+      
+      # Path to DAGs
+      dag_folder = '${DAG_DIRECTORY}'
+      
+      # Validate DAGs
+      logger.info(f'Validating DAGs in {dag_folder}')
+      dag_bag = DagBag(dag_folder=dag_folder, include_examples=False)
+      
+      # Check for import errors
+      if dag_bag.import_errors:
+          logger.error('DAG import errors:')
+          for file, error in dag_bag.import_errors.items():
+              logger.error(f'File: {file}, Error: {error}')
+          sys.exit(1)
+      else:
+          logger.info(f'Successfully loaded {len(dag_bag.dags)} DAGs')
+      
+      # Check for DAG cycles
+      for dag_id, dag in dag_bag.dags.items():
+          logger.info(f'Checking DAG: {dag_id}')
+          if dag.test_cycle():
+              logger.error(f'Cycle detected in DAG: {dag_id}')
+              sys.exit(1)
+      
+      logger.info('All DAGs validated successfully')
+      "
+  rules:
+    # Comment out the line below and uncomment the section above to enable automatic triggering
+    - when: manual

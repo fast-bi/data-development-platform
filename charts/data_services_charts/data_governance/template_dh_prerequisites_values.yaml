@@ -1,0 +1,128 @@
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+{%- raw %}
+# Default configuration for pre-requisites to get you started
+# Copy this file and update to the configuration of choice
+elasticsearch:
+  enabled: false # set this to false, if you want to provide your own ES instance.
+# Official neo4j chart, supports both community and enterprise editions
+# see https://neo4j.com/docs/operations-manual/current/kubernetes/ for more information
+# source: https://github.com/neo4j/helm-charts
+neo4j:
+  enabled: true
+  fullnameOverride: "data-governance-neo4j"
+  config:
+    server.memory.heap.max_size: "512m"  # Default might be too high
+    server.memory.heap.initial_size: "512m"
+    server.memory.pagecache.size: "256m"  # Page cache for data storage
+  resources:
+    cpu: "0.5"
+    memory: "2Gi"
+  neo4j:
+    name: neo4j
+    edition: "community"
+    isClusterEnabled: false
+    acceptLicenseAgreement: "yes"
+    defaultDatabase: "graph.db"
+    passwordFromSecret: data-governance-neo4j-secrets
+    secretName: NEO4J_AUTH
+    # For better security, add password to neo4j-secrets k8s secret with  neo4j-username neo4j-passwordn and NEO4J_AUTH and uncomment below
+    # NEO4J_AUTH: should be composed like so: {Username}/{Password}
+    # passwordFromSecret: neo4j-secrets
+  # Set security context for pod
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 7474
+    runAsGroup: 7474
+    fsGroup: 7474
+    fsGroupChangePolicy: "Always"
+  # Disallow privilegeEscalation on container level
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+  # Services for Neo4j
+  services:
+    # A ClusterIP service with the same name as the Helm Release name should be used for Neo4j Driver connections originating inside the
+    # Kubernetes cluster.
+    # A LoadBalancer Service for external Neo4j driver applications and Neo4j Browser
+    neo4j:
+      enabled: false
+  # Create a volume for neo4j, SSD storage is recommended
+  volumes:
+    data:
+      mode: "defaultStorageClass"
+      defaultStorageClass:
+        requests:
+          storage: 5Gi
+  env:
+    NEO4J_PLUGINS: '["apoc"]'
+mysql:
+  enabled: false
+postgresql:
+  enabled: false
+# Using gcloud-proxy requires the node in a GKE cluster to have Cloud SQL Admin scope,
+# you will need to create a new node and migrate the workload if your current node does not have this scope
+gcloud-sqlproxy:
+  enabled: false
+cp-helm-charts:
+  enabled: false
+  # Schema registry is under the community license
+  cp-schema-registry:
+    enabled: false
+    kafka:
+      # <<release-name>>-kafka:9092
+      bootstrapServers: "prerequisites-kafka:9092"
+  cp-kafka:
+    enabled: false
+  cp-zookeeper:
+    enabled: false
+  cp-kafka-rest:
+    enabled: false
+  cp-kafka-connect:
+    enabled: false
+  cp-ksql-server:
+    enabled: false
+  cp-control-center:
+    enabled: false
+
+# Bitnami version of Kafka that deploys open source Kafka https://artifacthub.io/packages/helm/bitnami/kafka
+kafka:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/kafka
+    tag: 3.3.2
+    pullPolicy: IfNotPresent
+  listeners:
+    client:
+      protocol: PLAINTEXT
+    interbroker:
+      protocol: PLAINTEXT
+  controller:
+    replicaCount: 0
+  broker:
+    replicaCount: 1
+    # The new minId for broker is 100. If we don't override this, the broker will have id 100
+    # and cannot load the partitions. So we set minId to 0 to be backwards compatible
+    minId: 0
+    # These server properties are no longer exposed as parameters in the bitnami kafka chart since 24.0.0
+    # They need to be passed in through extraConfig. See below for reference
+    # https://github.com/bitnami/charts/tree/main/bitnami/kafka#to-2400
+    extraConfig: |
+      message.max.bytes=5242880
+      default.replication.factor=1
+      offsets.topic.replication.factor=1
+      transaction.state.log.replication.factor=1
+    persistence:
+      size: "5Gi"
+    logPersistence:
+      size: "5Gi"
+  kraft:
+    enabled: false
+  zookeeper:
+    enabled: true
+    persistence: 
+      size: "5Gi"
+{%- endraw %}

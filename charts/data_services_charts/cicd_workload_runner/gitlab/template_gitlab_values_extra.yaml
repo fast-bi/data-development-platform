@@ -1,0 +1,9 @@
+
+## Fast.BI Deployment 
+# Helm deployment values for Service.
+# Helm Chart name: {{ chart_name }}
+# Helm Chart repo: {{ chart_repo }}
+# Helm Chart version {{ chart_version }}
+
+# runner.yaml
+# Extra values for the runner.yaml file. Not needed for the runner.yaml file.

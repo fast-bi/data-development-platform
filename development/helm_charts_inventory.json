@@ -1,0 +1,528 @@
+{
+  "data_services": {
+    "data_orchestration": {
+      "file": "../deployers/services/data_services/5.0_data_orchestration.py",
+      "charts": [
+        {
+          "chart_repo": "https://airflow.apache.org",
+          "chart_name": "apache-airflow/airflow",
+          "chart_repo_name": "airflow.apache.org"
+        },
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts"
+        }
+      ],
+      "extra_charts": [
+        {
+          "chart_repo": "https://airflow.apache.org",
+          "chart_name": "apache-airflow/airflow",
+          "chart_repo_name": "airflow.apache.org",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts",
+          "chart_type": "extra"
+        }
+      ],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "data_dcdq_meta_collect": {
+      "file": "../deployers/services/data_services/7.0_data_dcdq_meta_collect.py",
+      "charts": [
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami"
+        },
+        {
+          "chart_repo": "https://oauth2-proxy.github.io/manifests",
+          "chart_name": "oauth2-proxy/oauth2-proxy",
+          "chart_repo_name": "manifests"
+        },
+        {
+          "chart_repo": "https://oauth2-proxy.github.io/manifests",
+          "chart_name": "oauth2-proxy/oauth2-proxy",
+          "chart_repo_name": "manifests"
+        }
+      ],
+      "extra_charts": [
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://oauth2-proxy.github.io/manifests",
+          "chart_name": "oauth2-proxy/oauth2-proxy",
+          "chart_repo_name": "manifests",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://oauth2-proxy.github.io/manifests",
+          "chart_name": "oauth2-proxy/oauth2-proxy",
+          "chart_repo_name": "manifests",
+          "chart_type": "extra"
+        }
+      ],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "data_replication": {
+      "file": "../deployers/services/data_services/4.0_data_replication.py",
+      "charts": [
+        {
+          "chart_repo": "https://airbytehq.github.io/helm-charts",
+          "chart_name": "airbyte/airbyte",
+          "chart_repo_name": "helm-charts"
+        },
+        {
+          "chart_repo": "https://oauth2-proxy.github.io/manifests",
+          "chart_name": "oauth2-proxy/oauth2-proxy",
+          "chart_repo_name": "manifests"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami"
+        }
+      ],
+      "extra_charts": [
+        {
+          "chart_repo": "https://airbytehq.github.io/helm-charts",
+          "chart_name": "airbyte/airbyte",
+          "chart_repo_name": "helm-charts",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://oauth2-proxy.github.io/manifests",
+          "chart_name": "oauth2-proxy/oauth2-proxy",
+          "chart_repo_name": "manifests",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami",
+          "chart_type": "extra"
+        }
+      ],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "data_governance": {
+      "file": "../deployers/services/data_services/9.0_data_governance.py",
+      "charts": [
+        {
+          "chart_repo": "https://helm.datahubproject.io/",
+          "chart_name": "datahub/datahub",
+          "chart_repo_name": "helm.datahubproject.io"
+        },
+        {
+          "chart_repo": "https://helm.datahubproject.io/",
+          "chart_name": "datahub/datahub-prerequisites",
+          "chart_repo_name": "helm.datahubproject.io"
+        },
+        {
+          "chart_repo": "https://helm.elastic.co",
+          "chart_name": "elastic/eck-elasticsearch",
+          "chart_repo_name": "helm.elastic.co"
+        },
+        {
+          "chart_repo": "https://helm.elastic.co",
+          "chart_name": "elastic/eck-operator",
+          "chart_repo_name": "helm.elastic.co"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami"
+        },
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts"
+        }
+      ],
+      "extra_charts": [
+        {
+          "chart_repo": "https://helm.datahubproject.io/",
+          "chart_name": "datahub/datahub",
+          "chart_repo_name": "helm.datahubproject.io",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://helm.datahubproject.io/",
+          "chart_name": "datahub/datahub-prerequisites",
+          "chart_repo_name": "helm.datahubproject.io",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://helm.elastic.co",
+          "chart_name": "elastic/eck-elasticsearch",
+          "chart_repo_name": "helm.elastic.co",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://helm.elastic.co",
+          "chart_name": "elastic/eck-operator",
+          "chart_repo_name": "helm.elastic.co",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts",
+          "chart_type": "extra"
+        }
+      ],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "data-cicd-workflows": {
+      "file": "../deployers/services/data_services/3.0_data-cicd-workflows.py",
+      "charts": [
+        {
+          "chart_repo": "https://argoproj.github.io/argo-helm",
+          "chart_name": "argo/argo-workflows",
+          "chart_repo_name": "argo-helm",
+          "condition": "gcp"
+        }
+      ],
+      "extra_charts": [],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "user_console": {
+      "file": "../deployers/services/data_services/10.0_user_console.py",
+      "charts": [
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami"
+        }
+      ],
+      "extra_charts": [
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami",
+          "chart_type": "extra"
+        }
+      ],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "data_analysis": {
+      "file": "../deployers/services/data_services/8.0_data_analysis.py",
+      "charts": [
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami"
+        },
+        {
+          "chart_repo": "https://apache.github.io/superset",
+          "chart_name": "superset/superset",
+          "chart_repo_name": "superset",
+          "condition": "gcp"
+        },
+        {
+          "chart_repo": "https://apache.github.io/superset",
+          "chart_name": "superset/superset",
+          "chart_repo_name": "superset",
+          "condition": "bi_system"
+        },
+        {
+          "chart_repo": "https://lightdash.github.io/helm-charts",
+          "chart_name": "lightdash/lightdash",
+          "chart_repo_name": "helm-charts",
+          "condition": "lightdash"
+        },
+        {
+          "chart_repo": "https://pmint93.github.io/helm-charts",
+          "chart_name": "metabase/metabase",
+          "chart_repo_name": "helm-charts",
+          "condition": "metabase"
+        },
+        {
+          "chart_repo": "https://looker.github.io/helm-charts",
+          "chart_name": "looker",
+          "chart_repo_name": "helm-charts",
+          "condition": "looker"
+        }
+      ],
+      "extra_charts": [
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/postgresql",
+          "chart_repo_name": "bitnami",
+          "chart_type": "extra"
+        }
+      ],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "cicd_workload_runner": {
+      "file": "../deployers/services/data_services/1.0_cicd_workload_runner.py",
+      "charts": [
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts"
+        },
+        {
+          "chart_repo": "https://charts.gitlab.io/",
+          "chart_name": "gitlab/gitlab-runner",
+          "chart_repo_name": "charts.gitlab.io",
+          "condition": "fastbi"
+        },
+        {
+          "chart_repo": "https://charts.gitlab.io/",
+          "chart_name": "gitlab/gitlab-runner",
+          "chart_repo_name": "charts.gitlab.io",
+          "condition": "gitlab"
+        },
+        {
+          "chart_repo": "https://actions-runner-controller.github.io/actions-runner-controller",
+          "chart_name": "actions-runner-controller/actions-runner-controller",
+          "chart_repo_name": "actions-runner-controller",
+          "condition": "github"
+        },
+        {
+          "chart_repo": "https://gitea.com/marketplace/actions/gitea-actions-runner-controller",
+          "chart_name": "gitea-actions-runner-controller/gitea-actions-runner-controller",
+          "chart_repo_name": "gitea-actions-runner-controller",
+          "condition": "gitea"
+        },
+        {
+          "chart_repo": "https://bitbucket.org/marketplace/actions/bitbucket-actions-runner-controller",
+          "chart_name": "bitbucket-actions-runner-controller/bitbucket-actions-runner-controller",
+          "chart_repo_name": "bitbucket-actions-runner-controller",
+          "condition": "bitbucket"
+        }
+      ],
+      "extra_charts": [
+        {
+          "chart_repo": "https://kube-core.github.io/helm-charts",
+          "chart_name": "kube-core/raw",
+          "chart_repo_name": "helm-charts",
+          "chart_type": "extra"
+        }
+      ],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "data_modeling": {
+      "file": "../deployers/services/data_services/6.0_data_modeling.py",
+      "charts": [
+        {
+          "chart_repo": "https://jupyterhub.github.io/helm-chart/",
+          "chart_name": "jupyterhub/jupyterhub",
+          "chart_repo_name": "helm-chart"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "oci://registry-1.docker.io/bitnamicharts/postgresql",
+          "chart_repo_name": "bitnami"
+        }
+      ],
+      "extra_charts": [
+        {
+          "chart_repo": "https://jupyterhub.github.io/helm-chart/",
+          "chart_name": "jupyterhub/jupyterhub",
+          "chart_repo_name": "helm-chart",
+          "chart_type": "extra"
+        },
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "oci://registry-1.docker.io/bitnamicharts/postgresql",
+          "chart_repo_name": "bitnami",
+          "chart_type": "extra"
+        }
+      ],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "object_storage_operator": {
+      "file": "../deployers/services/data_services/2.0_object_storage_operator.py",
+      "charts": [
+        {
+          "chart_repo": "https://operator.min.io/",
+          "chart_name": "minio/tenant",
+          "chart_repo_name": "operator.min.io",
+          "condition": "gcp"
+        }
+      ],
+      "extra_charts": [],
+      "versions": {},
+      "deployment_names": {}
+    }
+  },
+  "infra_services": {
+    "idp_sso_manager": {
+      "file": "../deployers/services/infra_services/9.0_idp_sso_manager.py",
+      "charts": [
+        {
+          "chart_repo": "https://charts.bitnami.com/bitnami",
+          "chart_name": "bitnami/keycloak",
+          "chart_repo_name": "bitnami",
+          "condition": "gcp"
+        }
+      ],
+      "extra_charts": [],
+      "versions": {},
+      "deployment_names": {}
+    },
+    "traefik_lb": {
+      "file": "../deployers/services/infra_services/4.0_traefik_lb.py",
+      "charts": [
+        {
+          "chart_repo": "https://helm.traefik.io/traefik",
+          "chart_name": "traefik/traefik",
+          "chart_repo_name": "traefik",
+          "condition": "gcp"
+        }
+      ],
+      "extra_charts": [],
+      "versions": {},
+      "deployment_names": {}
+    }
+  },
+  "summary": {
+    "total_services": 12,
+    "total_charts": 58,
+    "bitnami_dependencies": [
+      {
+        "service": "data_services/data_dcdq_meta_collect",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/data_dcdq_meta_collect",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/data_replication",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/data_replication",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/data_governance",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/data_governance",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/user_console",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/user_console",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/data_analysis",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/data_analysis",
+        "chart": "bitnami/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/data_modeling",
+        "chart": "oci://registry-1.docker.io/bitnamicharts/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "data_services/data_modeling",
+        "chart": "oci://registry-1.docker.io/bitnamicharts/postgresql",
+        "repo": "https://charts.bitnami.com/bitnami"
+      },
+      {
+        "service": "infra_services/idp_sso_manager",
+        "chart": "bitnami/keycloak",
+        "repo": "https://charts.bitnami.com/bitnami"
+      }
+    ],
+    "chart_repositories": [
+      "https://actions-runner-controller.github.io/actions-runner-controller",
+      "https://airbytehq.github.io/helm-charts",
+      "https://airflow.apache.org",
+      "https://apache.github.io/superset",
+      "https://argoproj.github.io/argo-helm",
+      "https://bitbucket.org/marketplace/actions/bitbucket-actions-runner-controller",
+      "https://charts.bitnami.com/bitnami",
+      "https://charts.gitlab.io/",
+      "https://gitea.com/marketplace/actions/gitea-actions-runner-controller",
+      "https://helm.datahubproject.io/",
+      "https://helm.elastic.co",
+      "https://helm.traefik.io/traefik",
+      "https://jupyterhub.github.io/helm-chart/",
+      "https://kube-core.github.io/helm-charts",
+      "https://lightdash.github.io/helm-charts",
+      "https://looker.github.io/helm-charts",
+      "https://oauth2-proxy.github.io/manifests",
+      "https://operator.min.io/",
+      "https://pmint93.github.io/helm-charts"
+    ]
+  }
+}

@@ -1,0 +1,134 @@
+# Configure Terragrunt to use S3 for state management
+remote_state {
+  backend = "s3"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite_terragrunt"
+  }  
+  config = {
+    encrypt        = true
+    bucket         = "fast-bi-terraform-states"
+    key            = "{{ customer }}/${path_relative_to_include()}/terraform.tfstate"
+    region         = "eu-north-1"
+    dynamodb_table = "fast-bi-terraform-states"
+  }
+}
+
+locals {
+  default_yaml_path = try(find_in_parent_folders("empty.yaml"), "${get_terragrunt_dir()}/empty.yaml")
+  environment = {{ environment }}
+  ##For all
+  region = "{{ region }}"
+
+  ##03-0-apps-vpc
+  vpc_name = "fast-bi-dev-vpc"
+  vpc_cidr = "172.22.0.0/16"
+  az_size = 3
+  private_subnets = ["172.22.16.0/21","172.22.24.0/21","172.22.32.0/21"]
+  public_subnets  = ["172.22.0.0/24","172.22.1.0/24","172.22.2.0/24"]
+  enable_nat_gateway     = true
+  single_nat_gateway     = true
+  one_nat_gateway_per_az = false
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  enable_flow_log           = false
+  vpc_tags = {
+    Name = "fast-bi-dev-vpc"
+  }
+  private_subnet_tags = {
+    "kubernetes.io/role/internal-elb" = "1"
+  }
+  public_subnet_tags = {
+    "kubernetes.io/role/elb" = "1"
+  }
+  ##06-create-dns-ns-record
+  main_domain = "fast.bi"
+  gcp_dns_zone_name = "fast-bi"
+  gcp_project_id = "fast-bi-mgmt"
+  subdomain = "terasky.dev" 
+
+  ##07-gke-cluster
+  cluster_name        = "fast-bi-dev-eks"
+  cluster_version     = 1.32
+  eks_managed_node_groups = {
+    spot_managed = {
+      # Starting on 1.30, AL2023 is the default AMI type for EKS managed node groups
+      ami_type      = "AL2023_x86_64_STANDARD" #"BOTTLEROCKET_x86_64"
+      instance_types = ["m5.xlarge","m6i.xlarge", "m7i.xlarge"]
+      capacity_type = "SPOT"
+      min_size     = 6
+      max_size     = 10
+      desired_size = 6 
+      use_mixed_instances_policy = true
+      mixed_instances_policy = {
+        instances_distribution = {
+          on_demand_base_capacity                  = 0
+          on_demand_percentage_above_base_capacity = 0 # All instances are spot
+          spot_allocation_strategy                 = "price-capacity-optimized" # or "price-capacity-optimized"
+          spot_instance_pools                      = 0 # Use 0 for capacity-optimized strategy
+        }
+        override = [
+          {
+            instance_type = "m5.xlarge"
+            weighted_capacity = "1"
+          },
+          {
+            instance_type = "m6i.xlarge"
+            weighted_capacity = "1"
+          },
+          {
+            instance_type = "m7i.xlarge"
+            weighted_capacity = "1"
+          },
+        ]
+      }          
+      # Block device for node group instances
+      block_device_mappings = {
+        xvda = {
+          device_name = "/dev/xvda"
+          ebs = {
+            volume_size           = 50
+            volume_type           = "gp3"
+            delete_on_termination = true
+          }
+        }
+      }
+      iam_role_additional_policies = {
+        AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+        AmazonSSMFullAccess         = "arn:aws:iam::aws:policy/AmazonSSMFullAccess"
+        AmazonEKSWorkerNodePolicy = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+        AmazonEKS_CNI_Policy = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+        AmazonEC2ContainerRegistryReadOnly = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+
+      }
+      bootstrap_extra_args = <<-EOT
+        # The admin host container provides SSH access and runs with "superpowers".
+        # It is disabled by default, but can be disabled explicitly.
+        [settings.host-containers.admin]
+        enabled = true
+
+        # The control host container provides out-of-band access via SSM.
+        # It is enabled by default, and can be disabled if you do not expect to use SSM.
+        # This could leave you with no way to access the API and change settings on an existing node!
+        [settings.host-containers.control]
+        enabled = true
+
+        # extra args added
+        [settings.kernel]
+        lockdown = "integrity"
+      EOT
+    }
+  }
+
+}
+
+# Generate the common environment variables for child resources
+inputs = merge(
+  yamldecode(
+    file("${find_in_parent_folders("env.hcl", local.default_yaml_path)}"),
+  ),
+  yamldecode(
+    file("${find_in_parent_folders("defaults.yaml", local.default_yaml_path)}"),
+  )
+
+)

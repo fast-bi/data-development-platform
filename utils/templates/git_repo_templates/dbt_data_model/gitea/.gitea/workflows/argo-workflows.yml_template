@@ -1,0 +1,213 @@
+name: Argo Workflow CI - Fast.BI
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+  workflow_dispatch:
+
+env:
+  ARGO_SERVER: "{{ ARGO_SERVER_URL }}"
+  ARGO_CLI_VERSION: "{{ ARGO_CLI_VERSION }}"
+  ARGO_HTTP1: 'true'
+{% if argo_server_url_type == "internal" %}
+  ARGO_SECURE: 'false'
+{% else %}
+  ARGO_SECURE: 'true'
+{% endif %}
+  ARGO_NAMESPACE: cicd-workflows
+  CI_DEBUG_TRACE: "false"
+  CICD_WORKFLOWS_TEMPLATE_VERSION: "{{ CICD_WORKFLOWS_TEMPLATE_VERSION }}"
+
+jobs:
+  run_cicd_branch:
+    if: |
+      github.event_name == 'push' &&
+      github.ref != 'refs/heads/master' &&
+      github.ref != 'refs/heads/main'
+    runs-on: fast-bi-data-models
+    container: alpine:latest
+    steps:
+      - name: Install Dependencies and Setup
+        run: |
+          set -o errexit -o pipefail -o nounset
+          set +x
+          echo "Installing dependencies..."
+          apk add --no-cache curl kubectl git > /dev/null 2>&1
+          
+          # Setup Argo CLI
+          echo "Downloading Argo CLI version ${{ env.ARGO_CLI_VERSION }}"
+          curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${{ env.ARGO_CLI_VERSION }}/argo-linux-amd64.gz  > /dev/null 2>&1
+          gunzip argo-linux-amd64.gz > /dev/null 2>&1
+          chmod +x argo-linux-amd64 > /dev/null 2>&1
+          mv ./argo-linux-amd64 /usr/local/bin/argo > /dev/null 2>&1
+          
+          # Setup Argo auth
+          ARGO_TOKEN="Bearer ${{ secrets.ARGO_WORKFLOW_SA_TOKEN }}"
+          echo "ARGO_TOKEN=${ARGO_TOKEN}" >> $GITHUB_ENV
+          
+          # Clone workflow repository
+          echo "Cloning workflow repository..."
+          git clone -q --depth 1 --branch "${{ env.CICD_WORKFLOWS_TEMPLATE_VERSION }}" https://${{ secrets.CI_ACCESS_TOKEN_NAME }}:${{ secrets.CI_ACCESS_TOKEN }}@gitlab.fast.bi/infrastructure/bi-platform-cicd-workflows/fast_bi_argo_workflows.git /tmp/.argo > /dev/null 2>&1 || (
+            echo "Failed to clone tag ${{ env.CICD_WORKFLOWS_TEMPLATE_VERSION }}, falling back to master" && 
+            git clone -q --depth 1 --branch master https://${{ secrets.CI_ACCESS_TOKEN_NAME }}:${{ secrets.CI_ACCESS_TOKEN }}@gitlab.fast.bi/infrastructure/bi-platform-cicd-workflows/fast_bi_argo_workflows.git /tmp/.argo > /dev/null 2>&1
+          )
+
+      - name: Set short SHA
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+
+      - name: Submit Branch Workflow
+        run: |
+          cd /tmp/.argo
+          echo "Submitting Branch Argo Workflow"
+          argo submit /tmp/.argo/branch_workflow.yaml \
+            -p repo_url="${{ github.server_url }}/${{ github.repository }}" \
+            -p revision="${{ github.sha }}" \
+            -p branch="${{ github.ref_name }}" \
+            -p commit_short_sha="${{ env.SHORT_SHA }}" \
+            -p git_token="${{ secrets.GITHUB_TOKEN }}" \
+            -p git_username="${{ github.actor }}" \
+            -p argo_main_address="${{ env.ARGO_SERVER }}" \
+            --labels="project=${{ github.event.repository.name }},commit=${{ github.sha }},author=${{ github.actor }},ci_job_id=${{ github.run_id }},place=branch" \
+            --generate-name="branch-${{ github.event.repository.name }}-cicd-${{ env.SHORT_SHA }}-" \
+            --watch --log
+
+          # Get workflow host address and check status
+          WORKFLOW_NAME=$(argo list --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=branch" -o name | cut -d'/' -f2)
+          ARGO_HOST=$(echo ${{ env.ARGO_SERVER }} | cut -d':' -f1)
+          WORKFLOW_URL="https://${ARGO_HOST}/workflows/${{ env.ARGO_NAMESPACE }}/${WORKFLOW_NAME}"
+          
+          if [ "$(argo list --status Failed --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=branch" | wc -l)" -gt 1 ]; then
+            echo "::error::Workflow failed. URL: ${WORKFLOW_URL}"
+            exit 1
+          else
+            echo "::notice::Workflow succeeded. URL: ${WORKFLOW_URL}"
+          fi
+        continue-on-error: true
+
+  run_cicd_pr:
+    if: github.event_name == 'pull_request'
+    runs-on: fast-bi-data-models
+    container: alpine:latest
+    steps:
+      - name: Install Dependencies and Setup
+        run: |
+          set -o errexit -o pipefail -o nounset
+          set +x
+          echo "Installing dependencies..."
+          apk add --no-cache curl kubectl git > /dev/null 2>&1
+          
+          # Setup Argo CLI
+          echo "Downloading Argo CLI version ${{ env.ARGO_CLI_VERSION }}"
+          curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${{ env.ARGO_CLI_VERSION }}/argo-linux-amd64.gz  > /dev/null 2>&1
+          gunzip argo-linux-amd64.gz > /dev/null 2>&1
+          chmod +x argo-linux-amd64 > /dev/null 2>&1
+          mv ./argo-linux-amd64 /usr/local/bin/argo > /dev/null 2>&1
+          
+          # Setup Argo auth
+          ARGO_TOKEN="Bearer ${{ secrets.ARGO_WORKFLOW_SA_TOKEN }}"
+          echo "ARGO_TOKEN=${ARGO_TOKEN}" >> $GITHUB_ENV
+          
+          # Clone workflow repository
+          echo "Cloning workflow repository..."
+          git clone -q --depth 1 --branch "${{ env.CICD_WORKFLOWS_TEMPLATE_VERSION }}" https://${{ secrets.CI_ACCESS_TOKEN_NAME }}:${{ secrets.CI_ACCESS_TOKEN }}@gitlab.fast.bi/infrastructure/bi-platform-cicd-workflows/fast_bi_argo_workflows.git /tmp/.argo > /dev/null 2>&1 || (
+            echo "Failed to clone tag ${{ env.CICD_WORKFLOWS_TEMPLATE_VERSION }}, falling back to master" && 
+            git clone -q --depth 1 --branch master https://${{ secrets.CI_ACCESS_TOKEN_NAME }}:${{ secrets.CI_ACCESS_TOKEN }}@gitlab.fast.bi/infrastructure/bi-platform-cicd-workflows/fast_bi_argo_workflows.git /tmp/.argo > /dev/null 2>&1
+          )
+
+      - name: Set short SHA
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+
+      - name: Submit Pull Request Workflow
+        run: |
+          cd /tmp/.argo
+          argo submit /tmp/.argo/mr_e2e_workflow.yaml \
+            -p repo_url="${{ github.server_url }}/${{ github.repository }}" \
+            -p revision="${{ github.head_ref }}" \
+            -p branch="${{ github.event.pull_request.head.ref }}" \
+            -p commit_short_sha="${{ env.SHORT_SHA }}" \
+            -p git_token="${{ secrets.GITHUB_TOKEN }}" \
+            -p git_username="${{ github.actor }}" \
+            -p argo_main_address="${{ env.ARGO_SERVER }}" \
+            -p target_branch="${{ github.event.pull_request.base.ref }}" \
+            -p ci_job_id="${{ github.run_id }}" \
+            --labels="project=${{ github.event.repository.name }},commit=${{ github.sha }},author=${{ github.actor }},ci_job_id=${{ github.run_id }},place=pull_request" \
+            --generate-name="pr-${{ github.event.repository.name }}-cicd-${{ env.SHORT_SHA }}-" \
+            --watch --log
+
+          # Get workflow host address and check status
+          WORKFLOW_NAME=$(argo list --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=pull_request" -o name | cut -d'/' -f2)
+          ARGO_HOST=$(echo ${{ env.ARGO_SERVER }} | cut -d':' -f1)
+          WORKFLOW_URL="https://${ARGO_HOST}/workflows/${{ env.ARGO_NAMESPACE }}/${WORKFLOW_NAME}"
+          
+          if [ "$(argo list --status Failed --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=pull_request" | wc -l)" -gt 1 ]; then
+            echo "::error::Workflow failed. URL: ${WORKFLOW_URL}"
+            exit 1
+          else
+            echo "::notice::Workflow succeeded. URL: ${WORKFLOW_URL}"
+          fi
+
+  run_cicd_master:
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    runs-on: fast-bi-data-models
+    container: alpine:latest
+    steps:
+      - name: Install Dependencies and Setup
+        run: |
+          set -o errexit -o pipefail -o nounset
+          set +x
+          echo "Installing dependencies..."
+          apk add --no-cache curl kubectl git > /dev/null 2>&1
+          
+          # Setup Argo CLI
+          echo "Downloading Argo CLI version ${{ env.ARGO_CLI_VERSION }}"
+          curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${{ env.ARGO_CLI_VERSION }}/argo-linux-amd64.gz  > /dev/null 2>&1
+          gunzip argo-linux-amd64.gz > /dev/null 2>&1
+          chmod +x argo-linux-amd64 > /dev/null 2>&1
+          mv ./argo-linux-amd64 /usr/local/bin/argo > /dev/null 2>&1
+          
+          # Setup Argo auth
+          ARGO_TOKEN="Bearer ${{ secrets.ARGO_WORKFLOW_SA_TOKEN }}"
+          echo "ARGO_TOKEN=${ARGO_TOKEN}" >> $GITHUB_ENV
+          
+          # Clone workflow repository
+          echo "Cloning workflow repository..."
+          git clone -q --depth 1 --branch "${{ env.CICD_WORKFLOWS_TEMPLATE_VERSION }}" https://${{ secrets.CI_ACCESS_TOKEN_NAME }}:${{ secrets.CI_ACCESS_TOKEN }}@gitlab.fast.bi/infrastructure/bi-platform-cicd-workflows/fast_bi_argo_workflows.git /tmp/.argo > /dev/null 2>&1 || (
+            echo "Failed to clone tag ${{ env.CICD_WORKFLOWS_TEMPLATE_VERSION }}, falling back to master" && 
+            git clone -q --depth 1 --branch master https://${{ secrets.CI_ACCESS_TOKEN_NAME }}:${{ secrets.CI_ACCESS_TOKEN }}@gitlab.fast.bi/infrastructure/bi-platform-cicd-workflows/fast_bi_argo_workflows.git /tmp/.argo > /dev/null 2>&1
+          )
+
+      - name: Set short SHA
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_ENV
+
+      - name: Submit Master Workflow
+        run: |
+          cd /tmp/.argo
+          argo submit /tmp/.argo/main_workflow.yaml \
+            -p repo_url="${{ github.server_url }}/${{ github.repository }}" \
+            -p revision="${{ github.sha }}" \
+            -p commit_short_sha="${{ env.SHORT_SHA }}" \
+            -p commit_before_sha="${{ github.event.before }}" \
+            -p git_token="${{ secrets.GITHUB_TOKEN }}" \
+            -p git_username="${{ github.actor }}" \
+            -p argo_main_address="${{ env.ARGO_SERVER }}" \
+            --labels="project=${{ github.event.repository.name }},commit=${{ github.sha }},author=${{ github.actor }},ci_job_id=${{ github.run_id }},place=main" \
+            --generate-name="main-${{ github.event.repository.name }}-cicd-${{ env.SHORT_SHA }}-" \
+            --watch --log
+
+          # Get workflow host address and check status
+          WORKFLOW_NAME=$(argo list --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=main" -o name | cut -d'/' -f2)
+          ARGO_HOST=$(echo ${{ env.ARGO_SERVER }} | cut -d':' -f1)
+          WORKFLOW_URL="https://${ARGO_HOST}/workflows/${{ env.ARGO_NAMESPACE }}/${WORKFLOW_NAME}"
+          
+          if [ "$(argo list --status Failed --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=main" | wc -l)" -gt 1 ]; then
+            echo "::error::Workflow failed. URL: ${WORKFLOW_URL}"
+            exit 1
+          else
+            echo "::notice::Workflow succeeded. URL: ${WORKFLOW_URL}"
+          fi 

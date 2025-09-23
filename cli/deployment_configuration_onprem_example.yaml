@@ -1,0 +1,73 @@
+# Fast.BI On-Premise Deployment Configuration Example
+# Required fields are marked with *
+
+# Basic Configuration (Phase 1)
+basic:
+  customer: "*mycompany"
+  user_email: "*admin@mycompany.com"
+  cloud_provider: "*onprem"
+  project_region: "*on-premises"
+  domain_name: "*mycompany.com"
+
+# Infrastructure Configuration (Phase 1)
+infrastructure_deployment:
+  # GCP Configuration (disabled for on-premise)
+  gcp:
+    enabled: false
+  
+  # AWS Configuration (disabled for on-premise)
+  aws:
+    enabled: false
+  
+  # Azure Configuration (disabled for on-premise)
+  azure:
+    enabled: false
+  
+  # On-Premises Configuration (enabled)
+  onprem:
+    enabled: true
+    kubeconfig_path: "*path/to/kubeconfig"
+    cluster_name: "*onprem-cluster"
+    storage_class: "*local-storage"
+
+# Secrets Configuration (Phase 2)
+secrets:
+  vault_method: "*local_vault"
+  data_analysis_platform: "*superset"
+  data_warehouse_platform: "*snowflake"
+  orchestrator_platform: "*Airflow"
+  git_provider: "*github"
+  dag_repo_url: "*https://github.com/mycompany/data-orchestration-dags.git"
+  data_repo_url: "*https://github.com/mycompany/dbt-data-models.git"
+  data_repo_main_branch: "*main"
+  repo_access_method: "*deploy_keys"
+  git_provider_access_token: "*ghp_example_token"
+
+# Infrastructure Services Configuration (Phase 4)
+infrastructure_services:
+  external_ip: "*xx.xx.xx.xx"
+  whitelisted_environment_ips: "*xx.xx.xx.xx/24"
+  external_dns_domain_filters: "*mycompany.com"
+
+# Data Services Configuration (Phase 5)
+data_services:
+  git_provider: "*github"
+  git_runner_access_token: "*ghr_example_token"
+  data_replication_default_destination_type: "*snowflake"
+  bi_system: "*superset"
+  vault_secrets: "*example-vault-token"
+  tsb_fastbi_web_core_image_version: "*v0.1.0"
+  tsb_dbt_init_core_image_version: "*v0.1.0"
+
+# Finalization Configuration (Phase 6)
+finalization:
+  git_provider: "*github"
+  git_access_token: "*ghp_example_token"
+  git_repo_url: "*https://github.com/mycompany/deployment-files.git"
+
+# Deployment Options
+deployment:
+  phases_to_run: "*all"
+  interactive: false
+  skip_confirmations: true
+  state_file: "*cli/state/deployment_state.json"

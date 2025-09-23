@@ -1,0 +1,105 @@
+{%- if terraform_state == "remote" %}
+# REMOTE GCS STATE WITH CUSTOMER SEPARATION
+remote_state {
+  disable_dependency_optimization = true
+  backend = "gcs"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
+
+  config = {
+    bucket         = local.state_bucket
+    prefix         = "${local.customer}/${path_relative_to_include()}/terraform.tfstate"
+    project = local.state_project
+    location = local.state_location
+  }
+}
+{%- elif terraform_state == "local" %}
+# LOCAL STATE WITH CUSTOMER SEPARATION
+remote_state {
+  backend = "local"
+  generate = {
+    path      = "backend.tf"
+    if_exists = "overwrite"
+  }
+  config = {
+    path = "${get_terragrunt_dir()}/.terraform/${local.customer}/${path_relative_to_include()}/terraform.tfstate"
+  }
+}
+{%- endif %}
+
+locals {
+  # STATE MANAGEMENT CONFIGURATION
+{%- if terraform_state == "local" %}
+  state_backend = "local"  # Using local state
+{%- elif terraform_state == "remote" %}
+  state_backend = "gcs"  # Using GCS remote state
+  state_bucket = "{{ state_bucket }}"
+  state_project = "{{ state_project }}"
+  state_location = "{{ state_location }}"
+{%- endif %}
+  default_yaml_path = find_in_parent_folders("empty.yaml")
+  #00-create-ou-folder
+  customer = "{{ customer }}"
+  parent_folder = "{{ parent_folder }}"
+{%- if parent_folder %}
+  customer_folder_names = ["{{ customer | capitalize }}"]
+{%- else %}
+  customer_folder_names = []
+{%- endif %}
+  deployer_member = ["user:{{ admin_email }}"]
+#01-create-project
+  billing_account_id = "{{ billing_account_id }}"
+  project = "{{ project_id }}"
+  project_role = "roles/owner"
+  project_member = "user:{{ admin_email }}"
+#02-enable-apis
+  enable_services = ["compute.googleapis.com","container.googleapis.com","cloudkms.googleapis.com","servicenetworking.googleapis.com","cloudresourcemanager.googleapis.com"]
+#03-0-apps-vpc
+  vpc_name_prefix = "{{ project_id }}"
+  cidr_block = "{{ cidr_block }}"
+  cluster_ipv4_cidr_block = "{{ cluster_ipv4_cidr_block }}"
+  services_ipv4_cidr_block = "{{ services_ipv4_cidr_block }}"
+  private_service_connect_cidr = "{{ private_service_connect_cidr }}"
+  lb_subnet_cidr = "{{ lb_subnet_cidr }}"
+  region = "{{ region }}"
+  shared_host = {{ shared_host }}
+#05-create-dns-zone
+  domain_name = "{{ customer }}.{{domain_name}}."
+  zone_name = "{{ customer }}-fast-bi"
+  dns_record_name = "{{ customer }}"
+#06-create-dns-ns-record (only creates NS records for fast.bi domains)
+  mgmt_zone_project_id = "fast-bi-mgmt"
+  mgmt_zone_name =  "fast-bi"
+  mgmt_zone_domain = "fast.bi."
+#07-gke-cluster
+  gke_machine_type = "{{ gke_machine_type }}"
+  spot = {{ gke_spot }}
+  kubernetes_version = "{{ kubernetes_version }}"
+  gke_name = "platform"
+  min_node_count = 0
+  max_node_count = 12
+  master_ipv4_cidr_block = "{{ k8s_master_ipv4_cidr_block }}"
+  gke_deployment_type = "{{ gke_deployment_type | default("multizone", true) }}"   # Change to "multizone" when you have paid account, free tier "zonal"
+#08-gke-cluster-artifact-registry
+  common_project_id = "fast-bi-common"
+#09-whitelist-exteral-ip-on-common
+   allow_ips = [{% for ip in whitelisted_ips | default(["0.0.0.0/0"]) | reject('equalto', "") %}{% if not loop.first %}, {% endif %}"{{ ip }}"{% endfor %}]
+#18-kubeconfig
+  kubeconfig_output_path = "./kubeconfig"
+}
+# Configure root level variables that all resources can inherit. This is especially helpful with multi-account configs
+# where terraform_remote_state data sources are placed directly into the modules.
+inputs = merge(
+  # Configure Terragrunt to use common vars encoded as yaml to help you keep often-repeated variables (e.g., account ID)
+  # DRY. We use yamldecode to merge the maps into the inputs, as opposed to using varfiles due to a restriction in
+  # Terraform >=0.12 that all vars must be defined as variable blocks in modules. Terragrunt inputs are not affected by
+  # this restriction.
+  yamldecode(
+    file("${find_in_parent_folders("defaults.yaml", local.default_yaml_path)}"),
+  ),
+  yamldecode(
+    file("${find_in_parent_folders("env.yaml", local.default_yaml_path)}"),
+  )
+)
