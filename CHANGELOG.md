@@ -25,6 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Security improvements and vulnerability fixes
 
+## [0.1.0] - 2025-09-23
+
+### Added
+- 🎉 First public deployment of Fast.BI temp-cleanup utilities
+- 🧰 Initial CLI and deployment tooling packaged for external use
+- 📝 Baseline docs: readme, contributing, code of conduct, security, roadmap
+
+### Notes
+- This is the initial public release. Future minor versions will iterate on features and stability.
+
 ## [1.0.0] - 2025-09-XX
 
 ### Added
