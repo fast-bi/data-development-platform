@@ -169,7 +169,6 @@ ensure_python_shims() {
 # Function to install Python requirements
 install_python_requirements() {
     log "Installing Python dependencies..."
-    
     # Resolve requirements path: prefer git root, fallback to local path
     local script_dir
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -198,6 +197,7 @@ install_python_requirements() {
     
     # Upgrade pip tooling (best effort)
     python3 -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true
+    
     # Set pip defaults to avoid silent hangs and reduce noise
     export PIP_DEFAULT_TIMEOUT=60
     export PIP_DISABLE_PIP_VERSION_CHECK=1
