@@ -296,7 +296,7 @@ install_terraform() {
 
 # Function to install Terragrunt
 install_terragrunt() {
-    log "Installing Terragrunt v0.84.0..."
+    log "Installing Terragrunt >= 0.84.0 (latest 0.84.x if install/upgrade needed)..."
     
     if command_exists terragrunt; then
         local current_version=$(terragrunt --version | head -n1)
@@ -322,20 +322,41 @@ install_terragrunt() {
             return 0
         else
             warn "Terragrunt $current_semver installed, but >= $required_min is required"
-            log "Updating to Terragrunt v0.84.0..."
+            log "Updating Terragrunt..."
         fi
     fi
     
+    # Determine latest 0.84.x version from GitHub tags without jq
+    local minor_track="0.84"
+    local latest_patch=$(curl -s "https://api.github.com/repos/gruntwork-io/terragrunt/tags?per_page=100" \
+        | grep -o '"name":"v[0-9]\+\.[0-9]\+\.[0-9]\+"' \
+        | sed -E 's/\"name\":\"v([0-9]+\.[0-9]+\.[0-9]+)\"/\1/' \
+        | grep -E "^${minor_track}\\.[0-9]+$" \
+        | sort -V \
+        | tail -1)
 
-    # Download specific Terragrunt version v0.84.0
-    log "Downloading Terragrunt v0.84.0..."
-    
-    local terragrunt_version="v0.84.0"
-    local terragrunt_url="https://github.com/gruntwork-io/terragrunt/releases/download/${terragrunt_version}/terragrunt_darwin_amd64"
-    
-    curl -LO "$terragrunt_url"
-    chmod +x terragrunt_darwin_amd64
-    sudo mv terragrunt_darwin_amd64 /usr/local/bin/terragrunt
+    if [ -z "$latest_patch" ]; then
+        warn "Could not resolve latest ${minor_track}.x version from GitHub; falling back to ${minor_track}.0"
+        latest_patch="${minor_track}.0"
+    fi
+
+    local terragrunt_version="v${latest_patch}"
+
+    # Detect CPU architecture for correct binary
+    local arch=$(uname -m)
+    local tg_binary_name=""
+    if [[ "$arch" == "arm64" || "$arch" == "aarch64" ]]; then
+        tg_binary_name="terragrunt_darwin_arm64"
+    else
+        tg_binary_name="terragrunt_darwin_amd64"
+    fi
+
+    log "Downloading Terragrunt ${terragrunt_version} (${tg_binary_name})..."
+    local terragrunt_url="https://github.com/gruntwork-io/terragrunt/releases/download/${terragrunt_version}/${tg_binary_name}"
+
+    curl -fL -o "$tg_binary_name" "$terragrunt_url"
+    chmod +x "$tg_binary_name"
+    sudo mv "$tg_binary_name" /usr/local/bin/terragrunt
     
     # Verify installation
     if command_exists terragrunt; then
