@@ -340,36 +340,86 @@ install_terraform() {
 
 # Function to install Terragrunt
 install_terragrunt() {
-    log "Installing Terragrunt v0.84.0..."
-    
+    log "Installing Terragrunt >= 0.84.0 (latest 0.84.x if install/upgrade needed)..."
+
     if command_exists terragrunt; then
         local current_version=$(terragrunt --version | head -n1)
-        if [[ "$current_version" == *"v0.84.0"* ]]; then
-            log "Terragrunt v0.84.0 already installed"
+        # Extract semantic version like X.Y.Z
+        local current_semver=$(echo "$current_version" | sed -E 's/.*v?([0-9]+)\.([0-9]+)\.([0-9]+).*/\1.\2.\3/')
+        local required_min="0.84.0"
+        # Compare versions: return 0 if $1 >= $2
+        version_ge() {
+            local IFS=.
+            local a=($1) b=($2)
+            while [ ${#a[@]} -lt 3 ]; do a+=(0); done
+            while [ ${#b[@]} -lt 3 ]; do b+=(0); done
+            for i in 0 1 2; do
+                if ((10#${a[i]} > 10#${b[i]})); then return 0; fi
+                if ((10#${a[i]} < 10#${b[i]})); then return 1; fi
+            done
+            return 0
+        }
+        if version_ge "$current_semver" "$required_min"; then
+            log "Terragrunt $current_semver already installed (>= $required_min)"
             return 0
         else
-            warn "Terragrunt $current_version installed, but v0.84.0 is required"
-            log "Updating to Terragrunt v0.84.0..."
+            warn "Terragrunt $current_semver installed, but >= $required_min is required"
+            log "Updating Terragrunt..."
         fi
     fi
-    
 
-    # Download specific Terragrunt version v0.84.0
-    log "Downloading Terragrunt v0.84.0..."
-    local terragrunt_version="v0.84.0"
-    local terragrunt_url="https://github.com/gruntwork-io/terragrunt/releases/download/${terragrunt_version}/terragrunt_linux_amd64"
-    
-    curl -LO "$terragrunt_url"
-    chmod +x terragrunt_linux_amd64
-    sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
-    
+    # Determine latest 0.84.x version from GitHub tags without jq
+    local minor_track="0.84"
+    local latest_patch=$(curl -s "https://api.github.com/repos/gruntwork-io/terragrunt/tags?per_page=100" \
+        | grep -o '"name":"v[0-9]\+\.[0-9]\+\.[0-9]\+"' \
+        | sed -E 's/\"name\":\"v([0-9]+\.[0-9]+\.[0-9]+)\"/\1/' \
+        | grep -E "^${minor_track}\\.[0-9]+$" \
+        | sort -V \
+        | tail -1)
+
+    if [ -z "$latest_patch" ]; then
+        warn "Could not resolve latest ${minor_track}.x version from GitHub; falling back to ${minor_track}.0"
+        latest_patch="${minor_track}.0"
+    fi
+
+    local terragrunt_version="v${latest_patch}"
+
+    # Detect CPU architecture for correct binary
+    local arch=$(uname -m)
+    local tg_binary_name=""
+    if [[ "$arch" == "arm64" || "$arch" == "aarch64" ]]; then
+        tg_binary_name="terragrunt_linux_arm64"
+    else
+        tg_binary_name="terragrunt_linux_amd64"
+    fi
+
+    log "Downloading Terragrunt ${terragrunt_version} (${tg_binary_name})..."
+    local terragrunt_url="https://github.com/gruntwork-io/terragrunt/releases/download/${terragrunt_version}/${tg_binary_name}"
+
+    curl -fL -o "$tg_binary_name" "$terragrunt_url"
+    chmod +x "$tg_binary_name"
+    sudo mv "$tg_binary_name" /usr/local/bin/terragrunt
+
     # Verify installation
     if command_exists terragrunt; then
-        local version=$(terragrunt --version | head -n1)
-        if [[ "$version" == *"v0.84.0"* ]]; then
-            success "Terragrunt v0.84.0 installed successfully: $version"
+        local version_line=$(terragrunt --version | head -n1)
+        local installed_semver=$(echo "$version_line" | sed -E 's/.*v?([0-9]+)\.([0-9]+)\.([0-9]+).*/\1.\2.\3/')
+        local required_min="0.84.0"
+        version_ge() {
+            local IFS=.
+            local a=($1) b=($2)
+            while [ ${#a[@]} -lt 3 ]; do a+=(0); done
+            while [ ${#b[@]} -lt 3 ]; do b+=(0); done
+            for i in 0 1 2; do
+                if ((10#${a[i]} > 10#${b[i]})); then return 0; fi
+                if ((10#${a[i]} < 10#${b[i]})); then return 1; fi
+            done
+            return 0
+        }
+        if version_ge "$installed_semver" "$required_min"; then
+            success "Terragrunt installed successfully: $version_line (>= $required_min)"
         else
-            error "Terragrunt version mismatch. Expected v0.84.0, got: $version"
+            error "Terragrunt version too low. Required >= $required_min, got: $version_line"
             exit 1
         fi
     else
