@@ -2032,11 +2032,32 @@ class DeploymentManager:
         
         # Use the new kubeconfig collection method
         if self._collect_kubeconfig_path():
+            # For GCP, we still need to collect the project ID even when using existing infrastructure
+            if self.state.config.get('cloud_provider') == 'gcp':
+                self._collect_gcp_project_id_for_existing_infrastructure()
+            
             self.state.infrastructure_deployed = True
             self.state.save_state()
             return True
         else:
             return False
+
+    def _collect_gcp_project_id_for_existing_infrastructure(self):
+        """Collect GCP project ID when using existing infrastructure"""
+        click.echo("\n🏗️ GCP Project ID Configuration")
+        click.echo(f"Default project ID would be: fast-bi-{self.state.config['customer']}")
+        
+        # Only ask if not already set
+        if 'gcp_project_id' not in self.state.config:
+            custom_project_id = safe_input(
+                "Enter GCP project ID (or press Enter to use default)",
+                default=f"fast-bi-{self.state.config['customer']}"
+            )
+            self.state.config['gcp_project_id'] = custom_project_id
+            self.state.save_state()
+            click.echo(f"✅ GCP Project ID set to: {custom_project_id}")
+        else:
+            click.echo(f"✅ Using existing GCP Project ID: {self.state.config['gcp_project_id']}")
 
     def phase_2_secrets(self) -> bool:
         """Phase 2: Generate Platform Secrets"""
@@ -2667,7 +2688,7 @@ class DeploymentManager:
             services_to_deploy = [
                 ("CICD Workload Runner", "1.0_cicd_workload_runner"),
                 ("Object Storage Operator", "2.0_object_storage_operator"),
-                ("Argo Workflows", "3.0_data-cicd-workflows"),
+                ("Argo Workflows", "3.0_data_cicd_workflows"),
                 ("Data Replication", "4.0_data_replication"),
                 ("Data Orchestration", "5.0_data_orchestration"),
                 ("Data Modeling", "6.0_data_modeling"),
@@ -2737,7 +2758,7 @@ class DeploymentManager:
                 expected_class_names = {
                     "1.0_cicd_workload_runner": "Platformk8sGitRunner",
                     "2.0_object_storage_operator": "PlatformObjectStorage",
-                    "3.0_data-cicd-workflows": "PlatformDataCicdWorkflows",
+                    "3.0_data_cicd_workflows": "PlatformDataCicdWorkflows",
                     "4.0_data_replication": "PlatformDataReplication",
                     "5.0_data_orchestration": "PlatformDataOrchestration",
                     "6.0_data_modeling": "PlatformDataModeling",
@@ -3550,12 +3571,34 @@ class DeploymentManager:
         if 'namespace' in service_config:
             params['namespace'] = service_config['namespace']
         
-        # Add chart versions
-        if 'chart_version' in service_config:
-            params['chart_version'] = service_config['chart_version']
-        
-        if 'app_version' in service_config:
-            params['app_version'] = service_config['app_version']
+        # Add chart versions - handle provider/system specific versions
+        if service_file == "1.0_cicd_workload_runner":
+            # Use git provider specific chart versions
+            git_provider = data_config.get('git_provider', 'github')
+            if 'providers' in service_config and git_provider in service_config['providers']:
+                provider_config = service_config['providers'][git_provider]
+                params['chart_version'] = provider_config.get('chart_version', service_config.get('chart_version', '0.80.1'))
+            else:
+                # Fallback to default version
+                params['chart_version'] = service_config.get('chart_version', '0.80.1')
+        elif service_file == "8.0_data_analysis":
+            # Use BI system specific chart and app versions
+            bi_system = data_config.get('bi_system', 'superset')
+            if 'bi_systems' in service_config and bi_system in service_config['bi_systems']:
+                bi_config = service_config['bi_systems'][bi_system]
+                params['chart_version'] = bi_config.get('chart_version', service_config.get('chart_version', '0.15.0'))
+                params['app_version'] = bi_config.get('app_version', service_config.get('app_version', '5.0.0'))
+            else:
+                # Fallback to default versions
+                params['chart_version'] = service_config.get('chart_version', '0.15.0')
+                params['app_version'] = service_config.get('app_version', '5.0.0')
+        else:
+            # Use default chart and app versions for other services
+            if 'chart_version' in service_config:
+                params['chart_version'] = service_config['chart_version']
+            
+            if 'app_version' in service_config:
+                params['app_version'] = service_config['app_version']
         
         if 'operator_chart_version' in service_config:
             params['operator_chart_version'] = service_config['operator_chart_version']
@@ -3588,8 +3631,8 @@ class DeploymentManager:
             params['tsb_fastbi_web_core_image_version'] = data_config.get('tsb_fastbi_web_core_image_version', 'v2.1.6')
             params['tsb_dbt_init_core_image_version'] = data_config.get('tsb_dbt_init_core_image_version', 'v0.5.4')
         
-        # Add app_version for services that need it
-        if service_file in ["5.0_data_orchestration", "6.0_data_modeling", "7.0_data_dcdq_meta_collect", "8.0_data_analysis"]:
+        # Add app_version for services that need it (excluding data_analysis as it's handled above)
+        if service_file in ["5.0_data_orchestration", "6.0_data_modeling", "7.0_data_dcdq_meta_collect"]:
             if 'app_version' in service_config:
                 params['app_version'] = service_config['app_version']
         
@@ -3838,7 +3881,7 @@ class EnvironmentDestroyer:
             "6.0_data_modeling",
             "5.0_data_orchestration",
             "4.0_data_replication",
-            "3.0_data-cicd-workflows",
+            "3.0_data_cicd_workflows",
             "2.0_object_storage_operator",
             "1.0_cicd_workload_runner"
         ]
