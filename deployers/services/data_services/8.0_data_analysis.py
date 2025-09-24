@@ -123,9 +123,9 @@ class DataAnalysisDeployer:
         self.data_analysis_chart_version = "0.1.1"
 
         self.bi_psql_chart_repo_name = "bitnami"
-        self.bi_psql_chart_name = "bitnami/postgresql"
+        self.bi_psql_chart_name = "oci://registry-1.docker.io/bitnamicharts/postgresql"
         self.bi_psql_chart_repo = "https://charts.bitnami.com/bitnami"
-        self.bi_psql_chart_version = "16.6.2"
+        self.bi_psql_chart_version = "16.6.7"
 
         # Data Analysis Deployment names
         self.bi_psql_deployment_name = "data-analysis-bi-psql"

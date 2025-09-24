@@ -364,8 +364,8 @@ class PlatformDataCicdWorkflows:
                     chart_repo_name="bitnami",
                     chart_repo="https://charts.bitnami.com/bitnami",
                     deployment_name="cicd-workflow-db-psql",
-                    chart_name="bitnami/postgresql",
-                    chart_version="16.6.2",
+                    chart_name="oci://registry-1.docker.io/bitnamicharts/postgresql",
+                    chart_version="16.6.7",
                     namespace=self.namespace,
                     values_path=self.postgresql_values_path
                 )

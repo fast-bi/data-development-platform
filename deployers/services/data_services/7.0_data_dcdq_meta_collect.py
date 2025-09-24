@@ -121,9 +121,9 @@ class DataDCDQMetaCollectDeployer:
         self.data_dcdq_metacollect_chart_repo = "https://kube-core.github.io/helm-charts"
 
         self.data_dcdq_metacollect_psql_chart_repo_name = "bitnami"
-        self.data_dcdq_metacollect_psql_chart_name = "bitnami/postgresql"
+        self.data_dcdq_metacollect_psql_chart_name = "oci://registry-1.docker.io/bitnamicharts/postgresql"
         self.data_dcdq_metacollect_psql_chart_repo = "https://charts.bitnami.com/bitnami"
-        self.data_dcdq_metacollect_psql_chart_version = "16.6.2"
+        self.data_dcdq_metacollect_psql_chart_version = "16.6.7"
 
         # Values paths
         self.data_dcdq_metacollect_values_path = f"charts/data_services_charts/data_dcdq_metacollect/values.yaml"

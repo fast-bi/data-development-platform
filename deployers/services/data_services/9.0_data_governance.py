@@ -149,10 +149,10 @@ class DataGovernanceDeployer:
         self.data_governance_eck_es_op_render_template_values_path = f"charts/data_services_charts/data_governance/template_eck_operator_values.yaml"
 
         # PostgreSQL
-        self.data_governance_psql_chart_version = "16.6.2"
+        self.data_governance_psql_chart_version = "16.6.7"
         self.data_governance_psql_deployment_name = "data-governance-db"
         self.data_governance_psql_chart_repo_name = "bitnami"
-        self.data_governance_psql_chart_name = "bitnami/postgresql"
+        self.data_governance_psql_chart_name = "oci://registry-1.docker.io/bitnamicharts/postgresql"
         self.data_governance_psql_chart_repo = "https://charts.bitnami.com/bitnami"
         self.data_governance_psql_values_path = f"charts/data_services_charts/data_governance/postgresql_values.yaml"
         self.data_governance_psql_render_template_values_path = f"charts/data_services_charts/data_governance/template_postgresql_values.yaml"

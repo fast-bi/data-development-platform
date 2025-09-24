@@ -86,7 +86,7 @@ class IdpSsoManager:
         self.chart_version = chart_version
         self.deployment_name = "idp-sso-manager"
         self.chart_repo_name = "bitnami"
-        self.chart_name = "bitnami/keycloak"
+        self.chart_name = "oci://registry-1.docker.io/bitnamicharts/keycloak"
         self.chart_repo = "https://charts.bitnami.com/bitnami"
         self.values_path = f"charts/infra_services_charts/idp_sso_manager/values.yaml"
         self.render_template_values_path = f"charts/infra_services_charts/idp_sso_manager/template_values.yaml"
@@ -124,9 +124,9 @@ class IdpSsoManager:
             raise FileNotFoundError(f"Values file not found: {values_path}")
             
         try:
-            # Properly add and update the Helm repo
-            self.execute_command(["helm", "repo", "add", chart_repo_name, chart_repo])
-            self.execute_command(["helm", "repo", "update", chart_repo_name])
+            # Properly add and update the Helm repo - Bitnami changed the chart name to oci://registry-1.docker.io/bitnamicharts/keycloak
+            # self.execute_command(["helm", "repo", "add", chart_repo_name, chart_repo])
+            # self.execute_command(["helm", "repo", "update", chart_repo_name])
             
             # Formulate the Helm upgrade command properly as a list
             helm_command = [

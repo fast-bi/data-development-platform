@@ -162,10 +162,10 @@ class PlatformUserConsole:
             self.bi_endpoint = f"https://bi.{self.customer_root_domain}"
         
         # PostgreSQL configuration
-        self.data_platform_user_console_psql_chart_version = "16.6.2"
+        self.data_platform_user_console_psql_chart_version = "16.6.7"
         self.data_platform_user_console_psql_deployment_name = "data-platform-user-console-db"
         self.data_platform_user_console_psql_chart_repo_name = "bitnami"
-        self.data_platform_user_console_psql_chart_name = "bitnami/postgresql"
+        self.data_platform_user_console_psql_chart_name = "oci://registry-1.docker.io/bitnamicharts/postgresql"
         self.data_platform_user_console_psql_chart_repo = "https://charts.bitnami.com/bitnami"
         self.data_platform_user_console_psql_values_path = f"charts/data_services_charts/user_console/postgresql_values.yaml"
         self.data_platform_user_console_psql_render_template_values_path = f"charts/data_services_charts/user_console/template_postgresql_values.yaml"

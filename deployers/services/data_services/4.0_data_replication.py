@@ -129,9 +129,9 @@ class PlatformDataReplication:
         self.data_replication_oauth_chart_repo = "https://oauth2-proxy.github.io/manifests"
         
         self.data_replication_psql_chart_repo_name = "bitnami"
-        self.data_replication_psql_chart_name = "bitnami/postgresql"
+        self.data_replication_psql_chart_name = "oci://registry-1.docker.io/bitnamicharts/postgresql"
         self.data_replication_psql_chart_repo = "https://charts.bitnami.com/bitnami"
-        self.data_replication_psql_chart_version = "16.6.2"
+        self.data_replication_psql_chart_version = "16.6.7"
         
         # Values paths
         self.data_replication_values_path = f"charts/data_services_charts/data_replication/values.yaml"

@@ -119,7 +119,7 @@ class PlatformDataModeling:
         self.data_modeling_psql_chart_repo_name = "bitnami"
         self.data_modeling_psql_chart_name = "oci://registry-1.docker.io/bitnamicharts/postgresql"
         self.data_modeling_psql_chart_repo = "https://charts.bitnami.com/bitnami"
-        self.data_modeling_psql_chart_version = "16.6.2"
+        self.data_modeling_psql_chart_version = "16.6.7"
 
         # Values paths
         self.data_modeling_values_path = f"charts/data_services_charts/data_modeling/values.yaml"
