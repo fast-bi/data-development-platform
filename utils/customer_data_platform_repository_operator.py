@@ -631,14 +631,16 @@ Host data_model
                 import requests
                 try:
                     response = requests.head(clean_url, timeout=10, allow_redirects=True)
-                    if response.status_code in [200, 401, 403]:  # 401/403 means repo exists but needs auth
-                        logger.info(f"Repository {clean_url} is accessible")
+                    # Many providers (e.g., GitHub) return 404 for private repos when unauthenticated.
+                    # Treat 200/401/403/404 as "likely exists" and let the actual clone/auth step be authoritative.
+                    if response.status_code in [200, 401, 403, 404]:
+                        if response.status_code == 404:
+                            logger.info(f"Repository {clean_url} responded 404 (likely private without auth); proceeding")
+                        else:
+                            logger.info(f"Repository {clean_url} is accessible (status {response.status_code})")
                         return True
-                    elif response.status_code == 404:
-                        logger.error(f"Repository {clean_url} not found (404)")
-                        return False
                     else:
-                        logger.warning(f"Repository {clean_url} returned status {response.status_code}")
+                        logger.warning(f"Repository {clean_url} returned status {response.status_code}; proceeding conservatively")
                         return True  # Assume it exists if we get any response
                 except requests.RequestException as e:
                     logger.warning(f"Could not check repository accessibility: {e}")

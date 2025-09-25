@@ -716,7 +716,7 @@ class DeploymentManager:
                 gcp_config['whitelisted_ips'] = existing_ips
         
         # Project ID configuration - allow custom override
-        if 'gcp_project_id' not in self.state.config:
+        if 'gcp_project_id' not in self.state.config or not self.state.config.get('gcp_project_id'):
             click.echo(f"\n🏗️ GCP Project ID Configuration")
             click.echo(f"Default project ID would be: fast-bi-{self.state.config['customer']}")
             
@@ -1717,7 +1717,7 @@ class DeploymentManager:
         repo_config['git_provider_access_token'] = self.state.config.get('secrets_git_provider_access_token', '')
         
         # Use project ID from infrastructure
-        if 'gcp_project_id' in self.state.config:
+        if self.state.config.get('gcp_project_id'):
             repo_config['project_id'] = self.state.config['gcp_project_id']
             repo_config['bigquery_project_id'] = self.state.config['gcp_project_id']
         else:
@@ -1783,7 +1783,7 @@ class DeploymentManager:
         click.echo("\n🔧 Infrastructure Services Configuration")
         
         # Use project ID from infrastructure
-        if 'gcp_project_id' in self.state.config:
+        if self.state.config.get('gcp_project_id'):
             infra_config['project_id'] = self.state.config['gcp_project_id']
         else:
             infra_config['project_id'] = f"fast-bi-{self.state.config['customer']}"
@@ -1897,7 +1897,7 @@ class DeploymentManager:
         
         # Add project_id and region only for services that require them
         if 'project_id' in service_config.get('required_params', []):
-            if 'gcp_project_id' in self.state.config:
+            if self.state.config.get('gcp_project_id'):
                 params['project_id'] = self.state.config['gcp_project_id']
             else:
                 params['project_id'] = f"fast-bi-{self.state.config['customer']}"
@@ -2081,7 +2081,7 @@ class DeploymentManager:
         click.echo(f"Default project ID would be: fast-bi-{self.state.config['customer']}")
         
         # Only ask if not already set
-        if 'gcp_project_id' not in self.state.config:
+        if 'gcp_project_id' not in self.state.config or not self.state.config.get('gcp_project_id'):
             custom_project_id = safe_input(
                 "Enter GCP project ID (or press Enter to use default)",
                 default=f"fast-bi-{self.state.config['customer']}"
@@ -3413,7 +3413,7 @@ class DeploymentManager:
         click.echo("\n📊 Data Services Configuration")
         
         # Use project ID from infrastructure
-        if 'gcp_project_id' in self.state.config:
+        if self.state.config.get('gcp_project_id'):
             data_config['project_id'] = self.state.config['gcp_project_id']
         else:
             data_config['project_id'] = f"fast-bi-{self.state.config['customer']}"
@@ -3535,7 +3535,7 @@ class DeploymentManager:
         if 'user_console_web_core_version' not in self.state.config:
             data_config['tsb_fastbi_web_core_image_version'] = safe_input(
                 "Enter TSB FastBI web core image version:",
-                default="v2.1.6"
+                default="v0.1.0"
             )
             self.state.config['user_console_web_core_version'] = data_config['tsb_fastbi_web_core_image_version']
         else:
@@ -3544,7 +3544,7 @@ class DeploymentManager:
         if 'user_console_dbt_init_version' not in self.state.config:
             data_config['tsb_dbt_init_core_image_version'] = safe_input(
                 "Enter TSB DBT init core image version:",
-                default="v0.5.4"
+                default="v0.1.0"
             )
             self.state.config['user_console_dbt_init_version'] = data_config['tsb_dbt_init_core_image_version']
         else:
@@ -3585,7 +3585,7 @@ class DeploymentManager:
         
         # Add project_id and region only for services that require them
         if 'project_id' in service_config.get('required_params', []):
-            if 'gcp_project_id' in self.state.config:
+            if self.state.config.get('gcp_project_id'):
                 params['project_id'] = self.state.config['gcp_project_id']
             else:
                 params['project_id'] = f"fast-bi-{self.state.config['customer']}"
@@ -3747,7 +3747,7 @@ def collect_basic_config(use_simple_input: bool = False) -> Dict:
     
     if use_simple_input:
         config['customer'] = safe_input(
-            "Enter customer tenant name (lowercase letters and '-' only, e.g., terasky-fin)",
+            "Enter customer tenant name (lowercase letters and '-' only, e.g., customer-department)",
             validate=lambda text: validate_customer_name_strict(text) or True
         )
         
@@ -3785,7 +3785,7 @@ def collect_basic_config(use_simple_input: bool = False) -> Dict:
         )
     else:
         config['customer'] = questionary.text(
-            "Enter customer tenant name (lowercase letters and '-' only, e.g., terasky-fin):",
+            "Enter customer tenant name (lowercase letters and '-' only, e.g., customer-department):",
             validate=questionary_validate_customer_name
         ).ask()
 
