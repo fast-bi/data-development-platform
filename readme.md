@@ -289,7 +289,7 @@ See our [OSS License Overview](docs/licensing/) for complete details.
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=fast-bi/data-development-platform&type=Date)](https://star-history.com/#fast-bi/data-development-platform&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=fast-bi/data-development-platform&type=Date)](https://www.star-history.com/#fast-bi/data-development-platform&Date)
 
 ---
 
