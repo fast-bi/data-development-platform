@@ -445,6 +445,14 @@ class Platformk8sGitRunner:
 
             # Deploy extra resources
             if self.git_provider == "github":
+                self.execute_command([
+                    "kubectl", "wait", "--for=condition=ready", "pod",
+                    "-l", "fastbi=cicd-workload-runner",
+                    "-n", self.namespace,
+                    "--timeout=300s",
+                    "--kubeconfig", self.kube_config
+                ])
+                logger.info("Deploying CICD workload runner extra resources")
                 self.deploy_service(
                     chart_repo_name=self.extra_chart_repo_name,
                     chart_repo=self.extra_chart_repo,
