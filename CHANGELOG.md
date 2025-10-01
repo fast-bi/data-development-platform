@@ -22,6 +22,15 @@ All notable changes to Fast.BI will be documented in this file.
 - **Networking**: Custom VPC with security groups and firewall rules
 - **DNS Management**: External DNS with automatic record management
 
+## [0.1.1] - 2025-10-01
+
+### Fixed
+- Data Governance prerequisites: switched Zookeeper image from `bitnami/zookeeper` to
+  `bitnamilegacy/zookeeper` in `charts/data_services_charts/data_governance/template_dh_prerequisites_values.yaml`
+  due to Bitnami/Broadcom repository changes (original repo no longer available).
+
+## [0.1.0] - 2025-09-23
+
 ### Data Services
 - **Data Ingestion**: Airbyte integration for multi-source data replication
 - **Data Transformation**: dbt Core for data modeling and transformation

@@ -123,6 +123,11 @@ kafka:
     enabled: false
   zookeeper:
     enabled: true
+    image:
+      registry: docker.io
+      repository: bitnamilegacy/zookeeper
+      tag: 3.9.1-debian-12-r13
+      pullPolicy: IfNotPresent
     persistence: 
       size: "5Gi"
 {%- endraw %}
