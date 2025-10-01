@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Security improvements and vulnerability fixes
 
+## [0.1.1] - 2025-10-01
+
+### Fixed
+- Data Governance prerequisites: switched Zookeeper image from `bitnami/zookeeper` to
+  `bitnamilegacy/zookeeper` in `charts/data_services_charts/data_governance/template_dh_prerequisites_values.yaml`
+  due to Bitnami/Broadcom repository changes (original repo no longer available).
+
 ## [0.1.0] - 2025-09-23
 
 ### Added
