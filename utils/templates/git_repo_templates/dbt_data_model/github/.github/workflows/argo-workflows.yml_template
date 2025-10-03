@@ -70,16 +70,16 @@ jobs:
             -p git_username="${{ github.actor }}" \
             -p argo_main_address="${{ env.ARGO_SERVER }}" \
             -p storage_class="${STORAGE_CLASS}" \
-            --labels="project=${{ github.event.repository.name }},commit=${{ github.sha }},author=${{ github.actor }},ci_job_id=${{ github.run_id }},place=branch" \
+            --labels="project=${{ github.event.repository.name }},commit=${{ github.sha }},author=${{ github.actor }},ci_job_id=${{ github.run_id }}_${{ github.run_attempt }},place=branch" \
             --generate-name="branch-${{ github.event.repository.name }}-cicd-${{ env.SHORT_SHA }}-" \
             --watch --log
 
           # Get workflow host address and check status
-          WORKFLOW_NAME=$(argo list --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=branch" -o name | cut -d'/' -f2)
+          WORKFLOW_NAME=$(argo list --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }}_${{ github.run_attempt }},place=branch" -o name | cut -d'/' -f2)
           ARGO_HOST=$(echo ${{ env.ARGO_SERVER }} | cut -d':' -f1)
           WORKFLOW_URL="https://${ARGO_HOST}/workflows/${{ env.ARGO_NAMESPACE }}/${WORKFLOW_NAME}"
           
-          if [ "$(argo list --status Failed --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=branch" | wc -l)" -gt 1 ]; then
+          if [ "$(argo list --status Failed --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }}_${{ github.run_attempt }},place=branch" | wc -l)" -gt 1 ]; then
             echo "::error::Workflow failed. URL: ${WORKFLOW_URL}"
             exit 1
           else
@@ -129,18 +129,18 @@ jobs:
             -p git_username="${{ github.actor }}" \
             -p argo_main_address="${{ env.ARGO_SERVER }}" \
             -p target_branch="${{ github.event.pull_request.base.ref }}" \
-            -p ci_job_id="${{ github.run_id }}" \
+            -p ci_job_id="${{ github.run_id }}_${{ github.run_attempt }}" \
             -p storage_class="${STORAGE_CLASS}" \
-            --labels="project=${{ github.event.repository.name }},commit=${{ github.sha }},author=${{ github.actor }},ci_job_id=${{ github.run_id }},place=pull_request" \
+            --labels="project=${{ github.event.repository.name }},commit=${{ github.sha }},author=${{ github.actor }},ci_job_id=${{ github.run_id }}_${{ github.run_attempt }},place=pull_request" \
             --generate-name="pr-${{ github.event.repository.name }}-cicd-${{ env.SHORT_SHA }}-" \
             --watch --log
 
           # Get workflow host address and check status
-          WORKFLOW_NAME=$(argo list --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=pull_request" -o name | cut -d'/' -f2)
+          WORKFLOW_NAME=$(argo list --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }}_${{ github.run_attempt }},place=pull_request" -o name | cut -d'/' -f2)
           ARGO_HOST=$(echo ${{ env.ARGO_SERVER }} | cut -d':' -f1)
           WORKFLOW_URL="https://${ARGO_HOST}/workflows/${{ env.ARGO_NAMESPACE }}/${WORKFLOW_NAME}"
           
-          if [ "$(argo list --status Failed --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=pull_request" | wc -l)" -gt 1 ]; then
+          if [ "$(argo list --status Failed --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }}_${{ github.run_attempt }},place=pull_request" | wc -l)" -gt 1 ]; then
             echo "::error::Workflow failed. URL: ${WORKFLOW_URL}"
             exit 1
           else
@@ -191,16 +191,16 @@ jobs:
             -p git_username="${{ github.actor }}" \
             -p argo_main_address="${{ env.ARGO_SERVER }}" \
             -p storage_class="${STORAGE_CLASS}" \
-            --labels="project=${{ github.event.repository.name }},commit=${{ github.sha }},author=${{ github.actor }},ci_job_id=${{ github.run_id }},place=main" \
+            --labels="project=${{ github.event.repository.name }},commit=${{ github.sha }},author=${{ github.actor }},ci_job_id=${{ github.run_id }}_${{ github.run_attempt }},place=main" \
             --generate-name="main-${{ github.event.repository.name }}-cicd-${{ env.SHORT_SHA }}-" \
             --watch --log
 
           # Get workflow host address and check status
-          WORKFLOW_NAME=$(argo list --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=main" -o name | cut -d'/' -f2)
+          WORKFLOW_NAME=$(argo list --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }}_${{ github.run_attempt }},place=main" -o name | cut -d'/' -f2)
           ARGO_HOST=$(echo ${{ env.ARGO_SERVER }} | cut -d':' -f1)
           WORKFLOW_URL="https://${ARGO_HOST}/workflows/${{ env.ARGO_NAMESPACE }}/${WORKFLOW_NAME}"
           
-          if [ "$(argo list --status Failed --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }},place=main" | wc -l)" -gt 1 ]; then
+          if [ "$(argo list --status Failed --selector "commit=${{ github.sha }},ci_job_id=${{ github.run_id }}_${{ github.run_attempt }},place=main" | wc -l)" -gt 1 ]; then
             echo "::error::Workflow failed. URL: ${WORKFLOW_URL}"
             exit 1
           else
