@@ -12,7 +12,7 @@ All tools are now standardized to use consistent versions across platforms to en
 - **kubectl**: Kubernetes command-line tool
 - **gcloud CLI**: Google Cloud command-line tool (required for authentication)
 - **Terraform**: Infrastructure as Code tool for GCP resource management
-- **Terragrunt v0.84.0**: Terraform wrapper for keeping configurations DRY (specific version required)
+- **Terragrunt v0.88.1**: Terraform wrapper for keeping configurations DRY (specific version required)
 
 See `versions.yaml` for detailed version configuration and compatibility information.
 

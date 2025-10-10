@@ -35,7 +35,7 @@ os.environ.setdefault('GITLAB_ADMIN_ACCESS_TOKEN', 'cli-token')
 # Configure Terragrunt cache location based on OS to prevent long path issues
 def configure_terragrunt_cache():
     """Configure Terragrunt cache location to prevent long path issues on Windows"""
-    if not os.environ.get('TERRAGRUNT_DOWNLOAD'):
+    if not os.environ.get('TG_DOWNLOAD_DIR'):
         system = platform.system().lower()
         if system == 'windows':
             cache_path = r'C:\temp\terragrunt-cache'
@@ -45,7 +45,7 @@ def configure_terragrunt_cache():
         # Create the cache directory if it doesn't exist
         try:
             os.makedirs(cache_path, exist_ok=True)
-            os.environ['TERRAGRUNT_DOWNLOAD'] = cache_path
+            os.environ['TG_DOWNLOAD_DIR'] = cache_path
             print(f"🔧 Configured Terragrunt cache location: {cache_path}")
         except Exception as e:
             print(f"⚠️  Warning: Could not create Terragrunt cache directory {cache_path}: {e}")

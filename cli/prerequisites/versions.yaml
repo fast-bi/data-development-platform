@@ -4,7 +4,7 @@
 
 tools:
   terragrunt:
-    version: "v0.84.0"
+    version: "v0.88.1"
     description: "Terragrunt version for consistent behavior across all platforms"
     
   terraform:
@@ -22,21 +22,21 @@ tools:
 # Platform-specific download URLs for Terragrunt
 terragrunt_downloads:
   windows:
-    url: "https://github.com/gruntwork-io/terragrunt/releases/download/v0.84.0/terragrunt_windows_amd64.exe"
+    url: "https://github.com/gruntwork-io/terragrunt/releases/download/v0.88.1/terragrunt_windows_amd64.exe"
     filename: "terragrunt_windows_amd64.exe"
   linux:
-    url: "https://github.com/gruntwork-io/terragrunt/releases/download/v0.84.0/terragrunt_linux_amd64"
+    url: "https://github.com/gruntwork-io/terragrunt/releases/download/v0.88.1/terragrunt_linux_amd64"
     filename: "terragrunt_linux_amd64"
   macos:
-    url: "https://github.com/gruntwork-io/terragrunt/releases/download/v0.84.0/terragrunt_darwin_amd64"
+    url: "https://github.com/gruntwork-io/terragrunt/releases/download/v0.88.1/terragrunt_darwin_amd64"
     filename: "terragrunt_darwin_amd64"
   docker:
-    url: "https://github.com/gruntwork-io/terragrunt/releases/download/v0.84.0/terragrunt_linux_amd64"
+    url: "https://github.com/gruntwork-io/terragrunt/releases/download/v0.88.1/terragrunt_linux_amd64"
     filename: "terragrunt_linux_amd64"
 
 # Version compatibility notes
 compatibility:
-  terragrunt_v0_84_0:
+  terragrunt_v0_88_1:
     terraform_min: "1.0.0"
     terraform_max: "1.8.x"
     notes: "Supports latest Terraform features and improved CLI design"

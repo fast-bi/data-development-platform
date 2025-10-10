@@ -1,9 +1,9 @@
 terraform {
-  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/shared-vpc?ref=v1.0.0"
+  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/shared-vpc?ref=v1.1.0"
 }
 
 include "root" {
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
   expose = true
 }
 
@@ -30,8 +30,12 @@ inputs = {
       region        = include.root.locals.region
       description   = ""
       secondary_ip_ranges = {
-        ("${include.root.locals.vpc_name_prefix}-pods")     = "${include.root.locals.cluster_ipv4_cidr_block}" 
-        ("${include.root.locals.vpc_name_prefix}-services") = "${include.root.locals.services_ipv4_cidr_block}"  
+        ("${include.root.locals.vpc_name_prefix}-pods") = {
+          ip_cidr_range = include.root.locals.cluster_ipv4_cidr_block
+        }
+        ("${include.root.locals.vpc_name_prefix}-services") = {
+          ip_cidr_range = include.root.locals.services_ipv4_cidr_block
+        }
       }
     },
   ]
@@ -56,24 +60,28 @@ inputs = {
     ("${include.root.locals.vpc_name_prefix}-nat-gw-ip") = include.root.locals.region
   }
 
-  cloud_nat = [
-    {
-      name                                = "${include.root.locals.vpc_name_prefix}-nat-gw"
-      region                              = include.root.locals.region
-      external_address_name               = "${include.root.locals.vpc_name_prefix}-nat-gw-ip"
-      router_create                       = true
-      router_name                         = "${include.root.locals.vpc_name_prefix}-cloud-router"
-      router_network                      = "${include.root.locals.vpc_name_prefix}-vpc"
+cloud_nat = [
+  {
+    name                                = "${include.root.locals.vpc_name_prefix}-nat-gw"
+    region                              = include.root.locals.region
+    external_address_name               = "${include.root.locals.vpc_name_prefix}-nat-gw-ip"
+    router_create                       = true
+    router_name                         = "${include.root.locals.vpc_name_prefix}-cloud-router"
+    router_network                      = "${include.root.locals.vpc_name_prefix}-vpc"
+    enable_endpoint_independent_mapping = false
+
+    config_port_allocation = {
       enable_endpoint_independent_mapping = false
-      config_port_allocation = {
-        enable_endpoint_independent_mapping = false
-        enable_dynamic_port_allocation = true
-        min_ports_per_vm = 512
-        max_ports_per_vm = 65536
-      }
-      subnetworks                         = []
+      enable_dynamic_port_allocation      = true
+      min_ports_per_vm                    = 512
+      max_ports_per_vm                    = 65536
     }
-  ]
+
+    config_source_subnetworks = {}
+  }
+]
+
+
   ingress_rules = {
     # implicit allow action
     allow-websocket = {
