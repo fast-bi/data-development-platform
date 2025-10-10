@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 import time
 from datetime import datetime
 import json
@@ -58,10 +57,10 @@ class StackgresPostgresqlDeployer:
         self.chart_repo = "https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/"
         self.deployment_name = "stackgres-postgresql-operator"
         self.chart_name = "stackgres-charts/stackgres-operator"
-        self.values_path = f"charts/infra_services_charts/stackgres_postgres_db/values.yaml"
-        self.render_template_values_path = f"charts/infra_services_charts/stackgres_postgres_db/template_op_values.yaml"
-        self.render_template_values_extra_path = f"charts/infra_services_charts/stackgres_postgres_db/template_values_extra.yaml"
-        self.extra_values_path = f"charts/infra_services_charts/stackgres_postgres_db/values_extra.yaml"
+        self.values_path = "charts/infra_services_charts/stackgres_postgres_db/values.yaml"
+        self.render_template_values_path = "charts/infra_services_charts/stackgres_postgres_db/template_op_values.yaml"
+        self.render_template_values_extra_path = "charts/infra_services_charts/stackgres_postgres_db/template_values_extra.yaml"
+        self.extra_values_path = "charts/infra_services_charts/stackgres_postgres_db/values_extra.yaml"
         
         # Cloud Provider Specific
         try:
@@ -236,7 +235,7 @@ class StackgresPostgresqlDeployer:
             logger.info(f"Successfully rendered values file to {self.values_path}")
 
             # Render extra values file
-            extra_values_path = f"charts/infra_services_charts/stackgres_postgres_db/values_extra.yaml"
+            extra_values_path = "charts/infra_services_charts/stackgres_postgres_db/values_extra.yaml"
             self.render_template("charts/infra_services_charts/stackgres_postgres_db/template_values_extra.yaml", extra_values_path, context)
             logger.info(f"Successfully rendered extra values file to {extra_values_path}")
 
@@ -255,7 +254,7 @@ class StackgresPostgresqlDeployer:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

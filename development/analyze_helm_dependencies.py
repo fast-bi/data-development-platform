@@ -12,14 +12,13 @@ This script follows a systematic approach to analyze Helm chart dependencies:
 This is Phase 2 of the Helm charts analysis to prepare for Bitnami's closure in 2025-09.
 """
 
-import os
 import json
 import yaml
 import subprocess
 import tempfile
 import shutil
 from pathlib import Path
-from typing import Dict, List, Any, Set, Optional
+from typing import Any
 import logging
 from urllib.parse import urlparse
 from datetime import datetime
@@ -59,7 +58,7 @@ class HelmDependencyAnalyzerV2:
             }
         }
         
-    def run_analysis(self) -> Dict[str, Any]:
+    def run_analysis(self) -> dict[str, Any]:
         """Run the complete analysis following the systematic approach"""
         logger.info("Starting systematic Helm dependencies analysis...")
         
@@ -90,7 +89,7 @@ class HelmDependencyAnalyzerV2:
             logger.error(f"Error during analysis: {str(e)}")
             raise
     
-    def _load_inventory(self) -> Dict[str, Any]:
+    def _load_inventory(self) -> dict[str, Any]:
         """Step 1: Load the Helm charts inventory"""
         try:
             with open(self.inventory_file, 'r', encoding='utf-8') as f:
@@ -99,7 +98,7 @@ class HelmDependencyAnalyzerV2:
             logger.error(f"Error loading inventory file: {str(e)}")
             raise
     
-    def _update_all_repositories(self, inventory: Dict[str, Any]):
+    def _update_all_repositories(self, inventory: dict[str, Any]):
         """Step 2: Update all Helm repositories"""
         repositories = set()
         
@@ -128,7 +127,7 @@ class HelmDependencyAnalyzerV2:
         except Exception as e:
             logger.warning(f"Failed to update all repositories: {str(e)}")
     
-    def _collect_unique_charts(self, inventory: Dict[str, Any]) -> List[Dict[str, str]]:
+    def _collect_unique_charts(self, inventory: dict[str, Any]) -> list[dict[str, str]]:
         """Collect all unique charts from the inventory"""
         charts = set()
         unique_charts = []
@@ -160,7 +159,7 @@ class HelmDependencyAnalyzerV2:
         
         return unique_charts
     
-    def _analyze_single_chart(self, chart_info: Dict[str, str]):
+    def _analyze_single_chart(self, chart_info: dict[str, str]):
         """Step 4: Download and analyze a single chart"""
         chart_name = chart_info["chart_name"]
         chart_repo = chart_info["chart_repo"]
@@ -212,7 +211,7 @@ class HelmDependencyAnalyzerV2:
             if not self.keep_downloads and chart_temp_dir.exists():
                 shutil.rmtree(chart_temp_dir)
     
-    def _download_chart(self, chart_name: str, chart_repo: str, temp_dir: Path) -> Optional[Path]:
+    def _download_chart(self, chart_name: str, chart_repo: str, temp_dir: Path) -> Path | None:
         """Download a Helm chart to temporary directory"""
         try:
             if chart_repo.startswith("https://"):
@@ -257,7 +256,7 @@ class HelmDependencyAnalyzerV2:
             logger.error(f"Error downloading chart {chart_name}: {str(e)}")
             return None
     
-    def _find_chart_directory(self, search_dir: Path) -> Optional[Path]:
+    def _find_chart_directory(self, search_dir: Path) -> Path | None:
         """Recursively find a directory containing Chart.yaml"""
         for item in search_dir.iterdir():
             if item.is_dir() and not item.name.startswith('.'):
@@ -270,7 +269,7 @@ class HelmDependencyAnalyzerV2:
                     return sub_result
         return None
     
-    def _parse_chart_yaml(self, chart_path: Path) -> List[Dict[str, Any]]:
+    def _parse_chart_yaml(self, chart_path: Path) -> list[dict[str, Any]]:
         """Parse Chart.yaml file to extract dependencies"""
         chart_yaml_path = chart_path / "Chart.yaml"
         
@@ -291,7 +290,7 @@ class HelmDependencyAnalyzerV2:
             logger.error(f"Error parsing Chart.yaml in {chart_path}: {str(e)}")
             return []
     
-    def _find_bitnami_dependencies(self, dependencies: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _find_bitnami_dependencies(self, dependencies: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Find Bitnami dependencies in the dependencies list"""
         bitnami_deps = []
         
@@ -472,9 +471,9 @@ This report analyzes Helm chart dependencies in the fast.bi data platform to ide
             report += f"- **Bitnami Dependencies:** {len(bitnami_deps)}\n"
             
             if len(bitnami_deps) == 0:
-                report += f"- **Status:** ✅ **SAFE** - No Bitnami dependencies\n"
+                report += "- **Status:** ✅ **SAFE** - No Bitnami dependencies\n"
             else:
-                report += f"- **Status:** ⚠️ **AFFECTED** - Has Bitnami dependencies\n"
+                report += "- **Status:** ⚠️ **AFFECTED** - Has Bitnami dependencies\n"
             report += "\n"
             
             if dependencies:
@@ -749,7 +748,7 @@ Services that depend on other charts that use Bitnami:
 ### Files Analyzed
 """
         
-        # List analyzed files
+        # list analyzed files
         files_analyzed = set()
         for chart_data in self.dependencies_data["charts_analyzed"].values():
             chart_info = chart_data["chart_info"]
@@ -821,7 +820,7 @@ Services that depend on other charts that use Bitnami:
         print(f"Charts Affected by Bitnami: {summary['affected_charts_count']}")
         
         if self.dependencies_data["bitnami_dependencies"]["direct"]:
-            print(f"\n⚠️  DIRECT BITNAMI DEPENDENCIES:")
+            print("\n⚠️  DIRECT BITNAMI DEPENDENCIES:")
             for dep in self.dependencies_data["bitnami_dependencies"]["direct"]:
                 print(f"   - {dep['chart']}")
                 for bitnami_dep in dep['dependencies']:
@@ -878,9 +877,6 @@ def main():
     analyzer = HelmDependencyAnalyzerV2(args.inventory, args.keep_downloads)
     
     try:
-        # Run the complete analysis
-        dependencies_data = analyzer.run_analysis()
-        
         # Save to JSON
         analyzer.save_to_json(args.output)
         
@@ -894,7 +890,7 @@ def main():
         if not args.no_summary:
             analyzer.print_summary()
         
-        print(f"\n✅ Helm dependencies analysis completed successfully!")
+        print("\n✅ Helm dependencies analysis completed successfully!")
         print(f"📄 Detailed analysis saved to: {args.output}")
         
     except Exception as e:

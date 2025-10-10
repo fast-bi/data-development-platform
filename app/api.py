@@ -1,9 +1,9 @@
 import os
-from flask import request, jsonify, session, send_file, current_app, Response, render_template_string
+from flask import request, jsonify, send_file, current_app, render_template_string
 import json
 from flask import send_from_directory
-from apiflask import APIFlask, Schema, abort
-from apiflask.fields import Integer, String, Boolean, URL, DateTime, Raw, File, Nested, List
+from apiflask import Schema, abort
+from apiflask.fields import Integer, String, URL, File, Nested, List
 from apiflask.validators import Length, OneOf
 import traceback
 import logging
@@ -901,7 +901,6 @@ def setup_routes(app):
 
         try:
             logger.debug("Parsing JSON data.")
-            user_email = data.get('user_email', None)
             secret_manager_type = data.get('secret_manager_type', 'global')
 
             chart_versions = {}

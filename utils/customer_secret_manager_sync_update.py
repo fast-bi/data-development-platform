@@ -1,8 +1,5 @@
-import os
 import subprocess
-import json
 import logging
-from jinja2 import Environment, FileSystemLoader
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +54,7 @@ class CustomerSecretManagerSync:
         self.execute_command(patch_command)
 
     def update_all_infisical_secrets(self, new_interval=86400):
-        logger.info(f"Starting update process for all InfisicalSecret resources")
+        logger.info("Starting update process for all InfisicalSecret resources")
         namespaces = self.get_namespaces()
         
         for namespace in namespaces:

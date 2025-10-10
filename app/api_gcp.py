@@ -4,8 +4,6 @@ import logging
 import requests
 import subprocess
 from flask import session, request, redirect, current_app, Response, jsonify
-from flask_session import Session
-import json
 from apiflask import Schema, abort
 from apiflask.fields import String, Boolean
 from apiflask.validators import Length
@@ -13,11 +11,7 @@ from utils.gcp_k8s_client import GCPK8SClient
 from urllib.parse import quote
 from uuid import uuid4
 import time
-from google.oauth2.credentials import Credentials
-from google.auth.transport.requests import Request
-from app.config import Config
 from app.security import auth
-from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -352,7 +346,6 @@ def setup_gcp_auth_routes(bp, oauth_states):
     @bp.output(GoogleTestAuthOutputSchema)
     def test_access_gcp(headers_data, form_and_files_data):
         token_key = request.headers.get('X-Token-Key')
-        token_key_headers_data = headers_data['X_Token_Key']
         project_id = form_and_files_data.get('gcp_project_id')
         region = form_and_files_data.get('gcp_gke_region')
         cluster_name = form_and_files_data.get('gcp_gke_name')

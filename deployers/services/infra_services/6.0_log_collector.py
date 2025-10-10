@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -57,8 +56,8 @@ class PlatformLogCollector:
         self.chart_repo = "https://prometheus-community.github.io/helm-charts/"
         self.deployment_name = "prometheus"
         self.chart_name = "prometheus-community/prometheus"
-        self.values_path = f"charts/infra_services_charts/log_collector/values.yaml"
-        self.render_template_values_path = f"charts/infra_services_charts/log_collector/template_values.yaml"
+        self.values_path = "charts/infra_services_charts/log_collector/values.yaml"
+        self.render_template_values_path = "charts/infra_services_charts/log_collector/template_values.yaml"
         
         # Cloud Provider Specific
         try:
@@ -216,7 +215,7 @@ class PlatformLogCollector:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

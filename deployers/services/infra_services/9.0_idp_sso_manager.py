@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -88,9 +87,9 @@ class IdpSsoManager:
         self.chart_repo_name = "bitnami"
         self.chart_name = "oci://registry-1.docker.io/bitnamicharts/keycloak"
         self.chart_repo = "https://charts.bitnami.com/bitnami"
-        self.values_path = f"charts/infra_services_charts/idp_sso_manager/values.yaml"
-        self.render_template_values_path = f"charts/infra_services_charts/idp_sso_manager/template_values.yaml"
-        self.realm_template_path = f"charts/infra_services_charts/idp_sso_manager/realm_teamplate.json"
+        self.values_path = "charts/infra_services_charts/idp_sso_manager/values.yaml"
+        self.render_template_values_path = "charts/infra_services_charts/idp_sso_manager/template_values.yaml"
+        self.realm_template_path = "charts/infra_services_charts/idp_sso_manager/realm_teamplate.json"
         self.realm_path = f"charts/infra_services_charts/idp_sso_manager/{self.customer}_realm.json"
         self.customer_root_domain = f"{self.customer}.{self.domain_name}"
         self.ingress_host = f"login.{self.customer_root_domain}"
@@ -287,7 +286,7 @@ class IdpSsoManager:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

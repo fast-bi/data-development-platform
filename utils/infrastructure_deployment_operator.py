@@ -4,10 +4,7 @@ import logging
 import subprocess
 import json
 import requests
-from pathlib import Path
-from typing import Dict, List, Optional
 from cryptography.fernet import Fernet
-from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 import sys
 import base64
 import time
@@ -46,18 +43,18 @@ class InfrastructureDeploymentOperator:
                  cloud_provider: str = "gcp",
                  terraform_state: str = "remote",
                  # Git configuration
-                 git_provider: Optional[str] = None,
-                 git_repo_url: Optional[str] = None,
-                 git_access_token: Optional[str] = None,
-                 git_private_key: Optional[str] = None,
-                 git_username: Optional[str] = None,
-                 git_password: Optional[str] = None,
+                 git_provider: str | None = None,
+                 git_repo_url: str | None = None,
+                 git_access_token: str | None = None,
+                 git_private_key: str | None = None,
+                 git_username: str | None = None,
+                 git_password: str | None = None,
                  # Vault configuration
-                 vault_project_id: Optional[str] = None,
-                 secret_manager_client_id: Optional[str] = None,
-                 secret_manager_client_secret: Optional[str] = None,
+                 vault_project_id: str | None = None,
+                 secret_manager_client_id: str | None = None,
+                 secret_manager_client_secret: str | None = None,
                  # Kubernetes configuration
-                 kube_config_path: Optional[str] = None,
+                 kube_config_path: str | None = None,
                  namespace: str = "vault",
                  # Operation flags
                  force_deployment: bool = False,
@@ -253,7 +250,7 @@ class InfrastructureDeploymentOperator:
         else:
             raise ValueError(f"Unsupported git provider: {self.git_provider}")
                 
-    def _get_git_credentials(self) -> Dict:
+    def _get_git_credentials(self) -> dict:
         """Get git credentials based on provider"""
         credentials = {}
         
@@ -405,7 +402,7 @@ class InfrastructureDeploymentOperator:
             self._cleanup()  # Ensure cleanup on failure
             raise InfrastructureDeploymentError(f"Infrastructure collection failed: {str(e)}")
             
-    def _get_infrastructure_mappings(self) -> Dict:
+    def _get_infrastructure_mappings(self) -> dict:
         """Get infrastructure file mappings based on cloud provider"""
         mappings = {
             'core_infrastructure': self._get_core_infrastructure_mapping(),
@@ -414,7 +411,7 @@ class InfrastructureDeploymentOperator:
         }
         return mappings
         
-    def _get_core_infrastructure_mapping(self) -> Dict:
+    def _get_core_infrastructure_mapping(self) -> dict:
         """Get core infrastructure mapping based on cloud provider"""
         if self.cloud_provider == "gcp":
             mapping = {
@@ -532,7 +529,7 @@ class InfrastructureDeploymentOperator:
         else:  # self-managed
             return {}  # Empty mapping for self-managed as it's built manually
 
-    def _get_k8s_core_services_mapping(self) -> Dict:
+    def _get_k8s_core_services_mapping(self) -> dict:
         """Get Kubernetes core services mapping"""
         return {
             'secret_manager': ['values.yaml', 'values_extra.yaml'],
@@ -548,7 +545,7 @@ class InfrastructureDeploymentOperator:
             'traefik_lb': ['values.yaml']
         }
 
-    def _get_k8s_data_services_mapping(self) -> Dict:
+    def _get_k8s_data_services_mapping(self) -> dict:
         """Get Kubernetes data services mapping"""
         return {
             'argo_workflows': ['postgresql_values.yaml', 'values.yaml'],
@@ -570,7 +567,7 @@ class InfrastructureDeploymentOperator:
             'user_console': ['values.yaml', 'postgresql_values.yaml']
         }
         
-    def _check_terraform_state_files(self, mappings: Dict) -> Dict:
+    def _check_terraform_state_files(self, mappings: dict) -> dict:
         """Check for existence of Terraform state files when terraform_state is local"""
         if self.terraform_state != "local":
             return {}
@@ -601,7 +598,7 @@ class InfrastructureDeploymentOperator:
             
         return state_files_found
 
-    def _prepare_and_encrypt_files(self, mappings: Dict):
+    def _prepare_and_encrypt_files(self, mappings: dict):
         """Prepare and encrypt files based on mappings, preserving logical structure under new root folders"""
         logger.info("Preparing and encrypting files")
         
@@ -672,7 +669,7 @@ class InfrastructureDeploymentOperator:
         logger.info(f"File processing summary: {success_rate:.1f}% success rate ({total_processed}/{total_files_in_mappings} files)")
         
         if success_rate < 100:
-            logger.warning(f"Some files were not found and could not be processed. This may be normal if:")
+            logger.warning("Some files were not found and could not be processed. This may be normal if:")
             logger.warning("- Some Terraform modules haven't been applied yet")
             logger.warning("- Some files are generated during deployment")
             logger.warning("- Some optional files are missing")
@@ -988,7 +985,7 @@ class InfrastructureDeploymentOperator:
                             except Exception as e:
                                 logger.warning(f"Failed to remove secret file {file_path}: {str(e)}")
 
-    def _get_deployment_summary(self) -> Dict:
+    def _get_deployment_summary(self) -> dict:
         """Get deployment summary"""
         summary = {
             "customer": self.customer,
@@ -1038,7 +1035,7 @@ class InfrastructureDeploymentOperator:
 class GitManager:
     """Handles Git operations with different authentication methods"""
     
-    def __init__(self, repo_url: str, credentials: Dict, working_dir: str):
+    def __init__(self, repo_url: str, credentials: dict, working_dir: str):
         self.repo_url = repo_url
         self.credentials = credentials
         self.working_dir = working_dir
@@ -1138,7 +1135,7 @@ class ExternalInfisicalClient:
         self.client_secret = client_secret
         self.base_url = os.getenv('FASTBI_VAULT_API_LINK', 'https://vault.fast.bi')
         
-    def save_secret(self, secret_name: str, secret_value: str, secret_path: str) -> Dict:
+    def save_secret(self, secret_name: str, secret_value: str, secret_path: str) -> dict:
         """Save secret to external vault"""
         try:
             # Authenticate
@@ -1168,8 +1165,8 @@ class ExternalInfisicalClient:
             logger.error(f"Failed to save secret to external vault: {str(e)}")
             raise
 
-    def get_secret(self, secret_name: str, secret_path: str, access_token: Optional[str] = None, 
-                  environment: str = "prod", version: Optional[str] = None, 
+    def get_secret(self, secret_name: str, secret_path: str, access_token: str | None = None, 
+                  environment: str = "prod", version: str | None = None, 
                   secret_type: str = "shared", include_imports: str = "false") -> str:
         """Retrieve the secret from the external Infisical vault."""
         try:
@@ -1221,7 +1218,7 @@ class ExternalInfisicalClient:
 class LocalVaultClient:
     """Client for local vault"""
     
-    def __init__(self, customer: str, kube_config: Optional[str], namespace: str):
+    def __init__(self, customer: str, kube_config: str | None, namespace: str):
         self.customer = customer
         self.kube_config = kube_config
         self.namespace = namespace
@@ -1266,7 +1263,7 @@ class LocalVaultClient:
             finally:
                 self.port_forward_process = None
 
-    def save_secret(self, secret_name: str, secret_value: str, secret_path: str) -> Dict:
+    def save_secret(self, secret_name: str, secret_value: str, secret_path: str) -> dict:
         """Save secret to local vault using port-forwarding"""
         try:
             # Setup port forward

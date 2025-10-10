@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -59,12 +58,12 @@ class PlatformMonitoring:
         self.chart_repo_name = "grafana"
         self.chart_name = "grafana/grafana"
         self.chart_repo = "https://grafana.github.io/helm-charts"
-        self.values_path = f"charts/infra_services_charts/services_monitoring/values.yaml"
-        self.render_template_values_path = f"charts/infra_services_charts/services_monitoring/template_values.yaml"
-        self.dashboard_render_template_values_path = f"charts/infra_services_charts/services_monitoring/template_dashboard_cm.yaml"
-        self.dashboard_values_path = f"charts/infra_services_charts/services_monitoring/dashboard_cm.yaml"
-        self.alert_render_template_values_path = f"charts/infra_services_charts/services_monitoring/template_alerts_cm.yaml"
-        self.alert_values_path = f"charts/infra_services_charts/services_monitoring/alerts_cm.yaml"
+        self.values_path = "charts/infra_services_charts/services_monitoring/values.yaml"
+        self.render_template_values_path = "charts/infra_services_charts/services_monitoring/template_values.yaml"
+        self.dashboard_render_template_values_path = "charts/infra_services_charts/services_monitoring/template_dashboard_cm.yaml"
+        self.dashboard_values_path = "charts/infra_services_charts/services_monitoring/dashboard_cm.yaml"
+        self.alert_render_template_values_path = "charts/infra_services_charts/services_monitoring/template_alerts_cm.yaml"
+        self.alert_values_path = "charts/infra_services_charts/services_monitoring/alerts_cm.yaml"
         self.customer_root_domain = f"{self.customer}.{self.domain_name}"
         self.ingress_host = f"monitoring.{self.customer_root_domain}"
         self.oauth_auth_url = f"https://login.{self.customer_root_domain}/realms/{self.customer}/protocol/openid-connect/auth"
@@ -313,7 +312,7 @@ class PlatformMonitoring:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

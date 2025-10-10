@@ -1,17 +1,12 @@
-import os
-import traceback
 import logging
 import requests
-import subprocess
 import sqlite3
-import contextlib
 import re
-from flask import Flask, request, render_template, jsonify, session, current_app, redirect, flash, url_for
+from flask import request, render_template, jsonify, session, current_app, redirect, flash, url_for
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-from app.config import Config
 from app.create_database import setup_database
-from app.utils import set_user_status, login_required, set_session, get_user_status, DB_PATH
+from app.utils import set_user_status, login_required, set_session, DB_PATH
 from datetime import datetime, timedelta
 from functools import wraps
 from utils.mail_handler import MailSender

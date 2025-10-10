@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import sys
@@ -58,10 +57,10 @@ class CertManager:
         self.chart_repo_name = "jetstack"
         self.chart_name = "jetstack/cert-manager"
         self.chart_repo = "https://charts.jetstack.io"
-        self.values_path = f"charts/infra_services_charts/cert_manager/values.yaml"
-        self.render_template_values_path = f"charts/infra_services_charts/cert_manager/template_values.yaml"
-        self.values_extra_path = f"charts/infra_services_charts/cert_manager/values_extra.yaml"
-        self.render_template_values_extra_path = f"charts/infra_services_charts/cert_manager/template_values_extra.yaml"
+        self.values_path = "charts/infra_services_charts/cert_manager/values.yaml"
+        self.render_template_values_path = "charts/infra_services_charts/cert_manager/template_values.yaml"
+        self.values_extra_path = "charts/infra_services_charts/cert_manager/values_extra.yaml"
+        self.render_template_values_extra_path = "charts/infra_services_charts/cert_manager/template_values_extra.yaml"
         
         # Cloud Provider Specific
         try:
@@ -90,7 +89,7 @@ class CertManager:
                 self.cluster_name = cluster_name if cluster_name else f"fast-bi-{customer}-platform"
                 self.csi_driver_deployment_name = "cert-manager-csi-driver"
                 self.csi_driver_chart_name = "jetstack/cert-manager-csi-driver"
-                self.csi_driver_values_path = f"charts/infra_services_charts/cert_manager/csi_driver_values.yaml"
+                self.csi_driver_values_path = "charts/infra_services_charts/cert_manager/csi_driver_values.yaml"
                 self.csi_driver_chart_version = "v0.10.2"
                 logger.info(f"Configured for self-managed with cluster: {self.cluster_name}")
             else:
@@ -279,7 +278,7 @@ class CertManager:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

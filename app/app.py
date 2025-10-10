@@ -1,17 +1,8 @@
-import sys
-import logging
-import os
-import requests
-import subprocess
 #from flask import Flask
-from apiflask import APIFlask, Schema, abort, HTTPTokenAuth, APIBlueprint
-from apiflask.fields import Integer, String
-from apiflask.validators import Length, OneOf
-from flask import Flask, redirect, request, session, url_for, jsonify, Blueprint
+from apiflask import APIFlask, APIBlueprint
+from flask import jsonify, Blueprint
 from flask_cors import CORS
-from flask_mail import Mail
 from flask_caching import Cache
-from flask_session import Session
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from app.api import setup_routes
@@ -20,11 +11,9 @@ from app.app_frontend import setup_frontend_routes
 from app.config import Config
 from utils.customer_data_platform_service_versions import DeploymentMetadataCollector
 from utils.infra_data_services_latest_versions import InfraDataServicesLatestVersions
-from app.security import auth
 from werkzeug.middleware.proxy_fix import ProxyFix
 from app.logging_config import configure_logging
 from datetime import timedelta
-from flask_wtf.csrf import CSRFProtect
 from flask_wtf.csrf import CSRFError
 
 # Shared storage for OAuth states
@@ -132,7 +121,6 @@ def create_app():
 
     app.config['CACHE_TYPE'] = 'SimpleCache'
 
-    mail = Mail(app)
     app.cache = Cache(app)
 
     db_config = {

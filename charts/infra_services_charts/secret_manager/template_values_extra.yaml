@@ -411,7 +411,7 @@ data:
     import os
     import logging
     import sys
-    from typing import Dict, Any, List
+    from typing import Any
     import time
     from pathlib import Path
 
@@ -489,7 +489,7 @@ data:
                 logger.error(f"Failed to ensure KV secrets engine: {str(e)}")
                 raise
 
-        def create_folder_structure(self, structure: Dict[str, Any], parent_path: str = "") -> None:
+        def create_folder_structure(self, structure: dict[str, Any], parent_path: str = "") -> None:
             """
             Create the folder structure in Vault based on the provided structure.
             
@@ -515,7 +515,7 @@ data:
                 logger.error(f"Failed to create folder structure at {parent_path}: {str(e)}")
                 raise
 
-        def store_secrets(self, path: str, secrets: Dict[str, str]) -> None:
+        def store_secrets(self, path: str, secrets: dict[str, str]) -> None:
             """
             Store secrets at the specified path.
             

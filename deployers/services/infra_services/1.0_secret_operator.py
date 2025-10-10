@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 import base64
 from datetime import datetime
 import json
@@ -30,9 +29,9 @@ class SecretManager:
             self.chart_repo_hc_vault = "https://helm.releases.hashicorp.com"
             self.chart_name_hc_vault = "hashicorp/vault"
             self.values_path_hc_vault = "charts/infra_services_charts/secret_manager/values.yaml"
-            self.render_template_values_path_hc_vault = f"charts/infra_services_charts/secret_manager/template_values.yaml"
-            self.values_path_extra_hc_vault = f"charts/infra_services_charts/secret_manager/values_extra.yaml"
-            self.render_template_values_extra_path_hc_vault = f"charts/infra_services_charts/secret_manager/template_values_extra.yaml"
+            self.render_template_values_path_hc_vault = "charts/infra_services_charts/secret_manager/template_values.yaml"
+            self.values_path_extra_hc_vault = "charts/infra_services_charts/secret_manager/values_extra.yaml"
+            self.render_template_values_extra_path_hc_vault = "charts/infra_services_charts/secret_manager/template_values_extra.yaml"
             self.secret_file = f"/tmp/{customer}_customer_vault_structure.json"
             self.chart_version = chart_version
             self.deployment_name = "secret-operator"
@@ -41,8 +40,8 @@ class SecretManager:
             self.chart_name = "external-secrets/external-secrets"
             self.values_path = "charts/infra_services_charts/secret_manager_operator/values.yaml"
             self.values_extra_path = "charts/infra_services_charts/secret_manager_operator/values_extra.yaml"
-            self.render_template_values_path = f"charts/infra_services_charts/secret_manager_operator/template_values.yaml"
-            self.render_template_values_extra_path = f"charts/infra_services_charts/secret_manager_operator/template_values_extra.yaml"
+            self.render_template_values_path = "charts/infra_services_charts/secret_manager_operator/template_values.yaml"
+            self.render_template_values_extra_path = "charts/infra_services_charts/secret_manager_operator/template_values_extra.yaml"
         if method=="external_infisical":
             self.chart_version = chart_version
             self.deployment_name = "secret-operator"
@@ -51,8 +50,8 @@ class SecretManager:
             self.chart_name = "infisical/secrets-operator"
             self.values_path = "charts/infra_services_charts/secret_manager_operator/values.yaml"
             self.values_extra_path = "charts/infra_services_charts/secret_manager_operator/values_extra.yaml"
-            self.render_template_values_path = f"charts/infra_services_charts/secret_manager_operator/template_values.yaml"
-            self.render_template_values_extra_path = f"charts/infra_services_charts/secret_manager_operator/template_values_extra.yaml"
+            self.render_template_values_path = "charts/infra_services_charts/secret_manager_operator/template_values.yaml"
+            self.render_template_values_extra_path = "charts/infra_services_charts/secret_manager_operator/template_values_extra.yaml"
         #MetadataCollection
         self.app_name = self.chart_name.split('/')[1]
 
@@ -119,7 +118,6 @@ data:
     
     def _get_base64_encoded_file_content(self, file_path):
         """Get base64 encoded content of a file"""
-        import base64
         with open(file_path, 'rb') as f:
             return base64.b64encode(f.read()).decode('utf-8')
 

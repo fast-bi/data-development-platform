@@ -1,6 +1,5 @@
 import sqlite3
 import contextlib
-from pathlib import Path
 import os
 from app.utils import DB_PATH  # Import the DB_PATH
 

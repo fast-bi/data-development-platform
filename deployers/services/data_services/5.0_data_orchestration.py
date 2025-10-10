@@ -1,7 +1,5 @@
 import subprocess
 import os
-import time
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -10,7 +8,6 @@ import sys
 import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound # type: ignore
-from typing import Optional
 import base64
 
 # Configure logging
@@ -121,18 +118,18 @@ class PlatformDataOrchestration:
         self.data_orchestration_chart_repo = "https://airflow.apache.org"
         
         # Values paths
-        self.data_orchestration_values_path = f"charts/data_services_charts/data_orchestration/values.yaml"
-        self.data_orchestration_render_template_values_path = f"charts/data_services_charts/data_orchestration/template_values.yaml"
-        self.data_orchestration_extra_values_path = f"charts/data_services_charts/data_orchestration/values_extra.yaml"
-        self.data_orchestration_extra_render_template_values_path = f"charts/data_services_charts/data_orchestration/template_extra_values.yaml"
+        self.data_orchestration_values_path = "charts/data_services_charts/data_orchestration/values.yaml"
+        self.data_orchestration_render_template_values_path = "charts/data_services_charts/data_orchestration/template_values.yaml"
+        self.data_orchestration_extra_values_path = "charts/data_services_charts/data_orchestration/values_extra.yaml"
+        self.data_orchestration_extra_render_template_values_path = "charts/data_services_charts/data_orchestration/template_extra_values.yaml"
 
         # Data Dbt Server
         self.data_dbt_server_chart_repo_name = "kube-core"
         self.data_dbt_server_chart_name = "kube-core/raw"
         self.data_dbt_server_chart_repo = "https://kube-core.github.io/helm-charts"
         self.data_dbt_server_chart_version = "0.1.1"
-        self.data_dbt_server_values_path = f"charts/data_services_charts/data_dbt_server/values.yaml"
-        self.data_dbt_server_render_template_values_path = f"charts/data_services_charts/data_dbt_server/template_values.yaml"
+        self.data_dbt_server_values_path = "charts/data_services_charts/data_dbt_server/values.yaml"
+        self.data_dbt_server_render_template_values_path = "charts/data_services_charts/data_dbt_server/template_values.yaml"
         self.data_dbt_server_deployment_name = "data-dbt-server-prerequisites"
         self.data_dbt_server_namespace = "dbt-server"
 
@@ -263,7 +260,6 @@ class PlatformDataOrchestration:
                 'ingress_host': self.ingress_host,
                 'data_orchestration_k8s_sa': self.data_orchestration_k8s_sa,
                 'data_orchestration_dbt_server_k8s_sa': self.data_orchestration_dbt_server_k8s_sa,
-                'ingress_host': self.ingress_host,
                 'oauth_realm_url': self.oauth_realm_url,
                 'project_slug': self.slug,
                 'namespace': self.namespace,
@@ -361,7 +357,7 @@ class PlatformDataOrchestration:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

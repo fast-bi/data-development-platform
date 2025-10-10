@@ -4,7 +4,6 @@
 
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -66,8 +65,8 @@ class Platformk8sGitRunner:
         # Chart configuration Global
         self.chart_version = chart_version
         self.deployment_name = "fastbi-cicd-trigger-runner"
-        self.values_path = f"charts/data_services_charts/cicd_workload_runner/values.yaml"
-        self.values_extra_path = f"charts/data_services_charts/cicd_workload_runner/values_extra.yaml"
+        self.values_path = "charts/data_services_charts/cicd_workload_runner/values.yaml"
+        self.values_extra_path = "charts/data_services_charts/cicd_workload_runner/values_extra.yaml"
 
         # Extra values file chart configuration
         self.extra_chart_version = "0.1.1"
@@ -75,7 +74,7 @@ class Platformk8sGitRunner:
         self.extra_chart_repo_name = "kube-core"
         self.extra_chart_repo = "https://kube-core.github.io/helm-charts"
         self.extra_chart_name = "kube-core/raw"
-        self.extra_render_template_values_extra_path = f"charts/data_services_charts/cicd_workload_runner/values_extra.yaml"
+        self.extra_render_template_values_extra_path = "charts/data_services_charts/cicd_workload_runner/values_extra.yaml"
         
         # Git Provider Specific
         if not self.git_provider:
@@ -85,32 +84,32 @@ class Platformk8sGitRunner:
             self.chart_repo_name = "gitlab"
             self.chart_repo = "https://charts.gitlab.io/"
             self.chart_name = "gitlab/gitlab-runner"
-            self.render_template_values_path = f"charts/data_services_charts/cicd_workload_runner/gitlab/template_gitlab_values.yaml"
-            self.render_template_values_extra_path = f"charts/data_services_charts/cicd_workload_runner/gitlab/template_gitlab_values_extra.yaml"
+            self.render_template_values_path = "charts/data_services_charts/cicd_workload_runner/gitlab/template_gitlab_values.yaml"
+            self.render_template_values_extra_path = "charts/data_services_charts/cicd_workload_runner/gitlab/template_gitlab_values_extra.yaml"
         elif self.git_provider == "gitlab":
             self.chart_repo_name = "gitlab"
             self.chart_repo = "https://charts.gitlab.io/"
             self.chart_name = "gitlab/gitlab-runner"
-            self.render_template_values_path = f"charts/data_services_charts/cicd_workload_runner/gitlab/template_gitlab_values.yaml"
-            self.render_template_values_extra_path = f"charts/data_services_charts/cicd_workload_runner/gitlab/template_gitlab_values_extra.yaml"
+            self.render_template_values_path = "charts/data_services_charts/cicd_workload_runner/gitlab/template_gitlab_values.yaml"
+            self.render_template_values_extra_path = "charts/data_services_charts/cicd_workload_runner/gitlab/template_gitlab_values_extra.yaml"
         elif self.git_provider == "github":
             self.chart_repo_name = "github"
             self.chart_repo = "https://actions-runner-controller.github.io/actions-runner-controller"
             self.chart_name = "actions-runner-controller/actions-runner-controller"
-            self.render_template_values_path = f"charts/data_services_charts/cicd_workload_runner/github/template_github_values.yaml"
-            self.render_template_values_extra_path = f"charts/data_services_charts/cicd_workload_runner/github/template_github_values_extra.yaml"
+            self.render_template_values_path = "charts/data_services_charts/cicd_workload_runner/github/template_github_values.yaml"
+            self.render_template_values_extra_path = "charts/data_services_charts/cicd_workload_runner/github/template_github_values_extra.yaml"
         elif self.git_provider == "gitea":
             self.chart_repo_name = "gitea"
             self.chart_repo = "https://gitea.com/marketplace/actions/gitea-actions-runner-controller"
             self.chart_name = "gitea-actions-runner-controller/gitea-actions-runner-controller"
-            self.render_template_values_path = f"charts/data_services_charts/cicd_workload_runner/gitea/template_gitea_values.yaml"
-            self.render_template_values_extra_path = f"charts/data_services_charts/cicd_workload_runner/gitea/template_gitea_values_extra.yaml"
+            self.render_template_values_path = "charts/data_services_charts/cicd_workload_runner/gitea/template_gitea_values.yaml"
+            self.render_template_values_extra_path = "charts/data_services_charts/cicd_workload_runner/gitea/template_gitea_values_extra.yaml"
         elif self.git_provider == "bitbucket":
             self.chart_repo_name = "bitbucket"
             self.chart_repo = "https://bitbucket.org/marketplace/actions/bitbucket-actions-runner-controller"
             self.chart_name = "bitbucket-actions-runner-controller/bitbucket-actions-runner-controller"
-            self.render_template_values_path = f"charts/data_services_charts/cicd_workload_runner/bitbucket/template_bitbucket_values.yaml"
-            self.render_template_values_extra_path = f"charts/data_services_charts/cicd_workload_runner/bitbucket/template_bitbucket_values_extra.yaml"
+            self.render_template_values_path = "charts/data_services_charts/cicd_workload_runner/bitbucket/template_bitbucket_values.yaml"
+            self.render_template_values_extra_path = "charts/data_services_charts/cicd_workload_runner/bitbucket/template_bitbucket_values_extra.yaml"
         else:
             raise ValueError(f"Unsupported git provider: {self.git_provider}")
 
@@ -356,7 +355,7 @@ class Platformk8sGitRunner:
             output = template.render(context)
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound as e:
             logger.error(f"Template not found: {e}")
             raise
@@ -398,16 +397,6 @@ class Platformk8sGitRunner:
                 git_repo = self.get_secret_from_vault(
                     secret_name="data_repo_url",
                     secret_path="/data-platform-runner/git_provider_repo_urls/",
-                    access_token=access_token
-                )
-            
-            if self.git_provider:
-                git_provider = self.git_provider
-            else:
-                # Get git repo from vault
-                git_provider = self.get_secret_from_vault(
-                    secret_name="GIT_PROVIDER",
-                    secret_path="/data-cicd-workflows/customer-cicd-variables/",
                     access_token=access_token
                 )
                 
@@ -460,7 +449,7 @@ class Platformk8sGitRunner:
                     chart_name=self.extra_chart_name,
                     chart_version=self.extra_chart_version,
                     namespace=self.namespace,
-                    values_path=self.extra_render_template_values_extra_path
+                    values_path=self.values_extra_path
                 )
 
             # Metadata Collection

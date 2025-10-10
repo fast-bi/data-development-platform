@@ -6,9 +6,8 @@ import argparse
 import tempfile
 import shutil
 import subprocess
-from pathlib import Path
-from typing import Dict, Any, Optional, List
-from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+from typing import Any
+from jinja2 import Environment, FileSystemLoader
 import requests
 
 # Configure logging
@@ -26,20 +25,20 @@ class CustomerDataPlatformRepositoryOperator:
                  customer: str,
                  domain: str,
                  method: str = "local_vault",
-                 external_infisical_host: Optional[str] = None,
-                 slug: Optional[str] = None,
-                 vault_project_id: Optional[str] = None,
-                 secret_manager_client_id: Optional[str] = None,
-                 secret_manager_client_secret: Optional[str] = None,
-                 git_provider: Optional[str] = None,
+                 external_infisical_host: str | None = None,
+                 slug: str | None = None,
+                 vault_project_id: str | None = None,
+                 secret_manager_client_id: str | None = None,
+                 secret_manager_client_secret: str | None = None,
+                 git_provider: str | None = None,
                  repo_authentication: str = "deploy_keys",
-                 data_orchestrator_repo_url: Optional[str] = None,
-                 data_model_repo_url: Optional[str] = None,
-                 data_orchestrator_repo_private_key: Optional[str] = None,
-                 data_model_repo_private_key: Optional[str] = None,
-                 global_access_token: Optional[str] = None,
-                 data_orchestrator_repo_access_token: Optional[str] = None,
-                 data_model_repo_access_token: Optional[str] = None,
+                 data_orchestrator_repo_url: str | None = None,
+                 data_model_repo_url: str | None = None,
+                 data_orchestrator_repo_private_key: str | None = None,
+                 data_model_repo_private_key: str | None = None,
+                 global_access_token: str | None = None,
+                 data_orchestrator_repo_access_token: str | None = None,
+                 data_model_repo_access_token: str | None = None,
                  argo_server_url_type: str = "internal",
                  argo_cli_version: str = "v3.4.3",
                  cicd_workflows_template_version: str = "latest"):
@@ -222,7 +221,7 @@ The Airflow service requires SSH access to pull DAGs from the repository.
             logger.error(f"Failed to load secrets: {str(e)}")
             raise
 
-    def _get_template_paths(self, repo_type: str) -> Dict[str, str]:
+    def _get_template_paths(self, repo_type: str) -> dict[str, str]:
         """Get template paths for the given repository type."""
         base_path = "utils/templates/git_repo_templates"
         
@@ -486,15 +485,6 @@ Host data_model
     def _render_repository_templates(self, repo_dir: str, repo_type: str) -> None:
         """Render repository templates with context."""
         try:
-            context = {
-                'customer': self.customer,
-                'git_provider': self.git_provider,
-                'argo_server_url_type': self.argo_server_url_type,
-                'ARGO_SERVER_URL': self.argo_server_url,
-                'ARGO_CLI_VERSION': self.argo_cli_version,
-                'CICD_WORKFLOWS_TEMPLATE_VERSION': self.cicd_workflows_template_version
-            }
-
             for root, _, files in os.walk(repo_dir):
                 for file in files:
                     if file.endswith('_template'):
@@ -507,7 +497,7 @@ Host data_model
             logger.error(f"Failed to render repository templates: {str(e)}")
             raise
 
-    def authenticate_with_vault(self) -> Optional[str]:
+    def authenticate_with_vault(self) -> str | None:
         """Authenticate with the vault and return an access token."""
         if self.method != "external_infisical":
             return None
@@ -527,7 +517,7 @@ Host data_model
             logger.error(f"Failed to authenticate with vault: {str(e)}")
             raise
 
-    def get_secret_from_vault(self, secret_name: str, secret_path: str, access_token: Optional[str] = None) -> str:
+    def get_secret_from_vault(self, secret_name: str, secret_path: str, access_token: str | None = None) -> str:
         """Retrieve a secret from the vault using the appropriate method."""
         if self.method == "external_infisical":
             return self._get_secret_from_external_vault(secret_name, secret_path, access_token)
@@ -708,11 +698,11 @@ Host data_model
             except subprocess.CalledProcessError as e:
                 # Check if the error is due to empty repository
                 if "warning: You appear to have cloned an empty repository" in str(e.stderr) or "empty repository" in str(e.stderr):
-                    logger.info(f"Repository is empty, initializing with default branch")
+                    logger.info("Repository is empty, initializing with default branch")
                     # Try to clone with --allow-empty-repository flag if available
                     try:
                         subprocess.run(['git', 'clone', '--allow-empty-repository', clone_url, work_dir], check=True)
-                        logger.info(f"Successfully cloned empty repository")
+                        logger.info("Successfully cloned empty repository")
                     except subprocess.CalledProcessError:
                         # Fallback: clone and initialize manually
                         subprocess.run(['git', 'clone', clone_url, work_dir], check=False)
@@ -778,7 +768,7 @@ Host data_model
             # Create and switch to main branch
             subprocess.run(['git', 'branch', '-M', 'main'], cwd=work_dir, check=True)
             
-            logger.info(f"Successfully initialized empty repository with main branch")
+            logger.info("Successfully initialized empty repository with main branch")
             
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to initialize empty repository: {e}")
@@ -824,7 +814,7 @@ Host data_model
         try:
             # Configure git
             subprocess.run(['git', 'config', 'user.email', f"{self.customer}@fast.bi"], cwd=work_dir, check=True)
-            subprocess.run(['git', 'config', 'user.name', f"FastBI Bot"], cwd=work_dir, check=True)
+            subprocess.run(['git', 'config', 'user.name', "FastBI Bot"], cwd=work_dir, check=True)
 
             # Get default branch
             default_branch = self._get_default_branch(work_dir)
@@ -899,7 +889,7 @@ Host data_model
             logger.error(f"Failed to commit and push changes: {str(e)}")
             raise
 
-    def run(self) -> Dict[str, Any]:
+    def run(self) -> dict[str, Any]:
         """Main execution method to set up both repositories."""
         try:
             logger.info(f"Starting repository setup for customer: {self.customer}")

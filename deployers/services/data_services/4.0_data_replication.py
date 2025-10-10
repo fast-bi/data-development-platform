@@ -1,7 +1,5 @@
 import subprocess
 import os
-import time
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -10,7 +8,6 @@ import sys
 import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound # type: ignore
-from typing import Optional
 
 # Configure logging
 logging.basicConfig(
@@ -134,12 +131,12 @@ class PlatformDataReplication:
         self.data_replication_psql_chart_version = "16.6.7"
         
         # Values paths
-        self.data_replication_values_path = f"charts/data_services_charts/data_replication/values.yaml"
-        self.data_replication_render_template_values_path = f"charts/data_services_charts/data_replication/template_values.yaml"
-        self.data_replication_oauth_values_path = f"charts/data_services_charts/data_replication/oauth2proxy_values.yaml"
-        self.data_replication_oauth_render_template_values_path = f"charts/data_services_charts/data_replication/template_oauth2proxy_values.yaml"
-        self.data_replication_psql_values_path = f"charts/data_services_charts/data_replication/postgresql_values.yaml"
-        self.data_replication_psql_render_template_values_path = f"charts/data_services_charts/data_replication/template_postgresql_values.yaml"
+        self.data_replication_values_path = "charts/data_services_charts/data_replication/values.yaml"
+        self.data_replication_render_template_values_path = "charts/data_services_charts/data_replication/template_values.yaml"
+        self.data_replication_oauth_values_path = "charts/data_services_charts/data_replication/oauth2proxy_values.yaml"
+        self.data_replication_oauth_render_template_values_path = "charts/data_services_charts/data_replication/template_oauth2proxy_values.yaml"
+        self.data_replication_psql_values_path = "charts/data_services_charts/data_replication/postgresql_values.yaml"
+        self.data_replication_psql_render_template_values_path = "charts/data_services_charts/data_replication/template_postgresql_values.yaml"
         
         # Additional configuration
         self.data_replication_default_destination_type = data_replication_default_destination_type
@@ -361,7 +358,7 @@ class PlatformDataReplication:
             output = template.render(context)
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -9,7 +8,6 @@ import sys
 import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
-from typing import Optional
 
 # Configure logging for import usage (no file handler by default)
 logging.basicConfig(
@@ -119,27 +117,27 @@ class PlatformUserConsole:
         self.data_platform_user_console_chart_repo = "https://kube-core.github.io/helm-charts"
         self.data_platform_user_console_chart_version = self.chart_version
         self.data_platform_user_console_deployment_name = "data-platform-user-console"
-        self.data_platform_user_console_values_path = f"charts/data_services_charts/user_console/values.yaml"
-        self.data_platform_user_console_render_template_values_path = f"charts/data_services_charts/user_console/template_values.yaml"
+        self.data_platform_user_console_values_path = "charts/data_services_charts/user_console/values.yaml"
+        self.data_platform_user_console_render_template_values_path = "charts/data_services_charts/user_console/template_values.yaml"
         self.data_platform_user_console_app_name = "data-platform-user-console"
         
         # Image versions
-        self.tsb_fastbi_web_core_image = f"4fastbi/data-platform-ui-core"
+        self.tsb_fastbi_web_core_image = "4fastbi/data-platform-ui-core"
         self.tsb_fastbi_web_core_image_version = tsb_fastbi_web_core_image_version
         self.embeded_grafana_image_version = "grafana/grafana:11.6.2"
-        self.tsb_dbt_init_core_image = f"4fastbi/data-platform-init-core"
+        self.tsb_dbt_init_core_image = "4fastbi/data-platform-init-core"
         self.tsb_dbt_init_core_image_version = tsb_dbt_init_core_image_version
         self.data_platform_user_console_app_version = f"FastBI-{self.tsb_fastbi_web_core_image_version}-FastBI-API-{self.tsb_dbt_init_core_image_version}"
         
         # Endpoints and connections
         self.fastbi_dbt_project_variables_file = "dbt_airflow_variables.yml"
         self.data_replication_internal_k8s_web_svc = "data-replication-airbyte-webapp-svc.data-replication.svc.cluster.local"
-        self.data_dcdq_metacollector_endpoint_url = f"http://data-dcdq-metacollect.data-dcdq-metacollect.svc.cluster.local"
+        self.data_dcdq_metacollector_endpoint_url = "http://data-dcdq-metacollect.data-dcdq-metacollect.svc.cluster.local"
         self.main_endpoint = f"https://{self.ingress_host}"
         self.data_services_reply_email = f"no-reply@{self.ingress_host}"
         self.data_replication_endpoint = f"https://airbyte.{self.ingress_host}/oauth2/start"
         self.data_orchestration_endpoint = f"https://airflow.{self.ingress_host}/login/FastBI-SSO?next=/"
-        self.data_orchestration_internal_k8s_web_svc = f"http://data-orchestration-webserver.data-orchestration.svc.cluster.local"
+        self.data_orchestration_internal_k8s_web_svc = "http://data-orchestration-webserver.data-orchestration.svc.cluster.local"
         self.data_workflows_endpoint = f"https://workflows.{self.ingress_host}/oauth2/redirect?redirect=https://workflows.{self.ingress_host}/workflows"
         self.data_catalog_endpoint = f"https://data-catalog.{self.ingress_host}/"
         self.data_quality_endpoint = f"https://data-quality.{self.ingress_host}/"
@@ -147,14 +145,14 @@ class PlatformUserConsole:
         self.data_manipulation_endpoint = f"https://ide.{self.ingress_host}/"
         self.data_platform_monitoring_endpoint = f"https://monitoring.{self.ingress_host}"
         self.data_platform_object_storage_endpoint = f"https://minio.{self.ingress_host}"
-        self.data_platform_object_storage_svc_endpoint = f"http://minio.minio.svc.cluster.local"
+        self.data_platform_object_storage_svc_endpoint = "http://minio.minio.svc.cluster.local"
         self.data_platform_object_storage_api_endpoint = f"s3.{self.ingress_host}"
-        self.dbt_project_archive_bucket = f"dbt-project-archive"
+        self.dbt_project_archive_bucket = "dbt-project-archive"
         self.sso_idp_platform_endpoint = f"https://login.{self.ingress_host}/"
         self.sso_idp_platform_admin_endpoint = f"https://login.{self.ingress_host}/admin/{self.customer}/console/"
         self.sso_idp_platform_users_endpoint = f"https://login.{self.ingress_host}/realms/{self.customer}/account"
         self.sso_idp_platform_realm_endoint = f"{self.sso_idp_platform_endpoint}realms/{self.customer}"
-        self.wiki_fastbi_endpoint = f"https://wiki.fast.bi/"
+        self.wiki_fastbi_endpoint = "https://wiki.fast.bi/"
         
         if self.bi_system == "superset":
             self.bi_endpoint = f"https://bi.{self.customer_root_domain}/login/FastBI-SSO?next="
@@ -167,8 +165,8 @@ class PlatformUserConsole:
         self.data_platform_user_console_psql_chart_repo_name = "bitnami"
         self.data_platform_user_console_psql_chart_name = "oci://registry-1.docker.io/bitnamicharts/postgresql"
         self.data_platform_user_console_psql_chart_repo = "https://charts.bitnami.com/bitnami"
-        self.data_platform_user_console_psql_values_path = f"charts/data_services_charts/user_console/postgresql_values.yaml"
-        self.data_platform_user_console_psql_render_template_values_path = f"charts/data_services_charts/user_console/template_postgresql_values.yaml"
+        self.data_platform_user_console_psql_values_path = "charts/data_services_charts/user_console/postgresql_values.yaml"
+        self.data_platform_user_console_psql_render_template_values_path = "charts/data_services_charts/user_console/template_postgresql_values.yaml"
 
         # Set app_name after BI system initialization
         self.app_name = self.data_platform_user_console_chart_name.split('/')[1] if '/' in self.data_platform_user_console_chart_name else self.data_platform_user_console_chart_name
@@ -402,7 +400,7 @@ class PlatformUserConsole:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-                logger.debug(f"Template rendered successfully")
+                logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")
@@ -632,15 +630,15 @@ class PlatformUserConsole:
                 data_replication_db_port = "5432"
                 data_orchestration_db_port = "5432"
                 user_console_psql_host = f"data-platform-user-console-psql.{self.namespace}.svc.cluster.local"
-                data_replication_db_host = f"data-replication-db-psql.data-replication.svc.cluster.local"
-                data_orchestration_db_host = f"data-orchestration-db-psql.data-orchestration.svc.cluster.local"
+                data_replication_db_host = "data-replication-db-psql.data-replication.svc.cluster.local"
+                data_orchestration_db_host = "data-orchestration-db-psql.data-orchestration.svc.cluster.local"
             else:
                 user_console_psql_port = "5432"
                 data_replication_db_port = "5432"
                 data_orchestration_db_port = "5432"
-                user_console_psql_host = f"fastbi-global-psql.global-postgresql.svc.cluster.local"
-                data_replication_db_host = f"fastbi-global-psql.global-postgresql.svc.cluster.local"
-                data_orchestration_db_host = f"fastbi-global-psql.global-postgresql.svc.cluster.local"
+                user_console_psql_host = "fastbi-global-psql.global-postgresql.svc.cluster.local"
+                data_replication_db_host = "fastbi-global-psql.global-postgresql.svc.cluster.local"
+                data_orchestration_db_host = "fastbi-global-psql.global-postgresql.svc.cluster.local"
 
 
             # Deploy PostgreSQL if local_postgresql is True
@@ -715,7 +713,7 @@ class PlatformUserConsole:
             logger.info("Waiting for User Console to be ready...")
             self.execute_command([
                 "kubectl", "wait", "--for=condition=ready", "pod",
-                "-l", f"fastbi=data-platform-user-console",
+                "-l", "fastbi=data-platform-user-console",
                 "-n", self.namespace,
                 "--timeout=300s",
                 "--kubeconfig", self.kube_config

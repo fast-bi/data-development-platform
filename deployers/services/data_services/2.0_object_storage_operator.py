@@ -1,7 +1,6 @@
 import subprocess
 import os
 import time
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -93,13 +92,13 @@ class PlatformObjectStorage:
         self.chart_repo_name = "minio"
         self.chart_name = "minio/tenant"
         self.chart_repo = "https://operator.min.io/"
-        self.values_path = f"charts/data_services_charts/object_storage_operator/values.yaml"
-        self.render_template_values_path = f"charts/data_services_charts/object_storage_operator/template_values.yaml"
+        self.values_path = "charts/data_services_charts/object_storage_operator/values.yaml"
+        self.render_template_values_path = "charts/data_services_charts/object_storage_operator/template_values.yaml"
         self.operator_chart_version = operator_chart_version
         self.operator_deployment_name = "object-storage-operator"
         self.operator_chart_name = "minio/operator"
-        self.operator_values_path = f"charts/data_services_charts/object_storage_operator/operator_values.yaml"
-        self.operator_render_template_values_path = f"charts/data_services_charts/object_storage_operator/operator_template_values.yaml"
+        self.operator_values_path = "charts/data_services_charts/object_storage_operator/operator_values.yaml"
+        self.operator_render_template_values_path = "charts/data_services_charts/object_storage_operator/operator_template_values.yaml"
         self.customer_root_domain = f"{self.customer}.{self.domain_name}"
         self.ingress_host = f"minio.{self.customer_root_domain}"
         self.api_ingress_host = f"s3.{self.customer_root_domain}"
@@ -266,7 +265,7 @@ class PlatformObjectStorage:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")
