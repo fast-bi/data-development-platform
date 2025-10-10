@@ -1,9 +1,9 @@
 terraform {
-  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/kubeconfig?ref=v1.0.0"
+  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/kubeconfig?ref=v1.1.0"
 }
 
 include "root" {
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
   expose = true
 }
 
@@ -20,4 +20,4 @@ inputs = {
   cluster_endpoint       = dependency.gke_cluster.outputs.endpoint
   cluster_ca_certificate = dependency.gke_cluster.outputs.cluster_ca_certificate
   output_path           = "${get_terragrunt_dir()}/${include.root.locals.kubeconfig_output_path}"
-} 
+}

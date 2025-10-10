@@ -116,12 +116,12 @@ class GoogleCloudManager:
         self.env_yaml_template_path = f"terraform/google_cloud/templates/env.yaml_template"
         self.env_yaml_path = f"terraform/google_cloud/terragrunt/bi-platform/env.yaml"
         if self.deployment_environemnt == "basic":
-            self.terragrunt_hcl_template_path = f"terraform/google_cloud/templates/terragrunt.hcl_basic_template"
+            self.terragrunt_hcl_template_path = f"terraform/google_cloud/templates/root.hcl_basic_template"
         elif self.deployment_environemnt == "advanced":
-            self.terragrunt_hcl_template_path = f"terraform/google_cloud/templates/terragrunt.hcl_advanced_template"
+            self.terragrunt_hcl_template_path = f"terraform/google_cloud/templates/root.hcl_advanced_template"
         else:
             raise Exception("Deployment environment is not supported")
-        self.terragrunt_hcl_path  = f"terraform/google_cloud/terragrunt/bi-platform/terragrunt.hcl"
+        self.terragrunt_hcl_path  = f"terraform/google_cloud/terragrunt/bi-platform/root.hcl"
         #MetadataCollection
 
     def render_template(self, template_path, output_path, context):

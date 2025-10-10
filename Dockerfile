@@ -59,7 +59,7 @@ RUN echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] http
 RUN apt-get update && apt-get install -y terraform
 
 # Setup Terragrunt
-RUN wget https://github.com/gruntwork-io/terragrunt/releases/download/v0.84.0/terragrunt_linux_amd64
+RUN wget https://github.com/gruntwork-io/terragrunt/releases/download/v0.88.1/terragrunt_linux_amd64
 RUN mv terragrunt_linux_amd64 terragrunt
 RUN chmod u+x terragrunt
 RUN mv terragrunt /usr/local/bin/terragrunt
