@@ -9,6 +9,7 @@ values.yaml
 values_extra.yaml
 alerts_cm.yaml
 dashboard_cm.yaml
+terraform/google_cloud/terragrunt/bi-platform/terragrunt.hcl
 terraform/google_cloud/terragrunt/bi-platform/root.hcl
 terraform/google_cloud/terragrunt/bi-platform/env.yaml
 terraform/google_cloud/terragrunt/bi-platform/backend.tf

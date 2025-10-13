@@ -377,6 +377,15 @@ helm upgrade -i data-modeling-hub jupyterhub/jupyterhub \
   --values data_modeling/values.yaml \
   --kubeconfig kubeconfig.yaml
 
+## Based on Analysis services (Lighdash: lightdash/lightdash, Superset: superset/superset, Metabase: metabase/metabase )
+helm upgrade -i data-analysis-hub superset/superset \
+  --version < your_version_here > \
+  --set image.tag=< your_version_here > \
+  --namespace data-analysis \
+  --wait \
+  --timeout 1h \
+  --values data_analysis/superset/values.yaml
+
 # Data Catalog and Quality
 helm upgrade -i data-dcdq-metacollect-hub kube-core/raw \
   --version <version_from_values.yaml> \
