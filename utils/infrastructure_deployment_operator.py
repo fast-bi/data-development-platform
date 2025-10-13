@@ -419,7 +419,7 @@ class InfrastructureDeploymentOperator:
         if self.cloud_provider == "gcp":
             mapping = {
                 '.': ['.gitignore', 'defaults.yaml', 'empty.yaml', f'{self.customer}_deployment.log'],
-                'bi-platform': ['terragrunt.hcl', 'backend.tf', 'env.yaml'],
+                'bi-platform': ['root.hcl', 'backend.tf', 'env.yaml'],
                 'bi-platform/00-create-ou-folder': ['terragrunt.hcl'],
                 'bi-platform/01-create-project': ['terragrunt.hcl'],
                 'bi-platform/02-enable-apis': ['terragrunt.hcl'],
@@ -470,7 +470,7 @@ class InfrastructureDeploymentOperator:
         elif self.cloud_provider == "aws":
             mapping = {
                 '.': ['.gitignore', 'defaults.yaml', 'empty.yaml', f'{self.customer}_deployment.log'],
-                'bi-platform': ['terragrunt.hcl', 'backend.tf', 'env.yaml'],
+                'bi-platform': ['root.hcl', 'backend.tf', 'env.yaml'],
                 'bi-platform/01-enable-apis': ['terragrunt.hcl'],
                 'bi-platform/02-apps-vpc': ['terragrunt.hcl'],
                 'bi-platform/03-external-ip-traefik': ['terragrunt.hcl'],
@@ -501,7 +501,7 @@ class InfrastructureDeploymentOperator:
         elif self.cloud_provider == "azure":
             mapping = {
                 '.': ['.gitignore', 'defaults.yaml', 'empty.yaml', f'{self.customer}_deployment.log'],
-                'bi-platform': ['terragrunt.hcl', 'backend.tf', 'env.yaml'],
+                'bi-platform': ['root.hcl', 'backend.tf', 'env.yaml'],
                 'bi-platform/01-enable-apis': ['terragrunt.hcl'],
                 'bi-platform/02-apps-vpc': ['terragrunt.hcl'],
                 'bi-platform/03-external-ip-traefik': ['terragrunt.hcl'],

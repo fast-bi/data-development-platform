@@ -245,7 +245,8 @@ githubWebhookServer:
     # If not set and create is true, a name is generated using the fullname template
     name: ""
   podAnnotations: {}
-  podLabels: {}
+  podLabels:
+    fastbi: cicd-workload-runner
   podSecurityContext: {}
   # fsGroup: 2000
   securityContext: {}

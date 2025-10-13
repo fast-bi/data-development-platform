@@ -1,9 +1,9 @@
 terraform {
-  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/create-project?ref=v1.0.0"
+  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/create-project?ref=v1.1.0"
 }
 
 include "root" {
-  path = find_in_parent_folders()
+  path = find_in_parent_folders("root.hcl")
   expose = true
 }
 

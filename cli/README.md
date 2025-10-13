@@ -98,8 +98,8 @@ curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
 sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
 sudo apt-get update && sudo apt-get install terraform
 
-# Install Terragrunt v0.84.0
-sudo curl -fsSL -o /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.84.0/terragrunt_linux_amd64
+# Install Terragrunt v0.88.1
+sudo curl -fsSL -o /usr/local/bin/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.88.1/terragrunt_linux_amd64
 sudo chmod +x /usr/local/bin/terragrunt
 
 # Install Helm

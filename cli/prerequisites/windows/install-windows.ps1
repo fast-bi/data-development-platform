@@ -458,8 +458,8 @@ function Install-Terragrunt {
     }
     
     # Install specific Terragrunt version for consistency
-    Write-Log "Installing Terragrunt v0.84.0..." $Blue
-    $terragruntVersion = "v0.84.0"
+    Write-Log "Installing Terragrunt v0.88.1..." $Blue
+    $terragruntVersion = "v0.88.1"
     $terragruntUrl = "https://github.com/gruntwork-io/terragrunt/releases/download/$terragruntVersion/terragrunt_windows_amd64.exe"
     $terragruntPath = "$env:TEMP\terragrunt.exe"
     
@@ -630,8 +630,8 @@ function Set-EnvironmentVariables {
     Write-Log "Configuring Terragrunt cache location..." $Blue
     try {
         $terragruntCachePath = "C:\temp\terragrunt-cache"
-        [Environment]::SetEnvironmentVariable("TERRAGRUNT_DOWNLOAD", $terragruntCachePath, "User")
-        $env:TERRAGRUNT_DOWNLOAD = $terragruntCachePath
+        [Environment]::SetEnvironmentVariable("TG_DOWNLOAD_DIR", $terragruntCachePath, "User")
+        $env:TG_DOWNLOAD_DIR = $terragruntCachePath
         
         # Create the cache directory if it doesn't exist
         if (-not (Test-Path $terragruntCachePath)) {
@@ -642,7 +642,7 @@ function Set-EnvironmentVariables {
         Write-Success "Terragrunt cache directory set to $terragruntCachePath"
         Write-Log "This prevents 'Filename too long' errors with Terraform modules" $White
     } catch {
-        Write-Warning "Could not set TERRAGRUNT_DOWNLOAD environment variable"
+        Write-Warning "Could not set TG_DOWNLOAD_DIR environment variable"
     }
     
     # Add Python Scripts to PATH if not already there

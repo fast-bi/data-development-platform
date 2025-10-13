@@ -9,7 +9,7 @@ values.yaml
 values_extra.yaml
 alerts_cm.yaml
 dashboard_cm.yaml
-terraform/google_cloud/terragrunt/bi-platform/terragrunt.hcl
+terraform/google_cloud/terragrunt/bi-platform/root.hcl
 terraform/google_cloud/terragrunt/bi-platform/env.yaml
 terraform/google_cloud/terragrunt/bi-platform/backend.tf
 *.log
@@ -39,5 +39,8 @@ terraform/google_cloud/terragrunt/env.yaml
 terraform/google_cloud/terragrunt/terragrunt.hcl
 .development_README.MD
 cli/state/deployment_state.json
+.vscode/
+.DS_Store
+.tmp_git/
 # Google Cloud authentication cache files
 **/gke_gcloud_auth_plugin_cache
