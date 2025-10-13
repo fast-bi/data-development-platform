@@ -379,7 +379,7 @@ helm upgrade -i data-modeling-hub jupyterhub/jupyterhub \
 
 ## Based on Analysis services (Lighdash: lightdash/lightdash, Superset: superset/superset, Metabase: metabase/metabase )
 helm upgrade -i data-analysis-hub superset/superset \
-  --version < your_version_here > \
+  --version <version_from_values.yaml> \
   --set image.tag=< your_version_here > \
   --namespace data-analysis \
   --wait \
