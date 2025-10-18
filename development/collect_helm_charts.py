@@ -9,12 +9,10 @@ service deployment files.
 Output: JSON file with all discovered Helm charts organized by service category.
 """
 
-import os
 import re
 import json
-import ast
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Any
 import logging
 
 # Configure logging
@@ -38,7 +36,7 @@ class HelmChartCollector:
             }
         }
         
-    def collect_all_charts(self) -> Dict[str, Any]:
+    def collect_all_charts(self) -> dict[str, Any]:
         """Collect all Helm charts from both data_services and infra_services directories"""
         logger.info("Starting Helm charts collection...")
         logger.info(f"Services directory: {self.services_dir}")
@@ -70,7 +68,7 @@ class HelmChartCollector:
         logger.info("Helm charts collection completed")
         return self.charts_data
     
-    def _scan_service_directory(self, service_dir: Path) -> Dict[str, Any]:
+    def _scan_service_directory(self, service_dir: Path) -> dict[str, Any]:
         """Scan a service directory and extract chart information from Python files"""
         services = {}
         
@@ -101,7 +99,7 @@ class HelmChartCollector:
         name = name.replace('.py', '')
         return name
     
-    def _extract_charts_from_file(self, file_path: Path) -> Optional[Dict[str, Any]]:
+    def _extract_charts_from_file(self, file_path: Path) -> dict[str, Any] | None:
         """Extract chart information from a Python service file"""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -145,7 +143,7 @@ class HelmChartCollector:
             logger.error(f"Error processing file {file_path}: {str(e)}")
             return None
     
-    def _extract_chart_patterns(self, content: str) -> List[Dict[str, str]]:
+    def _extract_chart_patterns(self, content: str) -> list[dict[str, str]]:
         """Extract chart repository and name patterns from content"""
         charts = []
         
@@ -245,7 +243,7 @@ class HelmChartCollector:
         
         return charts
     
-    def _extract_extra_chart_patterns(self, content: str) -> List[Dict[str, str]]:
+    def _extract_extra_chart_patterns(self, content: str) -> list[dict[str, str]]:
         """Extract extra chart patterns (like kube-core/raw)"""
         extra_charts = []
         
@@ -280,7 +278,7 @@ class HelmChartCollector:
         
         return extra_charts
     
-    def _extract_chart_versions(self, content: str) -> Dict[str, str]:
+    def _extract_chart_versions(self, content: str) -> dict[str, str]:
         """Extract chart versions from content"""
         versions = {}
         
@@ -306,7 +304,7 @@ class HelmChartCollector:
         
         return versions
     
-    def _extract_deployment_names(self, content: str) -> Dict[str, str]:
+    def _extract_deployment_names(self, content: str) -> dict[str, str]:
         """Extract deployment names from content"""
         deployment_names = {}
         
@@ -425,7 +423,7 @@ class HelmChartCollector:
         else:
             print("\n✅ No Bitnami dependencies found")
         
-        print(f"\nChart Repositories Used:")
+        print("\nChart Repositories Used:")
         for repo in summary['chart_repositories']:
             print(f"   - {repo}")
         print("="*60)
@@ -459,9 +457,6 @@ def main():
         # Initialize collector
         collector = HelmChartCollector(args.services_dir)
         
-        # Collect all charts
-        charts_data = collector.collect_all_charts()
-        
         # Save to JSON
         collector.save_to_json(args.output)
         
@@ -469,7 +464,7 @@ def main():
         if not args.no_summary:
             collector.print_summary()
         
-        print(f"\n✅ Helm charts inventory completed successfully!")
+        print("\n✅ Helm charts inventory completed successfully!")
         print(f"📄 Detailed data saved to: {args.output}")
         
     except Exception as e:

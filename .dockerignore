@@ -57,3 +57,5 @@ terraform/aws_cloud/terragrunt/env.yaml
 terraform/aws_cloud/terragrunt/terragrunt.hcl
 .development_README.MD
 cli/state/deployment_state.json
+# Local files
+.local/

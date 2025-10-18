@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -9,7 +8,6 @@ import sys
 import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
-from typing import Optional
 
 # Configure logging
 logging.basicConfig(
@@ -132,10 +130,10 @@ class DataAnalysisDeployer:
         self.data_analysis_deployment_name = "data-analysis-hub-extra"
 
         # Values paths
-        self.data_analysis_values_path = f"charts/data_services_charts/data_analysis/values.yaml"
-        self.data_analysis_render_template_values_path = f"charts/data_services_charts/data_analysis/template_values.yaml"
-        self.bi_psql_values_path = f"charts/data_services_charts/data_analysis/postgresql_values.yaml"
-        self.bi_psql_render_template_values_path = f"charts/data_services_charts/data_analysis/template_postgresql_values.yaml"
+        self.data_analysis_values_path = "charts/data_services_charts/data_analysis/values.yaml"
+        self.data_analysis_render_template_values_path = "charts/data_services_charts/data_analysis/template_values.yaml"
+        self.bi_psql_values_path = "charts/data_services_charts/data_analysis/postgresql_values.yaml"
+        self.bi_psql_render_template_values_path = "charts/data_services_charts/data_analysis/template_postgresql_values.yaml"
         
         # Initialize BI system specific variables
         self._initialize_bi_system()
@@ -165,8 +163,8 @@ class DataAnalysisDeployer:
         self.chart_repo_name = "superset"
         self.chart_name = "superset/superset"
         self.chart_repo = "https://apache.github.io/superset"
-        self.values_path = f"charts/data_services_charts/data_analysis/superset/values.yaml"
-        self.render_template_values_path = f"charts/data_services_charts/data_analysis/superset/template_values.yaml"
+        self.values_path = "charts/data_services_charts/data_analysis/superset/values.yaml"
+        self.render_template_values_path = "charts/data_services_charts/data_analysis/superset/template_values.yaml"
 
     def _initialize_lightdash(self):
         """Initialize Lightdash specific variables"""
@@ -174,8 +172,8 @@ class DataAnalysisDeployer:
         self.chart_repo_name = "lightdash"
         self.chart_name = "lightdash/lightdash"
         self.chart_repo = "https://lightdash.github.io/helm-charts"
-        self.values_path = f"charts/data_services_charts/data_analysis/lightdash/values.yaml"
-        self.render_template_values_path = f"charts/data_services_charts/data_analysis/lightdash/template_values.yaml"
+        self.values_path = "charts/data_services_charts/data_analysis/lightdash/values.yaml"
+        self.render_template_values_path = "charts/data_services_charts/data_analysis/lightdash/template_values.yaml"
 
     def _initialize_metabase(self):
         """Initialize Metabase specific variables"""
@@ -183,8 +181,8 @@ class DataAnalysisDeployer:
         self.chart_repo_name = "metabase"
         self.chart_name = "metabase/metabase"
         self.chart_repo = "https://pmint93.github.io/helm-charts"
-        self.values_path = f"charts/data_services_charts/data_analysis/metabase/values.yaml"
-        self.render_template_values_path = f"charts/data_services_charts/data_analysis/metabase/template_values.yaml"
+        self.values_path = "charts/data_services_charts/data_analysis/metabase/values.yaml"
+        self.render_template_values_path = "charts/data_services_charts/data_analysis/metabase/template_values.yaml"
 
     def _initialize_looker(self):
         """Initialize Looker specific variables"""
@@ -192,8 +190,8 @@ class DataAnalysisDeployer:
         self.chart_repo_name = "looker"
         self.chart_name = "looker"
         self.chart_repo = "https://looker.github.io/helm-charts"
-        self.values_path = f"charts/data_services_charts/data_analysis/looker/values.yaml"
-        self.render_template_values_path = f"charts/data_services_charts/data_analysis/looker/template_values.yaml"
+        self.values_path = "charts/data_services_charts/data_analysis/looker/values.yaml"
+        self.render_template_values_path = "charts/data_services_charts/data_analysis/looker/template_values.yaml"
 
     def _validate_template_paths(self):
         """Validate that all required template files exist"""
@@ -432,7 +430,7 @@ class DataAnalysisDeployer:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-                logger.debug(f"Template rendered successfully")
+                logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")
@@ -754,7 +752,7 @@ class DataAnalysisDeployer:
             logger.info("Waiting for Data Analysis to be ready...")
             self.execute_command([
                 "kubectl", "wait", "--for=condition=ready", "pod",
-                "-l", f"fastbi=data-analysis-hub",
+                "-l", "fastbi=data-analysis-hub",
                 "-n", self.namespace,
                 "--timeout=300s",
                 "--kubeconfig", self.kube_config

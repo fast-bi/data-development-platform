@@ -187,12 +187,36 @@ check_docker() {
     if command_exists docker; then
         local version=$(docker --version | cut -d' ' -f3 | cut -d',' -f1)
         success "✅ Docker: installed ($version)"
-        
-        # Check if Docker daemon is running
-        if docker info >/dev/null 2>&1; then
+
+        # Detect daemon status without requiring root
+        local daemon_running=false
+        # Prefer systemd status if available
+        if command_exists systemctl; then
+            if systemctl is-active --quiet docker 2>/dev/null; then
+                daemon_running=true
+            fi
+        fi
+        # Fallback: check Docker socket presence
+        if [[ "$daemon_running" == false ]] && [[ -S /var/run/docker.sock ]]; then
+            daemon_running=true
+        fi
+
+        if [[ "$daemon_running" == true ]]; then
             success "✅ Docker daemon: running"
+            # Check current user's permission to talk to daemon
+            if ! docker info >/dev/null 2>&1; then
+                if command_exists id && id -nG 2>/dev/null | grep -qw docker; then
+                    warn "⚠️  Docker permission issue: daemon is running but CLI cannot connect"
+                else
+                    warn "⚠️  Docker permission: add your user to 'docker' group, then re-login"
+                    warn "   Command: sudo usermod -aG docker $USER && newgrp docker"
+                fi
+            fi
         else
-            warn "⚠️  Docker daemon: not running (start Docker Desktop or docker service)"
+            warn "⚠️  Docker daemon: not running (start the docker service)"
+            if command_exists systemctl; then
+                warn "   Try: sudo systemctl start docker"
+            fi
         fi
         return 0
     else
@@ -284,22 +308,28 @@ check_python_packages() {
         return 0
     fi
     
-    # Check for required Python packages
-    local required_packages=("click" "PyYAML" "questionary")
+    # Check for required Python packages (map distribution name -> import module)
+    # PyYAML's import module name is 'yaml'
+    declare -A dist_to_module=(
+        ["click"]="click"
+        ["PyYAML"]="yaml"
+        ["questionary"]="questionary"
+    )
     local missing_packages=()
     
-    for package in "${required_packages[@]}"; do
-        if $python_cmd -c "import $package" 2>/dev/null; then
-            success "✅ Python package '$package': installed"
+    for dist in "${!dist_to_module[@]}"; do
+        local module_name="${dist_to_module[$dist]}"
+        if $python_cmd -c "import ${module_name}" 2>/dev/null; then
+            success "✅ Python package '${dist}': installed"
         else
-            missing_packages+=("$package")
-            warn "⚠️  Python package '$package': not installed"
+            missing_packages+=("$dist")
+            warn "⚠️  Python package '${dist}': not installed"
         fi
     done
     
     if [[ ${#missing_packages[@]} -gt 0 ]]; then
         warn "⚠️  Missing Python packages: ${missing_packages[*]}"
-        warn "   Install with: pip install ${missing_packages[*]}"
+        warn "   Install with: ${python_cmd} -m pip install ${missing_packages[*]}"
         return 1
     fi
     

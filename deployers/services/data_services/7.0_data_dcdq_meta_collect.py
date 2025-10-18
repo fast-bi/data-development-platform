@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -9,7 +8,6 @@ import sys
 import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound # type: ignore
-from typing import Optional
 
 # Configure logging
 logging.basicConfig(
@@ -126,12 +124,12 @@ class DataDCDQMetaCollectDeployer:
         self.data_dcdq_metacollect_psql_chart_version = "16.6.7"
 
         # Values paths
-        self.data_dcdq_metacollect_values_path = f"charts/data_services_charts/data_dcdq_metacollect/values.yaml"
-        self.data_dcdq_metacollect_render_template_values_path = f"charts/data_services_charts/data_dcdq_metacollect/template_values.yaml"
-        self.data_dcdq_metacollect_extra_values_path = f"charts/data_services_charts/data_dcdq_metacollect/extra_values.yaml"
-        self.data_dcdq_metacollect_extra_render_template_values_path = f"charts/data_services_charts/data_dcdq_metacollect/template_extra_values.yaml"
-        self.data_dcdq_metacollect_psql_values_path = f"charts/data_services_charts/data_dcdq_metacollect/postgresql_values.yaml"
-        self.data_dcdq_metacollect_psql_render_template_values_path = f"charts/data_services_charts/data_dcdq_metacollect/template_postgresql_values.yaml"
+        self.data_dcdq_metacollect_values_path = "charts/data_services_charts/data_dcdq_metacollect/values.yaml"
+        self.data_dcdq_metacollect_render_template_values_path = "charts/data_services_charts/data_dcdq_metacollect/template_values.yaml"
+        self.data_dcdq_metacollect_extra_values_path = "charts/data_services_charts/data_dcdq_metacollect/extra_values.yaml"
+        self.data_dcdq_metacollect_extra_render_template_values_path = "charts/data_services_charts/data_dcdq_metacollect/template_extra_values.yaml"
+        self.data_dcdq_metacollect_psql_values_path = "charts/data_services_charts/data_dcdq_metacollect/postgresql_values.yaml"
+        self.data_dcdq_metacollect_psql_render_template_values_path = "charts/data_services_charts/data_dcdq_metacollect/template_postgresql_values.yaml"
 
         # Data Catalog specific
         self.data_catalog_namespace = "data-catalog"
@@ -142,8 +140,8 @@ class DataDCDQMetaCollectDeployer:
         self.data_catalog_oauth_chart_name = "oauth2-proxy/oauth2-proxy"
         self.data_catalog_oauth_chart_repo = "https://oauth2-proxy.github.io/manifests"
         self.data_catalog_oauth_chart_version = "7.18.0"
-        self.data_catalog_oauth_values_path = f"charts/data_services_charts/data_dcdq_metacollect/data_catalog/oauth2proxy_values.yaml"
-        self.data_catalog_oauth_render_template_values_path = f"charts/data_services_charts/data_dcdq_metacollect/data_catalog/template_oauth2proxy_values.yaml"
+        self.data_catalog_oauth_values_path = "charts/data_services_charts/data_dcdq_metacollect/data_catalog/oauth2proxy_values.yaml"
+        self.data_catalog_oauth_render_template_values_path = "charts/data_services_charts/data_dcdq_metacollect/data_catalog/template_oauth2proxy_values.yaml"
 
         # Data Quality specific
         self.data_quality_namespace = "data-quality"
@@ -154,8 +152,8 @@ class DataDCDQMetaCollectDeployer:
         self.data_quality_oauth_chart_name = "oauth2-proxy/oauth2-proxy"
         self.data_quality_oauth_chart_repo = "https://oauth2-proxy.github.io/manifests"
         self.data_quality_oauth_chart_version = "7.18.0"
-        self.data_quality_oauth_values_path = f"charts/data_services_charts/data_dcdq_metacollect/data_quality/oauth2proxy_values.yaml"
-        self.data_quality_oauth_render_template_values_path = f"charts/data_services_charts/data_dcdq_metacollect/data_quality/template_oauth2proxy_values.yaml"
+        self.data_quality_oauth_values_path = "charts/data_services_charts/data_dcdq_metacollect/data_quality/oauth2proxy_values.yaml"
+        self.data_quality_oauth_render_template_values_path = "charts/data_services_charts/data_dcdq_metacollect/data_quality/template_oauth2proxy_values.yaml"
 
         # MetadataCollection
         self.app_name = self.data_dcdq_metacollect_chart_name.split('/')[1]
@@ -476,7 +474,7 @@ class DataDCDQMetaCollectDeployer:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-                logger.debug(f"Template rendered successfully")
+                logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

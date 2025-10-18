@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import sys
@@ -72,8 +71,8 @@ class TraefikIngress:
         self.chart_repo_name = "traefik"
         self.chart_name = "traefik/traefik"
         self.chart_repo = "https://helm.traefik.io/traefik"
-        self.values_path = f"charts/infra_services_charts/traefik_lb/values.yaml"
-        self.render_template_values_path = f"charts/infra_services_charts/traefik_lb/template_values.yaml"
+        self.values_path = "charts/infra_services_charts/traefik_lb/values.yaml"
+        self.render_template_values_path = "charts/infra_services_charts/traefik_lb/template_values.yaml"
         
         # MetadataCollection
         self.app_name = self.chart_name.split('/')[1]
@@ -199,7 +198,7 @@ class TraefikIngress:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

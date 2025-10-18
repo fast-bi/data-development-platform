@@ -1,6 +1,5 @@
 import os
 import subprocess
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -9,7 +8,6 @@ import sys
 import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
-from typing import Optional
 
 # Configure logging
 logging.basicConfig(
@@ -118,8 +116,8 @@ class DataGovernanceDeployer:
         self.data_governance_chart_repo_name = "datahub"
         self.data_governance_chart_name = "datahub/datahub"
         self.data_governance_chart_repo = "https://helm.datahubproject.io/"
-        self.data_governance_values_path = f"charts/data_services_charts/data_governance/dh_values.yaml"
-        self.data_governance_render_template_values_path = f"charts/data_services_charts/data_governance/template_dh_values.yaml"
+        self.data_governance_values_path = "charts/data_services_charts/data_governance/dh_values.yaml"
+        self.data_governance_render_template_values_path = "charts/data_services_charts/data_governance/template_dh_values.yaml"
 
         # Prerequisites chart
         self.data_governance_prerequest_chart_version = prerequest_chart_version if prerequest_chart_version else ""
@@ -127,8 +125,8 @@ class DataGovernanceDeployer:
         self.data_governance_prerequest_chart_repo_name = "datahub"
         self.data_governance_prerequest_chart_name = "datahub/datahub-prerequisites"
         self.data_governance_prerequest_chart_repo = "https://helm.datahubproject.io/"
-        self.data_governance_prerequest_values_path = f"charts/data_services_charts/data_governance/dh_prerequisites_values.yaml"
-        self.data_governance_prerequest_render_template_values_path = f"charts/data_services_charts/data_governance/template_dh_prerequisites_values.yaml"
+        self.data_governance_prerequest_values_path = "charts/data_services_charts/data_governance/dh_prerequisites_values.yaml"
+        self.data_governance_prerequest_render_template_values_path = "charts/data_services_charts/data_governance/template_dh_prerequisites_values.yaml"
 
         # Elasticsearch operator
         self.data_governance_eck_es_chart_version = eck_es_chart_version if eck_es_chart_version else ""
@@ -136,8 +134,8 @@ class DataGovernanceDeployer:
         self.data_governance_eck_es_chart_repo_name = "elastic"
         self.data_governance_eck_es_chart_name = "elastic/eck-elasticsearch"
         self.data_governance_eck_es_chart_repo = "https://helm.elastic.co"
-        self.data_governance_eck_es_values_path = f"charts/data_services_charts/data_governance/eck_es_values.yaml"
-        self.data_governance_eck_es_render_template_values_path = f"charts/data_services_charts/data_governance/template_eck_es_values.yaml"
+        self.data_governance_eck_es_values_path = "charts/data_services_charts/data_governance/eck_es_values.yaml"
+        self.data_governance_eck_es_render_template_values_path = "charts/data_services_charts/data_governance/template_eck_es_values.yaml"
 
         # Elasticsearch operator
         self.data_governance_eck_es_op_chart_version = eck_es_op_chart_version if eck_es_op_chart_version else ""
@@ -145,8 +143,8 @@ class DataGovernanceDeployer:
         self.data_governance_eck_es_op_chart_repo_name = "elastic"
         self.data_governance_eck_es_op_chart_name = "elastic/eck-operator"
         self.data_governance_eck_es_op_chart_repo = "https://helm.elastic.co"
-        self.data_governance_eck_es_op_values_path = f"charts/data_services_charts/data_governance/eck_operator_values.yaml"
-        self.data_governance_eck_es_op_render_template_values_path = f"charts/data_services_charts/data_governance/template_eck_operator_values.yaml"
+        self.data_governance_eck_es_op_values_path = "charts/data_services_charts/data_governance/eck_operator_values.yaml"
+        self.data_governance_eck_es_op_render_template_values_path = "charts/data_services_charts/data_governance/template_eck_operator_values.yaml"
 
         # PostgreSQL
         self.data_governance_psql_chart_version = "16.6.7"
@@ -154,8 +152,8 @@ class DataGovernanceDeployer:
         self.data_governance_psql_chart_repo_name = "bitnami"
         self.data_governance_psql_chart_name = "oci://registry-1.docker.io/bitnamicharts/postgresql"
         self.data_governance_psql_chart_repo = "https://charts.bitnami.com/bitnami"
-        self.data_governance_psql_values_path = f"charts/data_services_charts/data_governance/postgresql_values.yaml"
-        self.data_governance_psql_render_template_values_path = f"charts/data_services_charts/data_governance/template_postgresql_values.yaml"
+        self.data_governance_psql_values_path = "charts/data_services_charts/data_governance/postgresql_values.yaml"
+        self.data_governance_psql_render_template_values_path = "charts/data_services_charts/data_governance/template_postgresql_values.yaml"
 
         # Extra Data Governance values
         self.data_governance_extra_chart_repo_name = "kube-core"
@@ -163,8 +161,8 @@ class DataGovernanceDeployer:
         self.data_governance_extra_chart_repo = "https://kube-core.github.io/helm-charts"
         self.data_governance_extra_chart_version = "0.1.1"
         self.data_governance_extra_deployment_name = "data-governance-extra"
-        self.data_governance_extra_values_path = f"charts/data_services_charts/data_governance/values.yaml"
-        self.data_governance_extra_render_template_values_path = f"charts/data_services_charts/data_governance/template_values.yaml"
+        self.data_governance_extra_values_path = "charts/data_services_charts/data_governance/values.yaml"
+        self.data_governance_extra_render_template_values_path = "charts/data_services_charts/data_governance/template_values.yaml"
 
         # Set app_name after BI system initialization
         self.app_name = self.data_governance_chart_name.split('/')[1] if '/' in self.data_governance_chart_name else self.data_governance_chart_name
@@ -424,7 +422,7 @@ class DataGovernanceDeployer:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-                logger.debug(f"Template rendered successfully")
+                logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")
@@ -585,7 +583,7 @@ class DataGovernanceDeployer:
             else:
                 data_governance_db_port = "5432"
                 data_governance_db_host = f"fastbi-global-psql.global-postgresql.svc.cluster.local:{data_governance_db_port}"
-                data_governance_db_url = f"jdbc:postgresql://fastbi-global-psql.global-postgresql.svc.cluster.local:5432/datahub?sslmode=prefer"
+                data_governance_db_url = "jdbc:postgresql://fastbi-global-psql.global-postgresql.svc.cluster.local:5432/datahub?sslmode=prefer"
                 data_governance_db_host_for_client = "fastbi-global-psql.global-postgresql.svc.cluster.local"
 
 
@@ -825,7 +823,7 @@ class DataGovernanceDeployer:
             logger.info("Waiting for Data Governance to be ready...")
             self.execute_command([
                 "kubectl", "wait", "--for=condition=ready", "pod",
-                "-l", f"fastbi=data-governance",
+                "-l", "fastbi=data-governance",
                 "-n", self.namespace,
                 "--timeout=300s",
                 "--kubeconfig", self.kube_config

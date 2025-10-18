@@ -45,5 +45,7 @@ cli/state/deployment_state.json
 .tmp_git/
 # Google Cloud authentication cache files
 **/gke_gcloud_auth_plugin_cache
+# Local files
+.local/
 # Ignore new_values.yaml files in any nested directory
 **/new_values.yaml

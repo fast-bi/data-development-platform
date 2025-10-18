@@ -4,7 +4,6 @@ import requests
 import random
 import string
 import subprocess
-import string
 import json
 import base64
 import secrets
@@ -14,12 +13,7 @@ from cryptography.fernet import Fernet
 import logging
 import time
 import argparse
-from urllib.parse import urlparse
 import re
-from typing import Tuple, Dict, Any, Optional, Union
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 # Configure logging
 logging.basicConfig(
@@ -1217,7 +1211,7 @@ class CustomerSecretManager(SingletonBase):
                 membership_id_fastbi_administrator = self.add_user_to_workspace(project_id, access_token, 'administrator@fast.bi')
                 if membership_id_fastbi_administrator:
                     self.update_user_role(project_id, membership_id_fastbi_administrator, access_token, "admin")
-                    messages.append(f"Main fast.bi Administrator added to workspace with admin role.")
+                    messages.append("Main fast.bi Administrator added to workspace with admin role.")
                 membership_id = self.add_user_to_workspace(project_id, access_token, self.user_email)
                 if membership_id:
                     self.update_user_role(project_id, membership_id, access_token, "admin")

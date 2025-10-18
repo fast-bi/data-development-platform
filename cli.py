@@ -1,20 +1,15 @@
 import os
-import sys
 import json
 import yaml
 import click
 import subprocess
-import importlib.util
 import base64
 from pathlib import Path
-from typing import Dict, Optional, List
 from datetime import datetime
 import questionary
-from questionary import Style
 
 
 # Set required environment variables for CLI usage
-import os
 import platform
 os.environ.setdefault('SECRET_KEY', 'cli-secret-key-for-deployment')
 os.environ.setdefault('MAIL_SERVER', 'mail.smtp2go.com')
@@ -288,7 +283,7 @@ class DeploymentState:
         """Check if a specific service is deployed"""
         return self.deployed_services.get(service_type, {}).get(service_name, {}).get('deployed', False)
 
-def load_config_from_file(config_file: str) -> Dict:
+def load_config_from_file(config_file: str) -> dict:
     """Load configuration from YAML file"""
     try:
         with open(config_file, 'r') as f:
@@ -318,7 +313,6 @@ def load_config_from_file(config_file: str) -> Dict:
         # Infrastructure configuration - handle different cloud providers
         if 'infrastructure_deployment' in config_data:
             infra = config_data['infrastructure_deployment']
-            cloud_provider = transformed_config.get('cloud_provider', 'gcp')
             
             # Handle GCP configuration
             if 'gcp' in infra:
@@ -533,7 +527,7 @@ class DeploymentManager:
         elif cloud_provider == 'azure':
             click.echo("❌ Azure deployment not implemented yet")
             return False
-        elif cloud_provider == 'onprem':
+        elif cloud_provider == 'self-managed':
             return self._deploy_onprem_infrastructure()
         else:
             click.echo(f"❌ Unsupported cloud provider: {cloud_provider}")
@@ -547,7 +541,7 @@ class DeploymentManager:
         gcp_config = self._collect_gcp_parameters()
         
         # Show deployment configuration
-        click.echo(f"\n📋 GCP Deployment Configuration:")
+        click.echo("\n📋 GCP Deployment Configuration:")
         click.echo(f"  Deployment Type: {gcp_config['deployment']}")
         click.echo(f"  Customer: {self.state.config['customer']}")
         click.echo(f"  Project ID: {gcp_config['project_id']}")
@@ -651,7 +645,7 @@ class DeploymentManager:
                 self.log_and_echo("✅ GCP infrastructure deployed successfully")
                 
                 # Set kubeconfig path for next steps
-                self.state.kubeconfig_path = f"terraform/google_cloud/terragrunt/bi-platform/17-kubeconfig/kubeconfig"
+                self.state.kubeconfig_path = "terraform/google_cloud/terragrunt/bi-platform/17-kubeconfig/kubeconfig"
                 self.state.infrastructure_deployed = True
                 self.state.save_state()
                 return True
@@ -663,7 +657,7 @@ class DeploymentManager:
             self.log_and_echo(f"❌ Error during GCP deployment: {str(e)}", "error")
             return False
 
-    def _collect_gcp_parameters(self) -> Dict:
+    def _collect_gcp_parameters(self) -> dict:
         """Collect GCP-specific deployment parameters (only what's not in state)"""
         gcp_config = {}
         
@@ -717,7 +711,7 @@ class DeploymentManager:
         
         # Project ID configuration - allow custom override
         if 'gcp_project_id' not in self.state.config or not self.state.config.get('gcp_project_id'):
-            click.echo(f"\n🏗️ GCP Project ID Configuration")
+            click.echo("\n🏗️ GCP Project ID Configuration")
             click.echo(f"Default project ID would be: fast-bi-{self.state.config['customer']}")
             
             custom_project_id = safe_input(
@@ -950,7 +944,7 @@ class DeploymentManager:
             return False
         
         # Show deployment configuration
-        click.echo(f"\n📋 On-Premise Infrastructure Configuration:")
+        click.echo("\n📋 On-Premise Infrastructure Configuration:")
         click.echo(f"  Customer: {self.state.config['customer']}")
         click.echo(f"  Domain: {self.state.config['domain_name']}")
         click.echo(f"  Admin Email: {self.state.config['user_email']}")
@@ -994,7 +988,7 @@ class DeploymentManager:
             click.echo(f"❌ Error validating kubeconfig: {str(e)}")
             return False
 
-    def _collect_onprem_parameters(self) -> Dict:
+    def _collect_onprem_parameters(self) -> dict:
         """Collect on-premise specific deployment parameters"""
         onprem_config = {}
         
@@ -1032,7 +1026,7 @@ class DeploymentManager:
         
         return onprem_config
 
-    def _collect_secrets_parameters(self) -> Dict:
+    def _collect_secrets_parameters(self) -> dict:
         """Collect parameters needed for secrets generation"""
         secrets_config = {}
         
@@ -1334,7 +1328,7 @@ class DeploymentManager:
                 secrets_config['data_platform_sa_json'] = ""
                 secrets_config['data_analysis_sa_json'] = ""
         
-        elif cloud_provider == 'onprem':
+        elif cloud_provider == 'self-managed':
             # On-premise configuration
             secrets_config['project_id'] = f"fast-bi-{self.state.config['customer']}"
             secrets_config['bigquery_project_id'] = f"fast-bi-{self.state.config['customer']}"
@@ -1702,7 +1696,7 @@ class DeploymentManager:
             click.echo("⚠️ Skipping DNS verification (platform may not work correctly)")
             return True
 
-    def _collect_repository_parameters(self) -> Dict:
+    def _collect_repository_parameters(self) -> dict:
         """Collect parameters needed for repository configuration"""
         repo_config = {}
         
@@ -1776,7 +1770,7 @@ class DeploymentManager:
         
         return repo_config
 
-    def _collect_infrastructure_services_parameters(self) -> Dict:
+    def _collect_infrastructure_services_parameters(self) -> dict:
         """Collect parameters needed for infrastructure services deployment"""
         infra_config = {}
         
@@ -1977,14 +1971,13 @@ class DeploymentManager:
     def _detect_kubeconfig_path(self) -> str:
         """Automatically detect kubeconfig path based on cloud provider"""
         cloud_provider = self.state.config.get('cloud_provider', 'gcp')
-        customer = self.state.config.get('customer', '')
         
         # Define kubeconfig paths for different cloud providers
         kubeconfig_paths = {
-            'gcp': f"terraform/google_cloud/terragrunt/bi-platform/17-kubeconfig/kubeconfig",
-            'aws': f"terraform/aws_cloud/terragrunt/bi-platform/kubeconfig/kubeconfig",
-            'azure': f"terraform/azure_cloud/terragrunt/bi-platform/kubeconfig/kubeconfig",
-            'onprem': None  # On-premise requires user to provide path
+            'gcp': "terraform/google_cloud/terragrunt/bi-platform/17-kubeconfig/kubeconfig",
+            'aws': "terraform/aws_cloud/terragrunt/bi-platform/kubeconfig/kubeconfig",
+            'azure': "terraform/azure_cloud/terragrunt/bi-platform/kubeconfig/kubeconfig",
+            'self-managed': None  # Self-managed requires user to provide path
         }
         
         default_path = kubeconfig_paths.get(cloud_provider)
@@ -1992,8 +1985,8 @@ class DeploymentManager:
         if default_path and Path(default_path).exists():
             click.echo(f"✅ Kubeconfig automatically detected: {default_path}")
             return default_path
-        elif cloud_provider == 'onprem':
-            click.echo("🔗 On-premise infrastructure detected - kubeconfig path required")
+        elif cloud_provider == 'self-managed':
+            click.echo("🔗 Self-managed infrastructure detected - kubeconfig path required")
             return None
         else:
             click.echo(f"⚠️ Kubeconfig not found at expected location: {default_path}")
@@ -2504,7 +2497,7 @@ class DeploymentManager:
                 return result_dict['credentials']
             else:
                 return {}
-        except:
+        except BaseException:
             return {}
     
     def _display_keycloak_configuration_info(self):
@@ -2990,7 +2983,7 @@ class DeploymentManager:
         except Exception as e:
             self.log_and_echo(f"Error displaying ARGO_WORKFLOW_SA_TOKEN instructions: {str(e)}", "warning")
 
-    def _collect_finalization_parameters(self) -> Dict:
+    def _collect_finalization_parameters(self) -> dict:
         """Collect parameters needed for deployment finalization"""
         finalization_config = {}
         
@@ -3406,7 +3399,7 @@ class DeploymentManager:
         
         click.echo("=" * 50)
 
-    def _collect_data_services_parameters(self) -> Dict:
+    def _collect_data_services_parameters(self) -> dict:
         """Collect parameters needed for data services deployment"""
         data_config = {}
         
@@ -3451,7 +3444,7 @@ class DeploymentManager:
             # Try to reuse from secrets configuration
             if 'secrets_git_provider_access_token' in self.state.config:
                 default_runner_token = self.state.config['secrets_git_provider_access_token']
-                click.echo(f"Current Git runner token: [configured]")
+                click.echo("Current Git runner token: [configured]")
                 
                 runner_token_input = safe_input(
                     "Enter Git runner access token for CICD (press Enter to reuse from secrets):",
@@ -3739,7 +3732,7 @@ class DeploymentManager:
         )
         return vault_token
 
-def collect_basic_config(use_simple_input: bool = False) -> Dict:
+def collect_basic_config(use_simple_input: bool = False) -> dict:
     """Collect basic configuration that's needed across all phases"""
     config = {}
     
@@ -3758,7 +3751,7 @@ def collect_basic_config(use_simple_input: bool = False) -> Dict:
         
         config['cloud_provider'] = safe_select(
             "Select cloud provider",
-            ['gcp', 'aws', 'azure', 'onprem']
+            ['gcp', 'aws', 'azure', 'self-managed']
         )
         
         # Don't ask for project ID here - it will be handled in the infrastructure phase
@@ -3767,11 +3760,11 @@ def collect_basic_config(use_simple_input: bool = False) -> Dict:
         #     default=f"fast-bi-{config['customer']}"
         # )
         
-        # For on-premise, region might not be relevant, but we'll still collect it for consistency
-        if config['cloud_provider'] == 'onprem':
+        # For self-managed, region might not be relevant, but we'll still collect it for consistency
+        if config['cloud_provider'] == 'self-managed':
             config['project_region'] = safe_input(
                 "Enter deployment region/location (e.g., datacenter, office)",
-                default="on-premises"
+                default="self-managed"
             )
         else:
             config['project_region'] = safe_input(
@@ -3796,7 +3789,7 @@ def collect_basic_config(use_simple_input: bool = False) -> Dict:
 
         config['cloud_provider'] = questionary.select(
             "Select cloud provider:",
-            choices=['gcp', 'aws', 'azure', 'onprem']
+            choices=['gcp', 'aws', 'azure', 'self-managed']
         ).ask()
 
         # Don't ask for project ID here - it will be handled in the infrastructure phase
@@ -3806,7 +3799,7 @@ def collect_basic_config(use_simple_input: bool = False) -> Dict:
         # ).ask()
 
         # For on-premise, region might not be relevant, but we'll still collect it for consistency
-        if config['cloud_provider'] == 'onprem':
+        if config['cloud_provider'] == 'self-managed':
             config['project_region'] = questionary.text(
                 "Enter deployment region/location (e.g., datacenter, office):",
                 default="on-premises"
@@ -4254,7 +4247,7 @@ def cleanup_local_environment():
         click.echo(f"  ✅ Cleaned up {cleaned_count} temporary items")
 
 
-def deploy_environment(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: Optional[str] = None, fix_kubeconfig: Optional[str] = None):
+def deploy_environment(config: str | None, interactive: bool | None, phase: int | None, simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: str | None = None, fix_kubeconfig: str | None = None):
     """Deploy Fast.BI environment with configuration file or interactive setup."""
     
     # Handle fix-kubeconfig option
@@ -4287,7 +4280,6 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
     cli_logger = None
     if logging_file:
         import logging
-        import sys
         from datetime import datetime
         
         # Create logger
@@ -4559,7 +4551,7 @@ def deploy_environment(config: Optional[str], interactive: Optional[bool], phase
 @click.option('--cleanup', is_flag=True, help='Clean up local temporary deployment files (state files, logs, etc.)')
 @click.option('--logging-file', type=str, help='Path to log file for deployment output (captures all CLI and deployment logs)')
 @click.option('--fix-kubeconfig', type=str, help='Fix kubeconfig file with correct gke-gcloud-auth-plugin path')
-def cli(config: Optional[str], interactive: Optional[bool], phase: Optional[int], simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: Optional[str], fix_kubeconfig: Optional[str]):
+def cli(config: str | None, interactive: bool | None, phase: int | None, simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: str | None, fix_kubeconfig: str | None):
     """Fast.BI Platform Deployment CLI"""
     deploy_environment(config, interactive, phase, simple_input, state_file, show_config, keycloak_help, non_interactive, destroy, destroy_confirm, cleanup, logging_file, fix_kubeconfig)
 

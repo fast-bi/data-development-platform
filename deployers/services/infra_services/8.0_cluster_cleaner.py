@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -57,8 +56,8 @@ class Platformk8sCleaner:
         self.chart_repo = "http://charts.lwolf.org/"
         self.deployment_name = "k8s-cleanup"
         self.chart_name = "lwolf-charts/kube-cleanup-operator"
-        self.values_path = f"charts/infra_services_charts/cluster_cleaner/values.yaml"
-        self.render_template_values_path = f"charts/infra_services_charts/cluster_cleaner/template_values.yaml"
+        self.values_path = "charts/infra_services_charts/cluster_cleaner/values.yaml"
+        self.render_template_values_path = "charts/infra_services_charts/cluster_cleaner/template_values.yaml"
         
         # Cloud Provider Specific
         try:
@@ -216,7 +215,7 @@ class Platformk8sCleaner:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

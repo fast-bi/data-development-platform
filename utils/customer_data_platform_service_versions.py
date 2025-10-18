@@ -2,7 +2,6 @@ import psycopg2
 import json
 import logging
 from psycopg2 import sql
-import time
 from datetime import datetime, timedelta
 
 class DeploymentMetadataCollector:

@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -57,10 +56,10 @@ class Platformk8sPvcAutoscaler:
         self.chart_repo = "https://charts.kubesphere.io/main"
         self.deployment_name = "pvc-autoscaler"
         self.chart_name = "kubesphere/pvc-autoresizer"
-        self.values_path = f"charts/infra_services_charts/pvc_autoscaller/values.yaml"
-        self.render_template_values_path = f"charts/infra_services_charts/pvc_autoscaller/template_values.yaml"
-        self.render_template_values_extra_path = f"charts/infra_services_charts/pvc_autoscaller/template_values_extra.yaml"
-        self.extra_values_path = f"charts/infra_services_charts/pvc_autoscaller/values_extra.yaml"
+        self.values_path = "charts/infra_services_charts/pvc_autoscaller/values.yaml"
+        self.render_template_values_path = "charts/infra_services_charts/pvc_autoscaller/template_values.yaml"
+        self.render_template_values_extra_path = "charts/infra_services_charts/pvc_autoscaller/template_values_extra.yaml"
+        self.extra_values_path = "charts/infra_services_charts/pvc_autoscaller/values_extra.yaml"
         
         # Cloud Provider Specific
         try:
@@ -227,7 +226,7 @@ class Platformk8sPvcAutoscaler:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

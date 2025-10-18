@@ -4,7 +4,6 @@ import shutil
 import json
 import sys
 import argparse
-from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 import logging
 
@@ -109,19 +108,19 @@ class GoogleCloudManager:
         self.gke_deployment_type = gke_deployment_type if gke_deployment_type else "zonal"
         #Service specific
         self.terragrunt_dir = os.path.abspath("terraform/google_cloud/terragrunt")
-        self.backend_tf_template_path = f"terraform/google_cloud/templates/backend.tf_template"
-        self.backend_tf_path = f"terraform/google_cloud/terragrunt/bi-platform/backend.tf"
-        self.default_yaml_template_path = f"terraform/google_cloud/templates/defaults.yaml_template"
-        self.default_yaml_path = f"terraform/google_cloud/terragrunt/defaults.yaml"
-        self.env_yaml_template_path = f"terraform/google_cloud/templates/env.yaml_template"
-        self.env_yaml_path = f"terraform/google_cloud/terragrunt/bi-platform/env.yaml"
+        self.backend_tf_template_path = "terraform/google_cloud/templates/backend.tf_template"
+        self.backend_tf_path = "terraform/google_cloud/terragrunt/bi-platform/backend.tf"
+        self.default_yaml_template_path = "terraform/google_cloud/templates/defaults.yaml_template"
+        self.default_yaml_path = "terraform/google_cloud/terragrunt/defaults.yaml"
+        self.env_yaml_template_path = "terraform/google_cloud/templates/env.yaml_template"
+        self.env_yaml_path = "terraform/google_cloud/terragrunt/bi-platform/env.yaml"
         if self.deployment_environemnt == "basic":
-            self.terragrunt_hcl_template_path = f"terraform/google_cloud/templates/root.hcl_basic_template"
+            self.terragrunt_hcl_template_path = "terraform/google_cloud/templates/root.hcl_basic_template"
         elif self.deployment_environemnt == "advanced":
-            self.terragrunt_hcl_template_path = f"terraform/google_cloud/templates/root.hcl_advanced_template"
+            self.terragrunt_hcl_template_path = "terraform/google_cloud/templates/root.hcl_advanced_template"
         else:
             raise Exception("Deployment environment is not supported")
-        self.terragrunt_hcl_path  = f"terraform/google_cloud/terragrunt/bi-platform/root.hcl"
+        self.terragrunt_hcl_path  = "terraform/google_cloud/terragrunt/bi-platform/root.hcl"
         #MetadataCollection
 
     def render_template(self, template_path, output_path, context):
@@ -317,7 +316,7 @@ class GoogleCloudManager:
             if result.returncode == 0 and 'microsoft' in result.stdout.lower():
                 return True
             return False
-        except:
+        except BaseException:
             return False
 
     def check_gcloud_auth(self):

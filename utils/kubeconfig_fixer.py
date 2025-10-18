@@ -12,8 +12,6 @@ import json
 import yaml
 import subprocess
 import platform
-from pathlib import Path
-from typing import Optional, List
 
 
 class KubeconfigFixer:
@@ -23,7 +21,7 @@ class KubeconfigFixer:
         self.platform = platform.system().lower()
         self.architecture = platform.machine().lower()
     
-    def find_gke_auth_plugin(self) -> Optional[str]:
+    def find_gke_auth_plugin(self) -> str | None:
         """
         Find the gke-gcloud-auth-plugin executable across different platforms
         Returns the full path to the plugin or None if not found
@@ -38,7 +36,7 @@ class KubeconfigFixer:
         # Try to find using which/where command
         return self._find_using_system_command()
     
-    def _get_potential_paths(self) -> List[str]:
+    def _get_potential_paths(self) -> list[str]:
         """Get potential paths based on platform and common installation methods"""
         paths = []
         
@@ -125,7 +123,7 @@ class KubeconfigFixer:
         except Exception:
             return False
     
-    def _find_using_system_command(self) -> Optional[str]:
+    def _find_using_system_command(self) -> str | None:
         """Try to find the plugin using system commands (which/where)"""
         try:
             if self.platform == "windows":
@@ -187,7 +185,7 @@ class KubeconfigFixer:
                     # Fall back to JSON
                     kubeconfig = json.loads(content)
                 except json.JSONDecodeError:
-                    print(f"❌ Could not parse kubeconfig file as YAML or JSON")
+                    print("❌ Could not parse kubeconfig file as YAML or JSON")
                     return False
             
             # Check if we need to fix the command

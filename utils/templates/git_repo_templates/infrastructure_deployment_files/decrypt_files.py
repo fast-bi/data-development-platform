@@ -3,14 +3,11 @@
 import os
 import sys
 import logging
-from pathlib import Path
-from typing import List, Optional
 from cryptography.fernet import Fernet, InvalidToken
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.panel import Panel
-from rich.table import Table
 
 # Configure rich console
 console = Console()
@@ -28,7 +25,7 @@ def setup_logging(verbose: bool = False) -> None:
     """Configure logging level based on verbosity"""
     logger.setLevel(logging.DEBUG if verbose else logging.INFO)
 
-def get_files_to_process(root_dir: str = ".") -> List[str]:
+def get_files_to_process(root_dir: str = ".") -> list[str]:
     files = []
     for dirpath, dirnames, filenames in os.walk(root_dir):
         # Remove hidden directories except .terraform so we still process terraform state files

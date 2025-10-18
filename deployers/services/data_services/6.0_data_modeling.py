@@ -1,6 +1,5 @@
 import subprocess
 import os
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -9,7 +8,6 @@ import sys
 import argparse
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound # type: ignore
-from typing import Optional
 
 # Configure logging
 logging.basicConfig(
@@ -122,12 +120,12 @@ class PlatformDataModeling:
         self.data_modeling_psql_chart_version = "16.6.7"
 
         # Values paths
-        self.data_modeling_values_path = f"charts/data_services_charts/data_modeling/values.yaml"
-        self.data_modeling_render_template_values_path = f"charts/data_services_charts/data_modeling/template_values.yaml"
-        self.data_modeling_extra_values_path = f"charts/data_services_charts/data_modeling/values_extra.yaml"
-        self.data_modeling_extra_render_template_values_path = f"charts/data_services_charts/data_modeling/template_extra_values.yaml"
-        self.data_modeling_psql_values_path = f"charts/data_services_charts/data_modeling/postgresql_values.yaml"
-        self.data_modeling_psql_render_template_values_path = f"charts/data_services_charts/data_modeling/template_postgresql_values.yaml"
+        self.data_modeling_values_path = "charts/data_services_charts/data_modeling/values.yaml"
+        self.data_modeling_render_template_values_path = "charts/data_services_charts/data_modeling/template_values.yaml"
+        self.data_modeling_extra_values_path = "charts/data_services_charts/data_modeling/values_extra.yaml"
+        self.data_modeling_extra_render_template_values_path = "charts/data_services_charts/data_modeling/template_extra_values.yaml"
+        self.data_modeling_psql_values_path = "charts/data_services_charts/data_modeling/postgresql_values.yaml"
+        self.data_modeling_psql_render_template_values_path = "charts/data_services_charts/data_modeling/template_postgresql_values.yaml"
 
         # MetadataCollection
         self.app_name = self.data_modeling_chart_name.split('/')[1]
@@ -336,7 +334,7 @@ class PlatformDataModeling:
             output = template.render(context)
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")

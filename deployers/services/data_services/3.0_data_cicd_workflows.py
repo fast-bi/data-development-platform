@@ -1,7 +1,5 @@
 import subprocess
 import os
-import time
-import datetime
 from datetime import datetime
 import json
 import requests
@@ -94,10 +92,10 @@ class PlatformDataCicdWorkflows:
         self.chart_repo_name = "argo"
         self.chart_name = "argo/argo-workflows"
         self.chart_repo = "https://argoproj.github.io/argo-helm"
-        self.values_path = f"charts/data_services_charts/argo_workflows/values.yaml"
-        self.render_template_values_path = f"charts/data_services_charts/argo_workflows/template_values.yaml"
-        self.postgresql_values_path = f"charts/data_services_charts/argo_workflows/postgresql_values.yaml"
-        self.postgresql_render_template_values_path = f"charts/data_services_charts/argo_workflows/postgresql_template_values.yaml"
+        self.values_path = "charts/data_services_charts/argo_workflows/values.yaml"
+        self.render_template_values_path = "charts/data_services_charts/argo_workflows/template_values.yaml"
+        self.postgresql_values_path = "charts/data_services_charts/argo_workflows/postgresql_values.yaml"
+        self.postgresql_render_template_values_path = "charts/data_services_charts/argo_workflows/postgresql_template_values.yaml"
         
         self.customer_root_domain = f"{self.customer}.{self.domain_name}"
         self.ingress_host = f"workflows.{self.customer_root_domain}"
@@ -261,7 +259,7 @@ class PlatformDataCicdWorkflows:
             
             with open(output_path, 'w') as f:
                 f.write(output)
-            logger.debug(f"Template rendered successfully")
+            logger.debug("Template rendered successfully")
         except TemplateNotFound:
             logger.error(f"Template not found: {template_path}")
             raise FileNotFoundError(f"Template not found: {template_path}")
@@ -346,10 +344,7 @@ class PlatformDataCicdWorkflows:
     def run(self):
         """Main execution method"""
         logger.info(f"Starting Platform Data CICD Workflows deployment for customer: {self.customer}")
-        try:
-            # Get access token if using external vault
-            access_token = self.authenticate_with_vault() if self.method == "external_infisical" else None
-            
+        try:            
             # Render values files
             self.render_values_file()
             
