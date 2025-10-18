@@ -32,6 +32,8 @@ values.yaml
 values_extra.yaml
 alerts_cm.yaml
 dashboard_cm.yaml
+# Ignore new_values.yaml files in any nested directory
+**/new_values.yaml
 terraform/google_cloud/terragrunt/bi-platform/terragrunt.hcl
 terraform/google_cloud/terragrunt/bi-platform/env.yaml
 terraform/google_cloud/terragrunt/bi-platform/backend.tf

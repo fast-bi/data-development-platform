@@ -24,7 +24,7 @@ inputs = {
   wid_mapping_to_sa = [
       {
         namespace = "data-orchestration"
-        k8s_sa_name = "data-orchestration-airflow-worker"
+        k8s_sa_name = "data-orchestration-worker"
       },
       {
         namespace = "data-orchestration"

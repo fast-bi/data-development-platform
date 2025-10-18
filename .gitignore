@@ -9,6 +9,7 @@ values.yaml
 values_extra.yaml
 alerts_cm.yaml
 dashboard_cm.yaml
+terraform/google_cloud/terragrunt/bi-platform/terragrunt.hcl
 terraform/google_cloud/terragrunt/bi-platform/root.hcl
 terraform/google_cloud/terragrunt/bi-platform/env.yaml
 terraform/google_cloud/terragrunt/bi-platform/backend.tf
@@ -46,3 +47,5 @@ cli/state/deployment_state.json
 **/gke_gcloud_auth_plugin_cache
 # Local files
 .local/
+# Ignore new_values.yaml files in any nested directory
+**/new_values.yaml
