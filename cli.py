@@ -527,7 +527,7 @@ class DeploymentManager:
         elif cloud_provider == 'azure':
             click.echo("❌ Azure deployment not implemented yet")
             return False
-        elif cloud_provider == 'onprem':
+        elif cloud_provider == 'self-managed':
             return self._deploy_onprem_infrastructure()
         else:
             click.echo(f"❌ Unsupported cloud provider: {cloud_provider}")
@@ -1328,7 +1328,7 @@ class DeploymentManager:
                 secrets_config['data_platform_sa_json'] = ""
                 secrets_config['data_analysis_sa_json'] = ""
         
-        elif cloud_provider == 'onprem':
+        elif cloud_provider == 'self-managed':
             # On-premise configuration
             secrets_config['project_id'] = f"fast-bi-{self.state.config['customer']}"
             secrets_config['bigquery_project_id'] = f"fast-bi-{self.state.config['customer']}"
@@ -1977,7 +1977,7 @@ class DeploymentManager:
             'gcp': "terraform/google_cloud/terragrunt/bi-platform/17-kubeconfig/kubeconfig",
             'aws': "terraform/aws_cloud/terragrunt/bi-platform/kubeconfig/kubeconfig",
             'azure': "terraform/azure_cloud/terragrunt/bi-platform/kubeconfig/kubeconfig",
-            'onprem': None  # On-premise requires user to provide path
+            'self-managed': None  # Self-managed requires user to provide path
         }
         
         default_path = kubeconfig_paths.get(cloud_provider)
@@ -1985,8 +1985,8 @@ class DeploymentManager:
         if default_path and Path(default_path).exists():
             click.echo(f"✅ Kubeconfig automatically detected: {default_path}")
             return default_path
-        elif cloud_provider == 'onprem':
-            click.echo("🔗 On-premise infrastructure detected - kubeconfig path required")
+        elif cloud_provider == 'self-managed':
+            click.echo("🔗 Self-managed infrastructure detected - kubeconfig path required")
             return None
         else:
             click.echo(f"⚠️ Kubeconfig not found at expected location: {default_path}")
@@ -3751,7 +3751,7 @@ def collect_basic_config(use_simple_input: bool = False) -> dict:
         
         config['cloud_provider'] = safe_select(
             "Select cloud provider",
-            ['gcp', 'aws', 'azure', 'onprem']
+            ['gcp', 'aws', 'azure', 'self-managed']
         )
         
         # Don't ask for project ID here - it will be handled in the infrastructure phase
@@ -3760,11 +3760,11 @@ def collect_basic_config(use_simple_input: bool = False) -> dict:
         #     default=f"fast-bi-{config['customer']}"
         # )
         
-        # For on-premise, region might not be relevant, but we'll still collect it for consistency
-        if config['cloud_provider'] == 'onprem':
+        # For self-managed, region might not be relevant, but we'll still collect it for consistency
+        if config['cloud_provider'] == 'self-managed':
             config['project_region'] = safe_input(
                 "Enter deployment region/location (e.g., datacenter, office)",
-                default="on-premises"
+                default="self-managed"
             )
         else:
             config['project_region'] = safe_input(
@@ -3789,7 +3789,7 @@ def collect_basic_config(use_simple_input: bool = False) -> dict:
 
         config['cloud_provider'] = questionary.select(
             "Select cloud provider:",
-            choices=['gcp', 'aws', 'azure', 'onprem']
+            choices=['gcp', 'aws', 'azure', 'self-managed']
         ).ask()
 
         # Don't ask for project ID here - it will be handled in the infrastructure phase
@@ -3799,7 +3799,7 @@ def collect_basic_config(use_simple_input: bool = False) -> dict:
         # ).ask()
 
         # For on-premise, region might not be relevant, but we'll still collect it for consistency
-        if config['cloud_provider'] == 'onprem':
+        if config['cloud_provider'] == 'self-managed':
             config['project_region'] = questionary.text(
                 "Enter deployment region/location (e.g., datacenter, office):",
                 default="on-premises"

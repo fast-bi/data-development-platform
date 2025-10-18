@@ -95,7 +95,7 @@ class Platformk8sGitRunner:
         elif self.git_provider == "github":
             self.chart_repo_name = "github"
             self.chart_repo = "https://actions-runner-controller.github.io/actions-runner-controller"
-            self.chart_name = "actions-runner-controller/actions-runner-controller"
+            self.chart_name = "github/actions-runner-controller"
             self.render_template_values_path = "charts/data_services_charts/cicd_workload_runner/github/template_github_values.yaml"
             self.render_template_values_extra_path = "charts/data_services_charts/cicd_workload_runner/github/template_github_values_extra.yaml"
         elif self.git_provider == "gitea":
