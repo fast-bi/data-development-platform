@@ -100,4 +100,6 @@ inputs = {
     "roles/container.clusterAdmin"
   ]
 
+  deletion_protection = false
+
 }
