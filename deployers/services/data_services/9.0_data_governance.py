@@ -50,7 +50,12 @@ class DataGovernanceDeployer:
         # Cloud Provider Specific
         try:
             if self.cloud_provider == "gcp":
-                self.project_id = project_id if project_id else f"fast-bi-{customer}"
+                if project_id and project_id.strip():
+                    self.project_id = project_id
+                    logger.info(f"Using provided project_id: {self.project_id}")
+                else:
+                    self.project_id = f"fast-bi-{customer}"
+                    logger.warning(f"No project_id provided, using default: {self.project_id}")
                 self.cluster_name = cluster_name if cluster_name else f"fast-bi-{customer}-platform"
                 self.data_governance_k8s_sa = f"data-governance-k8s-sa@{self.project_id}.iam.gserviceaccount.com"
                 self.monitoring_k8s_sa = f"monitoring-k8s-sa@{self.project_id}.iam.gserviceaccount.com"

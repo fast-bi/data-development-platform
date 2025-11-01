@@ -1891,10 +1891,17 @@ class DeploymentManager:
         
         # Add project_id and region only for services that require them
         if 'project_id' in service_config.get('required_params', []):
-            if self.state.config.get('gcp_project_id'):
-                params['project_id'] = self.state.config['gcp_project_id']
+            # ALWAYS explicitly pass project_id for GCP deployments to ensure services receive the value
+            if self.state.config.get('cloud_provider') == 'gcp':
+                if self.state.config.get('gcp_project_id'):
+                    params['project_id'] = self.state.config['gcp_project_id']
+                    click.echo(f"🔧 Debug: Passing custom project_id to {service_file}: {params['project_id']}")
+                else:
+                    params['project_id'] = f"fast-bi-{self.state.config['customer']}"
+                    click.echo(f"🔧 Debug: Passing default project_id to {service_file}: {params['project_id']}")
             else:
-                params['project_id'] = f"fast-bi-{self.state.config['customer']}"
+                # For other cloud providers, use the custom logic or None
+                params['project_id'] = self.state.config.get('gcp_project_id') or f"fast-bi-{self.state.config['customer']}"
                 
         if 'region' in service_config.get('required_params', []):
             if 'project_region' in self.state.config:
@@ -2958,6 +2965,13 @@ class DeploymentManager:
     def _display_argo_workflow_sa_token_instructions(self):
         """Display ARGO_WORKFLOW_SA_TOKEN configuration instructions based on git provider"""
         try:
+            click.echo("\n" + "="*80)
+            click.echo("⚠️  SECURITY NOTICE: SENSITIVE TOKEN DISPLAYED IN TERMINAL ONLY")
+            click.echo("="*80)
+            click.echo("This token is displayed ONCE in your terminal and is NOT saved to any file.")
+            click.echo("Make sure to copy and configure it immediately in your Git repository settings.")
+            click.echo("")
+            
             # Fetch the token
             token = self._fetch_argo_workflow_sa_token()
             if not token:
@@ -3162,6 +3176,9 @@ class DeploymentManager:
                 click.echo("✅ Deployment finalized successfully")
                 for message in result.get('messages', []):
                     click.echo(f"  - {message}")
+                
+                # Display ARGO_WORKFLOW_SA_TOKEN instructions again for Phase 6
+                self._display_argo_workflow_sa_token_instructions()
                 
                 # Display final deployment summary
                 click.echo("\n🎉 DEPLOYMENT COMPLETED SUCCESSFULLY!")
@@ -3578,10 +3595,17 @@ class DeploymentManager:
         
         # Add project_id and region only for services that require them
         if 'project_id' in service_config.get('required_params', []):
-            if self.state.config.get('gcp_project_id'):
-                params['project_id'] = self.state.config['gcp_project_id']
+            # ALWAYS explicitly pass project_id for GCP deployments to ensure services receive the value
+            if self.state.config.get('cloud_provider') == 'gcp':
+                if self.state.config.get('gcp_project_id'):
+                    params['project_id'] = self.state.config['gcp_project_id']
+                    click.echo(f"🔧 Debug: Passing custom project_id to {service_file}: {params['project_id']}")
+                else:
+                    params['project_id'] = f"fast-bi-{self.state.config['customer']}"
+                    click.echo(f"🔧 Debug: Passing default project_id to {service_file}: {params['project_id']}")
             else:
-                params['project_id'] = f"fast-bi-{self.state.config['customer']}"
+                # For other cloud providers, use the custom logic or None
+                params['project_id'] = self.state.config.get('gcp_project_id') or f"fast-bi-{self.state.config['customer']}"
                 
         if 'region' in service_config.get('required_params', []):
             if 'project_region' in self.state.config:
