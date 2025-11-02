@@ -41,7 +41,8 @@ class CustomerDataPlatformRepositoryOperator:
                  data_model_repo_access_token: str | None = None,
                  argo_server_url_type: str = "internal",
                  argo_cli_version: str = "v3.4.3",
-                 cicd_workflows_template_version: str = "latest"):
+                 cicd_workflows_template_version: str = "latest",
+                 dry_run: bool = False):
         """Initialize the repository operator with configuration parameters."""
         
         self.customer = customer
@@ -61,6 +62,7 @@ class CustomerDataPlatformRepositoryOperator:
         self.global_access_token = global_access_token
         self.data_orchestrator_repo_access_token = data_orchestrator_repo_access_token
         self.data_model_repo_access_token = data_model_repo_access_token
+        self.dry_run = dry_run
         
         # Initialize public key attributes (will be loaded from vault if needed)
         self.data_orchestrator_repo_public_key = None
@@ -568,12 +570,19 @@ Host data_model
     def prepare_repository_structure(self, repo_type: str) -> None:
         """Prepare the repository structure based on the repository type."""
         try:
-            # Determine repository URL and working directory
+            # Determine repository URL
             repo_url = self.data_orchestrator_repo_url if repo_type == "data_orchestrator" else self.data_model_repo_url
-            work_dir = os.path.join(self.temp_dir, f"{self.customer}_{repo_type}")
             
             if not repo_url:
                 raise ValueError(f"Repository URL not provided for {repo_type}")
+
+            # Use separate flow for dry-run mode
+            if self.dry_run:
+                self._prepare_repository_structure_dry_run(repo_type, repo_url)
+                return
+
+            # Normal execution: full git operations
+            work_dir = os.path.join(self.temp_dir, f"{self.customer}_{repo_type}")
 
             # Check repository accessibility
             if not self._check_repository_accessibility(repo_url):
@@ -593,6 +602,46 @@ Host data_model
 
         except Exception as e:
             logger.error(f"Failed to prepare repository structure: {str(e)}")
+            raise
+
+    def _prepare_repository_structure_dry_run(self, repo_type: str, repo_url: str) -> None:
+        """Prepare repository structure in dry-run mode - only render files locally, no git operations."""
+        try:
+            work_dir = os.path.join(self.temp_dir, f"{self.customer}_{repo_type}")
+            
+            logger.info(f"[DRY-RUN] Preparing repository structure for {repo_type} locally")
+            print(f"\n{'='*80}")
+            print(f"[DRY-RUN] Repository: {repo_type}")
+            print(f"[DRY-RUN] Target URL: {repo_url}")
+            print(f"[DRY-RUN] Local directory: {work_dir}")
+            print(f"{'='*80}")
+            
+            # Create work directory
+            os.makedirs(work_dir, exist_ok=True)
+            logger.info(f"[DRY-RUN] Created directory: {work_dir}")
+            
+            # Copy base repository structure (renders template files)
+            print(f"[DRY-RUN] Rendering base repository structure...")
+            self._copy_repository_structure(repo_type, work_dir)
+            logger.info(f"[DRY-RUN] Base repository structure rendered")
+            
+            # Render and copy git provider specific files (renders template files)
+            print(f"[DRY-RUN] Rendering git provider-specific files...")
+            self._setup_git_provider_files(work_dir, repo_type)
+            logger.info(f"[DRY-RUN] Git provider files rendered")
+            
+            # Show what would have been done (but skip actual git operations)
+            print(f"\n[DRY-RUN] Skipped operations:")
+            print(f"  ❌ Would clone repository: {repo_url}")
+            print(f"  ❌ Would commit changes to repository")
+            print(f"  ❌ Would push changes to remote repository")
+            print(f"\n✅ Repository files generated in: {work_dir}")
+            print(f"{'='*80}\n")
+            
+            logger.info(f"[DRY-RUN] Repository structure prepared successfully for {repo_type}")
+            
+        except Exception as e:
+            logger.error(f"[DRY-RUN] Failed to prepare repository structure: {str(e)}")
             raise
 
     def _check_repository_accessibility(self, repo_url: str) -> bool:

@@ -25,7 +25,7 @@ class PlatformUserConsole:
                  secret_manager_client_id=None, secret_manager_client_secret=None,
                  tsb_fastbi_web_core_image_version=None, tsb_dbt_init_core_image_version=None,
                  project_id=None, bq_project_id=None, cluster_name=None, kube_config_path=None,
-                 namespace="user-console", bi_system=None, data_replication_default_destination_type=None, fast_bi_statistics_id=None):
+                 namespace="user-console", bi_system=None, data_replication_default_destination_type=None, fast_bi_statistics_id=None, dry_run=False):
         # Initialize basic attributes
         self.deployment_environment = "data-services"
         self.external_infisical_host = external_infisical_host
@@ -42,6 +42,7 @@ class PlatformUserConsole:
         self.chart_version = chart_version
         self.bi_system = bi_system
         self.data_replication_default_destination_type = data_replication_default_destination_type
+        self.dry_run = dry_run
         # For local development only
         self.local_postgresql = "false"
         
@@ -269,6 +270,13 @@ class PlatformUserConsole:
     def execute_command(self, command):
         """Execute a shell command with proper error handling"""
         cmd_str = ' '.join(command)
+        
+        # Dry-run mode: show command without executing
+        if self.dry_run:
+            logger.info(f"[DRY-RUN] Would execute: {cmd_str}")
+            print(f"[DRY-RUN] Would execute: {cmd_str}")
+            return ""  # Return mock success
+        
         logger.debug(f"Executing command: {cmd_str}")
         
         try:

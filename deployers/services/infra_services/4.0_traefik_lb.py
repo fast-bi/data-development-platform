@@ -21,7 +21,7 @@ logger = logging.getLogger('traefik_ingress_deployer')
 class TraefikIngress:
     def __init__(self, chart_version, customer, whitelisted_environment_ips, metadata_collector, 
                  cloud_provider, domain_name, project_id=None, cluster_name=None, region=None, 
-                 kube_config_path=None, external_ip=None, namespace="traefik-ingress"):
+                 kube_config_path=None, external_ip=None, namespace="traefik-ingress", dry_run=False):
         self.deployment_environment = "infrastructure"        
         self.namespace = namespace
         self.customer = customer
@@ -29,6 +29,7 @@ class TraefikIngress:
         self.cloud_provider = cloud_provider
         self.whitelisted_environment_ips = [whitelisted_environment_ips] if isinstance(whitelisted_environment_ips, str) else whitelisted_environment_ips
         self.metadata_collector = metadata_collector
+        self.dry_run = dry_run
         
         # Cloud Provider Specific
         try:
@@ -149,6 +150,13 @@ class TraefikIngress:
     def execute_command(self, command):
         """Execute a shell command with proper error handling"""
         cmd_str = ' '.join(command)
+        
+        # Dry-run mode: show command without executing
+        if self.dry_run:
+            logger.info(f"[DRY-RUN] Would execute: {cmd_str}")
+            print(f"[DRY-RUN] Would execute: {cmd_str}")
+            return ""  # Return mock success
+        
         logger.debug(f"Executing command: {cmd_str}")
         
         try:

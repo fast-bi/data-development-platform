@@ -23,7 +23,7 @@ class ExternalDNS:
     def __init__(self, chart_version, customer, external_dns_domain_filters, metadata_collector, cloud_provider, domain_name,
                  method="local_vault", external_infisical_host=None, slug=None, vault_project_id=None,
                  secret_manager_client_id=None, secret_manager_client_secret=None,
-                 project_id=None, cluster_name=None, kube_config_path=None, namespace="external-dns"):
+                 project_id=None, cluster_name=None, kube_config_path=None, namespace="external-dns", dry_run=False):
         self.deployment_environment = "infrastructure"
         self.external_infisical_host = external_infisical_host
         self.namespace = namespace
@@ -36,6 +36,7 @@ class ExternalDNS:
         self.cloud_provider = cloud_provider
         self.external_dns_domain_filters = [external_dns_domain_filters] if isinstance(external_dns_domain_filters, str) else external_dns_domain_filters
         self.metadata_collector = metadata_collector
+        self.dry_run = dry_run
         
         # Validate method and required parameters
         if method not in ["local_vault", "external_infisical"]:
@@ -192,6 +193,13 @@ class ExternalDNS:
     def execute_command(self, command):
         """Execute a shell command with proper error handling"""
         cmd_str = ' '.join(command)
+        
+        # Dry-run mode: show command without executing
+        if self.dry_run:
+            logger.info(f"[DRY-RUN] Would execute: {cmd_str}")
+            print(f"[DRY-RUN] Would execute: {cmd_str}")
+            return ""  # Return mock success
+        
         logger.debug(f"Executing command: {cmd_str}")
         
         try:

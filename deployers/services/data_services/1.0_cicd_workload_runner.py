@@ -28,7 +28,7 @@ class Platformk8sGitRunner:
                  method="local_vault", external_infisical_host=None, slug=None, vault_project_id=None,
                  secret_manager_client_id=None, secret_manager_client_secret=None, git_runner_access_token=None, git_runner_private_key=None, git_repo=None,
                  git_provider_url=None, project_id=None, cluster_name=None, kube_config_path=None,
-                 namespace="cicd-workload-trigger"):
+                 namespace="cicd-workload-trigger", dry_run=False):
         self.deployment_environment = "data-services"
         self.external_infisical_host = external_infisical_host
         self.namespace = namespace
@@ -40,6 +40,7 @@ class Platformk8sGitRunner:
         self.domain_name = domain_name
         self.cloud_provider = cloud_provider
         self.metadata_collector = metadata_collector
+        self.dry_run = dry_run
         self.git_provider = git_provider
         self.git_repo = git_repo
         self.git_provider_url = git_provider_url if git_provider_url else self._extract_git_provider_url(git_repo) if git_repo else "https://gitlab.fast.bi"
@@ -224,6 +225,13 @@ class Platformk8sGitRunner:
     def execute_command(self, command):
         """Execute a shell command with proper error handling"""
         cmd_str = ' '.join(command)
+        
+        # Dry-run mode: show command without executing
+        if self.dry_run:
+            logger.info(f"[DRY-RUN] Would execute: {cmd_str}")
+            print(f"[DRY-RUN] Would execute: {cmd_str}")
+            return ""  # Return mock success
+        
         logger.debug(f"Executing command: {cmd_str}")
         
         try:

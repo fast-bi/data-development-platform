@@ -8,7 +8,7 @@ import argparse
 import sys
 
 class SecretManager:
-    def __init__(self, chart_version, customer, metadata_collector, external_infisical_host=None, slug=None, secret_manager_client_id=None, secret_manager_client_secret=None, cluster_name=None, kube_config_path=None, hc_vault_chart_version=None,  namespace="vault", method="local_vault"):
+    def __init__(self, chart_version, customer, metadata_collector, external_infisical_host=None, slug=None, secret_manager_client_id=None, secret_manager_client_secret=None, cluster_name=None, kube_config_path=None, hc_vault_chart_version=None,  namespace="vault", method="local_vault", dry_run=False):
         self.deployment_environment = "infrastructure-services"
         self.namespace = namespace
         self.project_slug = slug
@@ -18,6 +18,7 @@ class SecretManager:
         self.external_infisical_host = external_infisical_host
         self.customer = customer
         self.metadata_collector = metadata_collector
+        self.dry_run = dry_run
         self.cluster_name = cluster_name if cluster_name else f"fast-bi-{customer}-platform"
         self.kube_config = kube_config_path if kube_config_path else f'/tmp/{self.cluster_name}-kubeconfig.yaml'
         #Service specific 
@@ -122,8 +123,15 @@ data:
             return base64.b64encode(f.read()).decode('utf-8')
 
     def execute_command(self, command):
+        cmd_str = ' '.join(command)
+        
+        # Dry-run mode: show command without executing
+        if self.dry_run:
+            print(f"[DRY-RUN] Would execute: {cmd_str}")
+            return ""  # Return mock success
+        
         try:
-            print("Executing command:", ' '.join(command))
+            print("Executing command:", cmd_str)
             result = subprocess.run(command, check=True, capture_output=True, text=True)
             print("Command output:", result.stdout)
             return result.stdout
@@ -132,7 +140,7 @@ data:
             print(f"Status code: {e.returncode}")
             print(f"Output: {e.stdout}")
             print(f"Error: {e.stderr}")
-            raise Exception(f"Execution failed for command {' '.join(command)}: {e.stderr}")
+            raise Exception(f"Execution failed for command {cmd_str}: {e.stderr}")
 
     def render_values_file(self, chart_name, chart_repo, chart_version ):
         context = {

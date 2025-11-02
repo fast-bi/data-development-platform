@@ -1,5 +1,5 @@
 terraform {
-  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/gke-cluster?ref=v1.1.0"
+  source = "git::https://github.com/fast-bi/data-platform-terraform-module.git//google_cloud/gke-cluster?ref=v1.1.0.1"
 }
 
 include "root" {
