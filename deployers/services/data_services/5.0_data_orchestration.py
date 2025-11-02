@@ -25,7 +25,7 @@ class PlatformDataOrchestration:
                  method="local_vault", external_infisical_host=None, slug=None, vault_project_id=None,
                  secret_manager_client_id=None, secret_manager_client_secret=None,
                  project_id=None, cluster_name=None, kube_config_path=None,
-                 namespace="data-orchestration"):
+                 namespace="data-orchestration", dry_run=False):
         self.deployment_environment = "data-services"
         self.external_infisical_host = external_infisical_host
         self.cloud_provider = cloud_provider
@@ -38,13 +38,19 @@ class PlatformDataOrchestration:
         self.customer = customer
         self.metadata_collector = metadata_collector
         self.app_version = app_version
+        self.dry_run = dry_run
         # For local development only
         self.local_postgresql = "false"
 
         # Cloud Provider Specific
         try:
             if self.cloud_provider == "gcp":
-                self.project_id = project_id if project_id else f"fast-bi-{customer}"
+                if project_id and project_id.strip():
+                    self.project_id = project_id
+                    logger.info(f"Using provided project_id: {self.project_id}")
+                else:
+                    self.project_id = f"fast-bi-{customer}"
+                    logger.warning(f"No project_id provided, using default: {self.project_id}")
                 self.cluster_name = cluster_name if cluster_name else f"fast-bi-{customer}-platform"
                 self.data_orchestration_k8s_sa = f"data-orchestration-k8s-sa@{self.project_id}.iam.gserviceaccount.com" if self.project_id else None
                 self.data_orchestration_dbt_server_k8s_sa = f"dbt-sa@{self.project_id}.iam.gserviceaccount.com" if self.project_id else None
@@ -231,6 +237,13 @@ class PlatformDataOrchestration:
     def execute_command(self, command):
         """Execute a shell command with proper error handling"""
         cmd_str = ' '.join(command)
+        
+        # Dry-run mode: show command without executing
+        if self.dry_run:
+            logger.info(f"[DRY-RUN] Would execute: {cmd_str}")
+            print(f"[DRY-RUN] Would execute: {cmd_str}")
+            return ""  # Return mock success
+        
         logger.debug(f"Executing command: {cmd_str}")
         
         try:

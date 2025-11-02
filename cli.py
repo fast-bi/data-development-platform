@@ -456,7 +456,7 @@ def load_config_from_file(config_file: str) -> dict:
 
 class DeploymentManager:
     """Main class to manage the entire deployment process"""
-    def __init__(self, state: DeploymentState, config_file: str = None, non_interactive: bool = False, logger = None):
+    def __init__(self, state: DeploymentState, config_file: str = None, non_interactive: bool = False, logger = None, dry_run: bool = False):
         self.state = state
         self.secret_manager = None
         self.deployment_session_id = None
@@ -464,6 +464,7 @@ class DeploymentManager:
         self.config_file = config_file
         self.non_interactive = non_interactive
         self.logger = logger
+        self.dry_run = dry_run
         
         # Load configuration from file if provided
         if config_file:
@@ -473,16 +474,22 @@ class DeploymentManager:
     
     def log_and_echo(self, message, level="info"):
         """Helper method to log and echo messages"""
-        click.echo(message)
+        # Add [DRY-RUN] prefix if in dry-run mode
+        if self.dry_run and not message.startswith("[DRY-RUN]"):
+            display_message = f"[DRY-RUN] {message}"
+        else:
+            display_message = message
+            
+        click.echo(display_message)
         if self.logger:
             if level == "info":
-                self.logger.info(message)
+                self.logger.info(display_message)
             elif level == "error":
-                self.logger.error(message)
+                self.logger.error(display_message)
             elif level == "warning":
-                self.logger.warning(message)
+                self.logger.warning(display_message)
             elif level == "debug":
-                self.logger.debug(message)
+                self.logger.debug(display_message)
 
     def phase_1_infrastructure(self) -> bool:
         """Phase 1: Infrastructure Deployment"""
@@ -634,7 +641,8 @@ class DeploymentManager:
                 token_expiry=None,
                 token_key=None,
                 metadata_collector=SimpleMetadataCollector(),
-                logger=self.logger
+                logger=self.logger,
+                dry_run=self.dry_run
             )
             
             # Execute the deployment
@@ -1046,7 +1054,7 @@ class DeploymentManager:
         if 'secrets_data_analysis_platform' not in self.state.config:
             secrets_config['data_analysis_platform'] = safe_select(
                 "Select data analysis platform:",
-                ['lightdash', 'superset', 'metabase', 'looker']
+                ['superset', 'lightdash', 'metabase', 'looker']
             )
             self.state.config['secrets_data_analysis_platform'] = secrets_config['data_analysis_platform']
         else:
@@ -1096,7 +1104,79 @@ class DeploymentManager:
                             click.echo("   • Data Platform SA: 08-dbt_deploy_sa/sa_key.txt")
                             click.echo("   • Data Analysis SA: 15-bi_data_sa/sa_key.txt")
                         except FileNotFoundError:
-                            click.echo("⚠️ GCP service account keys not found from infrastructure deployment")
+                            # In dry-run mode, use fake service account files
+                            if self.dry_run:
+                                click.echo("⚠️ GCP service account keys not found from infrastructure deployment")
+                                click.echo("[DRY-RUN] Using fake GCP service account JSON for dry-run mode")
+                                fake_sa_path = os.path.join(os.path.dirname(__file__), 'utils', 'templates', 'dry_run', 'gcp_sa.json')
+                                
+                                try:
+                                    with open(fake_sa_path, 'r') as f:
+                                        import base64
+                                        fake_sa_content = f.read()
+                                        secrets_config['data_platform_sa_json'] = base64.b64encode(fake_sa_content.encode()).decode()
+                                        secrets_config['data_analysis_sa_json'] = base64.b64encode(fake_sa_content.encode()).decode()
+                                    
+                                    # Save to state
+                                    self.state.config['secrets_data_platform_sa_json'] = secrets_config['data_platform_sa_json']
+                                    self.state.config['secrets_data_analysis_sa_json'] = secrets_config['data_analysis_sa_json']
+                                    click.echo(f"✅ [DRY-RUN] Fake GCP service account files loaded from: {fake_sa_path}")
+                                except Exception as e:
+                                    click.echo(f"❌ Error loading fake service account file: {str(e)}")
+                                    return {}
+                            else:
+                                click.echo("⚠️ GCP service account keys not found from infrastructure deployment")
+                                click.echo("Please provide paths to Google Cloud service account JSON files:")
+                                
+                                # Ask for file paths
+                                data_platform_sa_file = safe_input(
+                                    "Enter path to GCP service account JSON file for data platform:",
+                                    validate=lambda x: len(x) > 0 and Path(x).exists()
+                                )
+                                data_analysis_sa_file = safe_input(
+                                    "Enter path to GCP service account JSON file for data analysis:",
+                                    validate=lambda x: len(x) > 0 and Path(x).exists()
+                                )
+                                
+                                # Read and encode files to base64
+                                try:
+                                    with open(data_platform_sa_file, 'r') as f:
+                                        import base64
+                                        secrets_config['data_platform_sa_json'] = base64.b64encode(f.read().encode()).decode()
+                                    with open(data_analysis_sa_file, 'r') as f:
+                                        secrets_config['data_analysis_sa_json'] = base64.b64encode(f.read().encode()).decode()
+                                    
+                                    # Save to state
+                                    self.state.config['secrets_data_platform_sa_json'] = secrets_config['data_platform_sa_json']
+                                    self.state.config['secrets_data_analysis_sa_json'] = secrets_config['data_analysis_sa_json']
+                                    click.echo("✅ GCP service account files loaded and encoded to base64")
+                                except Exception as e:
+                                    click.echo(f"❌ Error reading service account files: {str(e)}")
+                                    return {}
+                    else:
+                        # For non-GCP infrastructure, ask for service account files
+                        # In dry-run mode, use fake service account files
+                        if self.dry_run:
+                            click.echo("🔐 GCP Service Account Configuration (BigQuery requires GCP service account)")
+                            click.echo("[DRY-RUN] Using fake GCP service account JSON for dry-run mode")
+                            fake_sa_path = os.path.join(os.path.dirname(__file__), 'utils', 'templates', 'dry_run', 'gcp_sa.json')
+                            
+                            try:
+                                with open(fake_sa_path, 'r') as f:
+                                    import base64
+                                    fake_sa_content = f.read()
+                                    secrets_config['data_platform_sa_json'] = base64.b64encode(fake_sa_content.encode()).decode()
+                                    secrets_config['data_analysis_sa_json'] = base64.b64encode(fake_sa_content.encode()).decode()
+                                
+                                # Save to state
+                                self.state.config['secrets_data_platform_sa_json'] = secrets_config['data_platform_sa_json']
+                                self.state.config['secrets_data_analysis_sa_json'] = secrets_config['data_analysis_sa_json']
+                                click.echo(f"✅ [DRY-RUN] Fake GCP service account files loaded from: {fake_sa_path}")
+                            except Exception as e:
+                                click.echo(f"❌ Error loading fake service account file: {str(e)}")
+                                return {}
+                        else:
+                            click.echo("🔐 GCP Service Account Configuration (BigQuery requires GCP service account)")
                             click.echo("Please provide paths to Google Cloud service account JSON files:")
                             
                             # Ask for file paths
@@ -1124,36 +1204,6 @@ class DeploymentManager:
                             except Exception as e:
                                 click.echo(f"❌ Error reading service account files: {str(e)}")
                                 return {}
-                    else:
-                        # For non-GCP infrastructure, ask for service account files
-                        click.echo("🔐 GCP Service Account Configuration (BigQuery requires GCP service account)")
-                        click.echo("Please provide paths to Google Cloud service account JSON files:")
-                        
-                        # Ask for file paths
-                        data_platform_sa_file = safe_input(
-                            "Enter path to GCP service account JSON file for data platform:",
-                            validate=lambda x: len(x) > 0 and Path(x).exists()
-                        )
-                        data_analysis_sa_file = safe_input(
-                            "Enter path to GCP service account JSON file for data analysis:",
-                            validate=lambda x: len(x) > 0 and Path(x).exists()
-                        )
-                        
-                        # Read and encode files to base64
-                        try:
-                            with open(data_platform_sa_file, 'r') as f:
-                                import base64
-                                secrets_config['data_platform_sa_json'] = base64.b64encode(f.read().encode()).decode()
-                            with open(data_analysis_sa_file, 'r') as f:
-                                secrets_config['data_analysis_sa_json'] = base64.b64encode(f.read().encode()).decode()
-                            
-                            # Save to state
-                            self.state.config['secrets_data_platform_sa_json'] = secrets_config['data_platform_sa_json']
-                            self.state.config['secrets_data_analysis_sa_json'] = secrets_config['data_analysis_sa_json']
-                            click.echo("✅ GCP service account files loaded and encoded to base64")
-                        except Exception as e:
-                            click.echo(f"❌ Error reading service account files: {str(e)}")
-                            return {}
                 else:
                     secrets_config['data_platform_sa_json'] = self.state.config['secrets_data_platform_sa_json']
                     secrets_config['data_analysis_sa_json'] = self.state.config['secrets_data_analysis_sa_json']
@@ -1735,38 +1785,41 @@ class DeploymentManager:
         click.echo(f"  Orchestrator Platform: {repo_config['orchestrator_platform']}")
         
         # Confirm repository configuration
-        if safe_select("Proceed with repository configuration?", ['Yes', 'No']) == 'No':
+        if safe_select("Proceed with repository configuration?", ['Yes', 'No']) == 'Yes':
+            # User confirmed - proceed with current configuration
+            return repo_config
+        
+        # User said No - ask if they want to modify settings or cancel
+        if safe_select("Would you like to modify any repository settings?", ['Yes', 'No']) == 'No':
             click.echo("❌ Repository configuration cancelled")
             return {}
         
-        # Ask if user wants to modify any settings
-        if safe_select("Would you like to modify any repository settings?", ['Yes', 'No']) == 'Yes':
-            # Allow modification of key settings
-            if safe_select("Modify DAG repository URL?", ['Yes', 'No']) == 'Yes':
-                while True:
-                    try:
-                        dag_repo_url = safe_input("Enter new DAG repository URL:")
-                        repo_config['dag_repo_url'] = validate_and_normalize_repo_url(dag_repo_url, repo_config['repo_access_method'])
-                        self.state.config['secrets_dag_repo_url'] = repo_config['dag_repo_url']
-                        break
-                    except ValueError as e:
-                        click.echo(f"❌ {e}")
-                        click.echo("Please enter a valid repository URL (e.g., https://github.com/owner/repo.git or git@github.com:owner/repo.git)")
-            
-            if safe_select("Modify data repository URL?", ['Yes', 'No']) == 'Yes':
-                while True:
-                    try:
-                        data_repo_url = safe_input("Enter new data repository URL:")
-                        repo_config['data_repo_url'] = validate_and_normalize_repo_url(data_repo_url, repo_config['repo_access_method'])
-                        self.state.config['secrets_data_repo_url'] = repo_config['data_repo_url']
-                        break
-                    except ValueError as e:
-                        click.echo(f"❌ {e}")
-                        click.echo("Please enter a valid repository URL (e.g., https://github.com/owner/repo.git or git@github.com:owner/repo.git)")
-            
-            if safe_select("Modify data repository main branch?", ['Yes', 'No']) == 'Yes':
-                repo_config['data_repo_main_branch'] = safe_input("Enter new main branch:", default="main")
-                self.state.config['secrets_data_repo_main_branch'] = repo_config['data_repo_main_branch']
+        # User wants to modify settings - allow modifications
+        if safe_select("Modify DAG repository URL?", ['Yes', 'No']) == 'Yes':
+            while True:
+                try:
+                    dag_repo_url = safe_input("Enter new DAG repository URL:")
+                    repo_config['dag_repo_url'] = validate_and_normalize_repo_url(dag_repo_url, repo_config['repo_access_method'])
+                    self.state.config['secrets_dag_repo_url'] = repo_config['dag_repo_url']
+                    break
+                except ValueError as e:
+                    click.echo(f"❌ {e}")
+                    click.echo("Please enter a valid repository URL (e.g., https://github.com/owner/repo.git or git@github.com:owner/repo.git)")
+        
+        if safe_select("Modify data repository URL?", ['Yes', 'No']) == 'Yes':
+            while True:
+                try:
+                    data_repo_url = safe_input("Enter new data repository URL:")
+                    repo_config['data_repo_url'] = validate_and_normalize_repo_url(data_repo_url, repo_config['repo_access_method'])
+                    self.state.config['secrets_data_repo_url'] = repo_config['data_repo_url']
+                    break
+                except ValueError as e:
+                    click.echo(f"❌ {e}")
+                    click.echo("Please enter a valid repository URL (e.g., https://github.com/owner/repo.git or git@github.com:owner/repo.git)")
+        
+        if safe_select("Modify data repository main branch?", ['Yes', 'No']) == 'Yes':
+            repo_config['data_repo_main_branch'] = safe_input("Enter new main branch:", default="main")
+            self.state.config['secrets_data_repo_main_branch'] = repo_config['data_repo_main_branch']
         
         return repo_config
 
@@ -1886,15 +1939,23 @@ class DeploymentManager:
         params = {
             'metadata_collector': self._get_metadata_collector(),
             'cluster_name': f"fast-bi-{self.state.config['customer']}-platform",
-            'kube_config_path': self.state.kubeconfig_path
+            'kube_config_path': self.state.kubeconfig_path,
+            'dry_run': self.dry_run
         }
         
         # Add project_id and region only for services that require them
         if 'project_id' in service_config.get('required_params', []):
-            if self.state.config.get('gcp_project_id'):
-                params['project_id'] = self.state.config['gcp_project_id']
+            # ALWAYS explicitly pass project_id for GCP deployments to ensure services receive the value
+            if self.state.config.get('cloud_provider') == 'gcp':
+                if self.state.config.get('gcp_project_id'):
+                    params['project_id'] = self.state.config['gcp_project_id']
+                    click.echo(f"🔧 Debug: Passing custom project_id to {service_file}: {params['project_id']}")
+                else:
+                    params['project_id'] = f"fast-bi-{self.state.config['customer']}"
+                    click.echo(f"🔧 Debug: Passing default project_id to {service_file}: {params['project_id']}")
             else:
-                params['project_id'] = f"fast-bi-{self.state.config['customer']}"
+                # For other cloud providers, use the custom logic or None
+                params['project_id'] = self.state.config.get('gcp_project_id') or f"fast-bi-{self.state.config['customer']}"
                 
         if 'region' in service_config.get('required_params', []):
             if 'project_region' in self.state.config:
@@ -1996,7 +2057,22 @@ class DeploymentManager:
         """Collect kubeconfig path from user or auto-detect"""
         click.echo("\n🔗 Kubeconfig Configuration")
         
-        # Try to auto-detect kubeconfig path
+        # In dry-run mode, use fake kubeconfig
+        if self.dry_run:
+            fake_kubeconfig_path = os.path.join(os.path.dirname(__file__), 'utils', 'templates', 'dry_run', 'kubeconfig.yaml')
+            click.echo("[DRY-RUN] Using fake kubeconfig for dry-run mode")
+            click.echo(f"[DRY-RUN] Fake kubeconfig path: {fake_kubeconfig_path}")
+            
+            if Path(fake_kubeconfig_path).exists():
+                self.state.kubeconfig_path = fake_kubeconfig_path
+                self.state.save_state()
+                click.echo("✅ [DRY-RUN] Fake kubeconfig loaded (cluster validation skipped)")
+                return True
+            else:
+                click.echo(f"❌ Fake kubeconfig not found at: {fake_kubeconfig_path}")
+                return False
+        
+        # Normal mode: try to auto-detect kubeconfig path
         detected_path = self._detect_kubeconfig_path()
         
         if detected_path:
@@ -2212,7 +2288,8 @@ class DeploymentManager:
                 repo_authentication=repo_config['repo_access_method'],
                 data_orchestrator_repo_url=repo_config['dag_repo_url'],
                 data_model_repo_url=repo_config['data_repo_url'],
-                global_access_token=repo_config.get('git_provider_access_token')
+                global_access_token=repo_config.get('git_provider_access_token'),
+                dry_run=self.dry_run
             )
             
             # Execute repository configuration
@@ -2434,7 +2511,8 @@ class DeploymentManager:
                         kube_config_path=params.get('kube_config_path'),  # keyword
                         hc_vault_chart_version=params.get('hc_vault_chart_version'),
                         namespace=params.get('namespace', 'vault'),
-                        method=params.get('method', 'local_vault')
+                        method=params.get('method', 'local_vault'),
+                        dry_run=self.dry_run
                     )
                 else:
                     # Other services can use keyword arguments
@@ -2866,6 +2944,11 @@ class DeploymentManager:
     def _fetch_argo_workflow_sa_token(self) -> str:
         """Fetch ARGO_WORKFLOW_SA_TOKEN from Kubernetes secrets"""
         try:
+            # In dry-run mode, skip actual secret fetching
+            if self.dry_run:
+                click.echo("[DRY-RUN] Skipping ARGO_WORKFLOW_SA_TOKEN fetch - secrets cannot be accessed in dry-run mode")
+                click.echo("[DRY-RUN] In actual deployment, you would need to manually configure this token in your Git repository")
+                return None
             
             # Set KUBECONFIG environment variable
             if self.state.kubeconfig_path:
@@ -2958,6 +3041,13 @@ class DeploymentManager:
     def _display_argo_workflow_sa_token_instructions(self):
         """Display ARGO_WORKFLOW_SA_TOKEN configuration instructions based on git provider"""
         try:
+            click.echo("\n" + "="*80)
+            click.echo("⚠️  SECURITY NOTICE: SENSITIVE TOKEN DISPLAYED IN TERMINAL ONLY")
+            click.echo("="*80)
+            click.echo("This token is displayed ONCE in your terminal and is NOT saved to any file.")
+            click.echo("Make sure to copy and configure it immediately in your Git repository settings.")
+            click.echo("")
+            
             # Fetch the token
             token = self._fetch_argo_workflow_sa_token()
             if not token:
@@ -3151,7 +3241,8 @@ class DeploymentManager:
                 git_provider=finalization_config['git_provider'],
                 git_repo_url=finalization_config['git_repo_url'],
                 kube_config_path=finalization_config['kube_config_path'],
-                git_access_token=finalization_config['git_access_token']
+                git_access_token=finalization_config['git_access_token'],
+                dry_run=self.dry_run
             )
             
             # Execute deployment finalization
@@ -3162,6 +3253,9 @@ class DeploymentManager:
                 click.echo("✅ Deployment finalized successfully")
                 for message in result.get('messages', []):
                     click.echo(f"  - {message}")
+                
+                # Display ARGO_WORKFLOW_SA_TOKEN instructions again for Phase 6
+                self._display_argo_workflow_sa_token_instructions()
                 
                 # Display final deployment summary
                 click.echo("\n🎉 DEPLOYMENT COMPLETED SUCCESSFULLY!")
@@ -3537,7 +3631,7 @@ class DeploymentManager:
         if 'user_console_dbt_init_version' not in self.state.config:
             data_config['tsb_dbt_init_core_image_version'] = safe_input(
                 "Enter TSB DBT init core image version:",
-                default="v0.1.0"
+                default="v0.1.1"
             )
             self.state.config['user_console_dbt_init_version'] = data_config['tsb_dbt_init_core_image_version']
         else:
@@ -3573,15 +3667,23 @@ class DeploymentManager:
             'metadata_collector': self._get_metadata_collector(),
             'cluster_name': f"fast-bi-{self.state.config['customer']}-platform",
             'kube_config_path': self.state.kubeconfig_path,
-            'method': "local_vault"
+            'method': "local_vault",
+            'dry_run': self.dry_run
         }
         
         # Add project_id and region only for services that require them
         if 'project_id' in service_config.get('required_params', []):
-            if self.state.config.get('gcp_project_id'):
-                params['project_id'] = self.state.config['gcp_project_id']
+            # ALWAYS explicitly pass project_id for GCP deployments to ensure services receive the value
+            if self.state.config.get('cloud_provider') == 'gcp':
+                if self.state.config.get('gcp_project_id'):
+                    params['project_id'] = self.state.config['gcp_project_id']
+                    click.echo(f"🔧 Debug: Passing custom project_id to {service_file}: {params['project_id']}")
+                else:
+                    params['project_id'] = f"fast-bi-{self.state.config['customer']}"
+                    click.echo(f"🔧 Debug: Passing default project_id to {service_file}: {params['project_id']}")
             else:
-                params['project_id'] = f"fast-bi-{self.state.config['customer']}"
+                # For other cloud providers, use the custom logic or None
+                params['project_id'] = self.state.config.get('gcp_project_id') or f"fast-bi-{self.state.config['customer']}"
                 
         if 'region' in service_config.get('required_params', []):
             if 'project_region' in self.state.config:
@@ -4247,7 +4349,7 @@ def cleanup_local_environment():
         click.echo(f"  ✅ Cleaned up {cleaned_count} temporary items")
 
 
-def deploy_environment(config: str | None, interactive: bool | None, phase: int | None, simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: str | None = None, fix_kubeconfig: str | None = None):
+def deploy_environment(config: str | None, interactive: bool | None, phase: int | None, simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: str | None = None, fix_kubeconfig: str | None = None, dry_run: bool = False):
     """Deploy Fast.BI environment with configuration file or interactive setup."""
     
     # Handle fix-kubeconfig option
@@ -4322,6 +4424,16 @@ def deploy_environment(config: str | None, interactive: bool | None, phase: int 
                 cli_logger.debug(message)
     
     try:
+        # Show dry-run banner if enabled
+        if dry_run:
+            click.echo("\n" + "="*80)
+            click.echo("[DRY-RUN MODE]")
+            click.echo("="*80)
+            click.echo("This is a dry-run execution. All files will be generated but no deployment")
+            click.echo("commands will be executed. Commands that would be executed will be shown")
+            click.echo("with [DRY-RUN] prefix. Generated files will be saved locally for review.")
+            click.echo("="*80 + "\n")
+        
         # Initialize deployment state
         state = DeploymentState()
         state.load_state(state_file)
@@ -4365,7 +4477,7 @@ def deploy_environment(config: str | None, interactive: bool | None, phase: int 
                 click.echo("❌ No deployment configuration found. Please run a deployment first.")
                 return
             
-            deployment = DeploymentManager(state, logger=cli_logger)
+            deployment = DeploymentManager(state, logger=cli_logger, dry_run=dry_run)
             deployment.show_configuration_summary()
             return
         
@@ -4375,7 +4487,7 @@ def deploy_environment(config: str | None, interactive: bool | None, phase: int 
                 click.echo("❌ No deployment configuration found. Please run a deployment first.")
                 return
             
-            deployment = DeploymentManager(state, logger=cli_logger)
+            deployment = DeploymentManager(state, logger=cli_logger, dry_run=dry_run)
             deployment._show_keycloak_setup_help()
             return
         
@@ -4408,7 +4520,7 @@ def deploy_environment(config: str | None, interactive: bool | None, phase: int 
                 click.echo("ℹ️  Confirmations will be shown for critical steps (e.g., Keycloak configuration)")
             
             # Create deployment manager
-            deployment = DeploymentManager(state, config_file=config, non_interactive=True, logger=cli_logger)
+            deployment = DeploymentManager(state, config_file=config, non_interactive=True, logger=cli_logger, dry_run=dry_run)
             
             # Determine which phases to run
             phases_to_run = state.config.get('phases_to_run', 'all')
@@ -4502,11 +4614,11 @@ def deploy_environment(config: str | None, interactive: bool | None, phase: int 
 
         # Show current state (only if we have config and not in initial choice)
         if state.config:
-            deployment = DeploymentManager(state, logger=cli_logger)
+            deployment = DeploymentManager(state, logger=cli_logger, dry_run=dry_run)
             deployment.show_deployment_status()
 
         # Create deployment manager
-        deployment = DeploymentManager(state, logger=cli_logger)
+        deployment = DeploymentManager(state, logger=cli_logger, dry_run=dry_run)
         
         # Run specific phase or all phases
         if phase:
@@ -4529,9 +4641,26 @@ def deploy_environment(config: str | None, interactive: bool | None, phase: int 
         
         if success:
             state.save_state(state_file)
-            click.echo(f"\n✅ Deployment completed successfully! State saved to {state_file}")
+            if dry_run:
+                click.echo("\n" + "="*80)
+                click.echo("[DRY-RUN COMPLETE]")
+                click.echo("="*80)
+                click.echo("All configuration files have been generated successfully.")
+                click.echo("Generated files locations:")
+                customer = state.config.get('customer', 'unknown')
+                click.echo(f"  - Terraform: terraform/google_cloud/terragrunt/bi-platform/")
+                click.echo(f"  - Helm values: charts/")
+                click.echo(f"  - Secrets: /tmp/{customer}_customer_vault_structure.json")
+                click.echo("")
+                click.echo("To deploy, run the same command without --dry-run flag.")
+                click.echo("="*80)
+            else:
+                click.echo(f"\n✅ Deployment completed successfully! State saved to {state_file}")
         else:
-            click.echo(f"\n❌ Deployment failed! State saved to {state_file}")
+            if dry_run:
+                click.echo(f"\n❌ Dry-run generation failed! State saved to {state_file}")
+            else:
+                click.echo(f"\n❌ Deployment failed! State saved to {state_file}")
 
     except Exception as e:
         click.echo(f"\n❌ Error: {str(e)}", err=True)
@@ -4551,9 +4680,10 @@ def deploy_environment(config: str | None, interactive: bool | None, phase: int 
 @click.option('--cleanup', is_flag=True, help='Clean up local temporary deployment files (state files, logs, etc.)')
 @click.option('--logging-file', type=str, help='Path to log file for deployment output (captures all CLI and deployment logs)')
 @click.option('--fix-kubeconfig', type=str, help='Fix kubeconfig file with correct gke-gcloud-auth-plugin path')
-def cli(config: str | None, interactive: bool | None, phase: int | None, simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: str | None, fix_kubeconfig: str | None):
+@click.option('--dry-run', is_flag=True, help='Generate all configuration files without deploying (renders Terraform, Helm values, manifests)')
+def cli(config: str | None, interactive: bool | None, phase: int | None, simple_input: bool, state_file: str, show_config: bool, keycloak_help: bool, non_interactive: bool, destroy: bool, destroy_confirm: bool, cleanup: bool, logging_file: str | None, fix_kubeconfig: str | None, dry_run: bool):
     """Fast.BI Platform Deployment CLI"""
-    deploy_environment(config, interactive, phase, simple_input, state_file, show_config, keycloak_help, non_interactive, destroy, destroy_confirm, cleanup, logging_file, fix_kubeconfig)
+    deploy_environment(config, interactive, phase, simple_input, state_file, show_config, keycloak_help, non_interactive, destroy, destroy_confirm, cleanup, logging_file, fix_kubeconfig, dry_run)
 
 
 if __name__ == '__main__':

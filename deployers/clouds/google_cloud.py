@@ -69,7 +69,7 @@ class GoogleCloudManager:
                  cidr_block=None, cluster_ipv4_cidr_block=None, services_ipv4_cidr_block=None, private_service_connect_cidr=None,
                  lb_subnet_cidr=None, shared_host=None, kubernetes_version=None, gke_machine_type=None, gke_spot=None, k8s_master_ipv4_cidr_block=None,
                  terraform_state=None, state_project=None, state_location=None, state_bucket=None, gke_deployment_type=None,
-                 service_account_key=None, access_token=None, refresh_token=None, token_expiry=None, token_key=None, metadata_collector=None, logger=None):
+                 service_account_key=None, access_token=None, refresh_token=None, token_expiry=None, token_key=None, metadata_collector=None, logger=None, dry_run=False):
         # Add these new attributes
         self.service_account_key = service_account_key
         self.access_token = access_token
@@ -78,6 +78,7 @@ class GoogleCloudManager:
         self.token_key = token_key
         self.metadata_collector = metadata_collector
         self.logger = logger or logging.getLogger(__name__)
+        self.dry_run = dry_run
         #Service specific tf - Basic
         self.cloud_provider = cloud_provider if cloud_provider else "gcp"
         self.deployment_environemnt = deployment
@@ -231,6 +232,14 @@ class GoogleCloudManager:
         return is_expired
 
     def execute_command(self, command):
+        cmd_str = ' '.join(command) if isinstance(command, list) else command
+        
+        # Dry-run mode: show command without executing
+        if self.dry_run:
+            self.logger.info("[DRY-RUN] Would execute: %s", cmd_str)
+            print(f"[DRY-RUN] Would execute: {cmd_str}")
+            return "", None  # Return mock success
+        
         self.refresh_access_token_if_needed()
         output_file_path = f"{self.customer}_deployment.log"
         original_dir = os.getcwd()  # Save the current directory

@@ -21,7 +21,7 @@ logger = logging.getLogger('traefik_ingress_deployer')
 class TraefikIngress:
     def __init__(self, chart_version, customer, whitelisted_environment_ips, metadata_collector, 
                  cloud_provider, domain_name, project_id=None, cluster_name=None, region=None, 
-                 kube_config_path=None, external_ip=None, namespace="traefik-ingress"):
+                 kube_config_path=None, external_ip=None, namespace="traefik-ingress", dry_run=False):
         self.deployment_environment = "infrastructure"        
         self.namespace = namespace
         self.customer = customer
@@ -29,11 +29,17 @@ class TraefikIngress:
         self.cloud_provider = cloud_provider
         self.whitelisted_environment_ips = [whitelisted_environment_ips] if isinstance(whitelisted_environment_ips, str) else whitelisted_environment_ips
         self.metadata_collector = metadata_collector
+        self.dry_run = dry_run
         
         # Cloud Provider Specific
         try:
             if self.cloud_provider == "gcp":
-                self.project_id = project_id if project_id else f"fast-bi-{customer}"
+                if project_id and project_id.strip():
+                    self.project_id = project_id
+                    logger.info(f"Using provided project_id: {self.project_id}")
+                else:
+                    self.project_id = f"fast-bi-{customer}"
+                    logger.warning(f"No project_id provided, using default: {self.project_id}")
                 self.region = region if region else "europe-central2"
                 self.cluster_name = cluster_name if cluster_name else f"fast-bi-{customer}-platform"
                 logger.info(f"Configured for GCP with project ID: {self.project_id}")
@@ -144,6 +150,13 @@ class TraefikIngress:
     def execute_command(self, command):
         """Execute a shell command with proper error handling"""
         cmd_str = ' '.join(command)
+        
+        # Dry-run mode: show command without executing
+        if self.dry_run:
+            logger.info(f"[DRY-RUN] Would execute: {cmd_str}")
+            print(f"[DRY-RUN] Would execute: {cmd_str}")
+            return ""  # Return mock success
+        
         logger.debug(f"Executing command: {cmd_str}")
         
         try:

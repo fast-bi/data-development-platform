@@ -44,7 +44,7 @@ locals {
   customer = "{{ customer }}"
   parent_folder = "{{ parent_folder }}"
 {%- if parent_folder %}
-  customer_folder_names = ["{{ customer | capitalize }}"]
+  customer_folder_names = ["Data Development Platform"]
 {%- else %}
   customer_folder_names = []
 {%- endif %}
@@ -77,7 +77,7 @@ locals {
   gke_machine_type = "e2-standard-4"
   spot = true
   kubernetes_version = "latest"
-  gke_name = "platform"
+  gke_name = "data-development-platform"
   min_node_count = 0
   max_node_count = 12
   master_ipv4_cidr_block = "172.21.97.128/28"

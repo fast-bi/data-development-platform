@@ -58,7 +58,8 @@ class InfrastructureDeploymentOperator:
                  namespace: str = "vault",
                  # Operation flags
                  force_deployment: bool = False,
-                 cleanup_enabled: bool = True):
+                 cleanup_enabled: bool = True,
+                 dry_run: bool = False):
         """
         Initialize the InfrastructureDeploymentOperator.
         
@@ -109,6 +110,7 @@ class InfrastructureDeploymentOperator:
         # Operation flags
         self.force_deployment = force_deployment
         self.cleanup_enabled = cleanup_enabled
+        self.dry_run = dry_run
         
         # Working directory
         self.working_dir = f"/tmp/{customer}_infrastructure_deployment_files"
@@ -315,9 +317,15 @@ class InfrastructureDeploymentOperator:
             os.makedirs(self.working_dir, exist_ok=True)
             logger.info(f"Created working directory: {self.working_dir}")
             
-            # Clone repository
-            self.git_manager.clone_repository()
-            logger.info("Repository cloned successfully")
+            # In dry-run mode, skip git clone
+            if self.dry_run:
+                logger.info("[DRY-RUN] Skipping git clone - using local working directory only")
+                print(f"[DRY-RUN] Skipping git clone for repository")
+                print(f"[DRY-RUN] Files will be prepared in: {self.working_dir}")
+            else:
+                # Clone repository
+                self.git_manager.clone_repository()
+                logger.info("Repository cloned successfully")
             
             # Copy template files
             self._copy_template_files()
@@ -764,6 +772,14 @@ class InfrastructureDeploymentOperator:
         logger.info("Saving encryption key to vault")
         logger.info(f"Generated encryption key: {self.encryption_key}")
         
+        # In dry-run mode, skip saving to vault
+        if self.dry_run:
+            logger.info("[DRY-RUN] Skipping encryption key save to vault")
+            print("[DRY-RUN] Skipping encryption key save to vault - key cannot be saved in dry-run mode")
+            print(f"[DRY-RUN] Encryption key generated: {self.encryption_key}")
+            print("[DRY-RUN] In actual deployment, this key would be saved to the vault for secure storage")
+            return {"status": "dry-run", "message": "Encryption key not saved in dry-run mode"}
+        
         try:
             if self.method == "external_infisical":
                 if not self.vault_project_id or not self.secret_manager_client_id or not self.secret_manager_client_secret:
@@ -824,6 +840,13 @@ class InfrastructureDeploymentOperator:
     def _commit_and_push_changes(self):
         """Commit and push changes to git repository"""
         try:
+            # In dry-run mode, skip git commit and push
+            if self.dry_run:
+                logger.info("[DRY-RUN] Skipping git commit and push")
+                print("[DRY-RUN] Would commit and push changes to repository")
+                print(f"[DRY-RUN] Files remain in: {self.working_dir}")
+                return
+            
             self.git_manager.commit_and_push("Update infrastructure files")
         except Exception as e:
             logger.error(f"Failed to commit and push changes: {str(e)}")
@@ -832,6 +855,12 @@ class InfrastructureDeploymentOperator:
     def _cleanup(self):
         """Clean up temporary files and directories"""
         try:
+            # In dry-run mode, keep the files for review
+            if self.dry_run:
+                logger.info("[DRY-RUN] Skipping cleanup - files kept for review")
+                print(f"[DRY-RUN] Infrastructure files available for review at: {self.working_dir}")
+                return
+            
             if os.path.exists(self.working_dir):
                 logger.info(f"Cleaning up working directory: {self.working_dir}")
                 shutil.rmtree(self.working_dir)

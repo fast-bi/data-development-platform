@@ -25,6 +25,8 @@ Fast.BI GCP deployment creates a complete data platform with:
   - Example: `https://github.com/mycompany/dbt-data-models.git`
 - **Data Orchestration Repository**: For Airflow DAGs and workflows
   - Example: `https://github.com/mycompany/data-orchestration-dags.git`
+- **Data Platform Deployment IaaC files Repository**: For IaaC files to save
+  - Example: `https://github.com/mycompany/data-platform-infrastructure-deployment-files.git`
 
 > ⚠️ **Important**: These repositories are mandatory for the platform to function. You must have access to create or use existing repositories in GitHub, GitLab, Bitbucket, or GitLab.
 
@@ -48,6 +50,30 @@ Fast.BI GCP deployment creates a complete data platform with:
    gcloud auth application-default login
    ```
 5. **Start Deployment**: Run `python cli.py` and follow the wizard
+
+## 🧪 Dry-Run Mode (Recommended First Step)
+
+Before deploying to GCP, we strongly recommend using **dry-run mode** to:
+- 📋 Generate and review all configuration files
+- 🔍 Preview deployment commands without executing them
+- ✅ Validate your configuration choices
+- 📚 Understand the deployment process
+
+**Run dry-run mode:**
+```bash
+cd data-development-platform
+python cli.py --dry-run
+```
+
+**What dry-run generates:**
+- Terraform/Terragrunt configurations in `terraform/google_cloud/terragrunt/bi-platform/`
+- Helm values files in `charts/infra_services_charts/` and `charts/data_services_charts/`
+- Secret structures in `/tmp/{customer}_customer_vault_structure.json`
+- Repository templates in `/tmp/{customer}_repos_*/`
+
+**After dry-run, review the generated files before actual deployment.**
+
+📖 **See [Dry-Run Mode Documentation](dry-run.md) for complete details and all options.**
 
 ### GCP Permissions
 Your GCP account needs the following roles:

@@ -98,6 +98,7 @@ class CustomerSecretManager(SingletonBase):
             self.default_git_user_email = f"{self.customer}@{self.domain_name}"
             self.bigquery_project_id = kwargs.get('bigquery_project_id')
             self.bigquery_region = kwargs.get('bigquery_region')
+            self.dry_run = kwargs.get('dry_run', False)
 
             # Process service account JSONs if provided and data warehouse is BigQuery
             if self.data_warehouse_platform == 'bigquery':
@@ -893,6 +894,12 @@ class CustomerSecretManager(SingletonBase):
         Args:
         - command (str): The command to execute.
         """
+        # Dry-run mode: show command without executing
+        if self.dry_run:
+            self.logger.info(f"[DRY-RUN] Would execute: {command}")
+            print(f"[DRY-RUN] Would execute: {command}")
+            return  # Return without executing
+        
         try:
             # Execute the command, capture output, and check for errors automatically
             result = subprocess.run(command, shell=True, capture_output=True, text=True, check=True)

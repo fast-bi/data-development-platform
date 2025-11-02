@@ -56,8 +56,6 @@ configMap:
   SLACK_SIGNING_SECRET: ""
   SLACK_STATE_SECRET: ""
   ## Email
-  EMAIL_SMTP_HOST: "{{ bi_smtp_host }}"
-  EMAIL_SMTP_PORT: "{{ bi_smtp_port }}"
   EMAIL_SMTP_SECURE: "true"
   EMAIL_SMTP_SENDER_EMAIL: "{{ bi_smtp_mail_from }}"
 
@@ -100,6 +98,16 @@ extraEnv:
       secretKeyRef:
         name: data-analysis-sso-clients-secrets
         key: CLIENT_SECRET
+  - name: EMAIL_SMTP_HOST
+    valueFrom: 
+      secretKeyRef:
+        name: data-analysis-smtp-secrets
+        key: smtp_host
+  - name: EMAIL_SMTP_PORT
+    valueFrom:
+      secretKeyRef:
+        name: data-analysis-smtp-secrets
+        key: smtp_port
   - name: EMAIL_SMTP_USER
     valueFrom:
       secretKeyRef:
