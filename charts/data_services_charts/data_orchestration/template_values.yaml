@@ -433,12 +433,12 @@ extraConfigMaps:
     data: |
       requirements.txt: |
         ###### Requirements with Version Specifiers ######
-        fast-bi-dbt-runner==2025.1.0.1
+        fast-bi-dbt-runner==2026.1.0.9
         fast-bi-replication-control==0.1.0
-        dbt-bigquery==1.9.2
-        dbt-snowflake==1.9.4
-        dbt-redshift==1.9.3
-        dbt-fabric==1.9.6
+        dbt-bigquery==1.10.3
+        dbt-core==1.10.19
+        dbt-snowflake==1.10.5
+        dbt-redshift==1.10.0
 # Extra env 'items' that will be added to the definition of airflow containers
 # a string is expected (templated).
 # TODO: difference from `env`? This is a templated string. Probably should template `env` and remove this.

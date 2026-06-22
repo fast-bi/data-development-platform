@@ -158,7 +158,7 @@ bootstrapScript: |
         sqlalchemy-redshift \
         snowflake-sqlalchemy \
         google-cloud-bigquery-storage \
-        sqlalchemy \
+        "sqlalchemy>=1.4,<2.0" \
         pymssql
 
     echo "Package installation completed"
@@ -254,7 +254,7 @@ extraConfigs: {}
   #       tables: []
 
 # -- Extra files to mount on `/app/pythonpath` as secrets
-extraSecrets: []
+extraSecrets: {}
 {%- endraw %}
 {%- if cloud_provider == "self-managed" %}
 extraVolumes:

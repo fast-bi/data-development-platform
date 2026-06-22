@@ -307,6 +307,13 @@
       "username": "neo4j",
       "password": "random",
       "NEO4J_AUTH": "datahub_neo4j_credentials"
+    },
+    "kafka-secrets": {
+      "client-password": "datahub_kafka_client_password",
+      "client-passwords": "datahub_kafka_client_password",
+      "controller-password": "random",
+      "inter-broker-password": "random",
+      "jaas-config": "datahub_kafka_jaas"
     }
   },
   "data-analysis": {

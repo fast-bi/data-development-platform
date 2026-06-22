@@ -1,10 +1,26 @@
-## Fast.BI Deployment 
+## Fast.BI Deployment
 # Helm deployment values for Service.
 # Helm Chart name: {{ chart_name }}
 # Helm Chart repo: {{ chart_repo }}
 # Helm Chart version {{ chart_version }}
 # Values to start up datahub after starting up the datahub-prerequisites chart with "prerequisites" release name
 fullnameOverride: "data-governance-datahub"
+# Java Kafka clients use sasl.jaas.config; Python/librdkafka needs username/password only.
+x-java-kafka-jaas-env: &java_kafka_jaas_env
+  - name: SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG
+    valueFrom:
+      secretKeyRef:
+        name: data-governance-kafka-secrets
+        key: jaas-config
+# GMS: keep UI fast-path indexing on (system-update scaleDown can leave this false).
+x-gms-extra-envs: &gms_extra_envs
+  - name: SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG
+    valueFrom:
+      secretKeyRef:
+        name: data-governance-kafka-secrets
+        key: jaas-config
+  - name: PRE_PROCESS_HOOKS_UI_ENABLED
+    value: "true"
 # Copy this chart and change configuration as needed.
 datahub-gms:
   enabled: true
@@ -49,7 +65,7 @@ datahub-gms:
     failureThreshold: 8
   theme_v2:
     enabled: true
-    default: false
+    default: true
     toggeable: true
   # Optionaly specify service type for datahub-gms: LoadBalancer, ClusterIP or NodePort, by default: LoadBalancer
   service:
@@ -82,6 +98,7 @@ datahub-gms:
       - host: {{ ingress_host_gsm }}
         paths:
           - /
+  extraEnvs: *gms_extra_envs
 datahub-frontend:
   serviceAccount:
     # Specifies whether a service account should be created
@@ -228,7 +245,7 @@ acryl-datahub-actions:
     create: true
     # Annotations to add to the service account
     annotations:
-{%- if cloud_provider == "gcp" %} 
+{%- if cloud_provider == "gcp" %}
 {% if monitoring_k8s_sa %}
       iam.gke.io/gcp-service-account: {{ monitoring_k8s_sa }}
 {%- else %}
@@ -243,7 +260,7 @@ acryl-datahub-actions:
 {%- raw %}
   image:
     repository: acryldata/datahub-actions
-    tag: "v0.2.0"
+    # tag: "v1.2.0" # # defaults to .global.datahub.version
     # Add custom command / arguments to this job.  Useful if you need a custom startup or shutdown script
     # to run
     # command: customCommand
@@ -258,11 +275,22 @@ acryl-datahub-actions:
     requests:
       cpu: 100m
       memory: 256Mi
+  # librdkafka (Python) cannot use Java sasl.jaas.config; username/password only.
+  extraEnvs:
+    - name: KAFKA_PROPERTIES_PARTITION_ASSIGNMENT_STRATEGY
+      value: cooperative-sticky
+    - name: KAFKA_PROPERTIES_SASL_USERNAME
+      value: datahub
+    - name: KAFKA_PROPERTIES_SASL_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: data-governance-kafka-secrets
+          key: client-password
 {%- endraw %}
 datahub-mae-consumer:
   serviceAccount:
     # Specifies whether a service account should be created
-    create: true
+    create: false
     # Annotations to add to the service account
     annotations:
 {%- if cloud_provider == "gcp" %}
@@ -294,7 +322,7 @@ datahub-mae-consumer:
 datahub-mce-consumer:
   serviceAccount:
     # Specifies whether a service account should be created
-    create: true
+    create: false
     # Annotations to add to the service account
     annotations:
 {%- if cloud_provider == "gcp" %}
@@ -331,7 +359,7 @@ datahub-ingestion-cron:
     # tag: "v0.11.0" # defaults to .global.datahub.version
 
 elasticsearchSetupJob:
-  enabled: true
+  enabled: false
   image:
     repository: acryldata/datahub-elasticsearch-setup
     # tag: "v0.11.0" # defaults to .global.datahub.version
@@ -369,7 +397,7 @@ elasticsearchSetupJob:
     #   imagePullPolicy: Always
 
 kafkaSetupJob:
-  enabled: true
+  enabled: false
   image:
     repository: acryldata/datahub-kafka-setup
     # tag: "v0.11.0" # defaults to .global.datahub.version
@@ -442,7 +470,7 @@ mysqlSetupJob:
     #   imagePullPolicy: Always
 
 postgresqlSetupJob:
-  enabled: true
+  enabled: false
   image:
     repository: acryldata/datahub-postgres-setup
     # tag: "v0.11.0" # defaults to .global.datahub.version
@@ -509,6 +537,15 @@ datahubUpgrade:
     # - name: my-image-name
     #   image: my-image
     #   imagePullPolicy: Always
+  # Used by restore-indices CronJob template (not restoreIndices.extraEnvs).
+  extraEnvs:
+    - name: DATAHUB_DB_NAME
+      value: datahub
+    - name: SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG
+      valueFrom:
+        secretKeyRef:
+          name: data-governance-kafka-secrets
+          key: jaas-config
   restoreIndices:
     image:
       # Add custom command / arguments to this job.  Useful if you need a custom startup or shutdown script
@@ -560,9 +597,98 @@ datahubUpgrade:
 {%- raw %}
   extraInitContainers: []
 
+## Code for ES replica tweaking
+datahubSystemCronHourly:
+  # This feature is not ready yet, DO NOT enable
+  # Enabled by default in case resources need to be allocated to be able to run this job
+  enabled: false
+  # Custom labels to add to the CronJob metadata
+  labels: {}
+  image:
+    repository: 795586375822.dkr.ecr.us-west-2.amazonaws.com/datahub-upgrade
+    # tag: "v0.2.0"  # defaults to .global.datahub.version
+  podSecurityContext:
+    fsGroup: 1000
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+  podAnnotations: {}
+  # Add extra sidecar containers to job pod
+  extraSidecars: []
+    # - name: my-image-name
+    #   image: my-image
+    #   imagePullPolicy: Always
+  extraInitContainers: []
+  jvmOpts:
+    XX: ":+ExitOnOutOfMemoryError -XX:MaxRAMPercentage=75.0"
+
 ## Runs system update processes
 ## Includes: Elasticsearch Indices Creation/Reindex (See global.elasticsearch.index for additional configuration)
 datahubSystemUpdate:
+  # Custom labels to add to the Job metadata
+  labels: {}
+  # backOffLimit for the system update job (number of retries before job is considered failed)
+  backOffLimit: 6
+  # useAdmin determines whether to run system update with admin credentials
+  useAdmin: true
+  # K8 scale-down (available in v1.5.0): options for datahub-upgrade KubernetesScaleDownStep
+  scaleDown:
+    maxRetries: 3
+    # Label selectors for deployments to scale to zero (comma-separated in env). MAE/MCE by default.
+    scaleDownDeploymentLabelSelectors:
+      - app.kubernetes.io/name=datahub-mae-consumer
+      - app.kubernetes.io/name=datahub-mce-consumer
+    # Deployments that get env vars set when scaling down (labelSelector -> env map). State stores previous env per deployment for restore.
+    deploymentEnvUpdates:
+      - labelSelector: app.kubernetes.io/name=datahub-gms
+        env:
+          PRE_PROCESS_HOOKS_UI_ENABLED: "false"
+          MCE_CONSUMER_ENABLED: "false"
+          MAE_CONSUMER_ENABLED: "false"
+          PE_CONSUMER_ENABLED: "false"
+          MCP_CONSUMER_ENABLED: "false"
+  # ServiceAccount configuration for the system update job (enables RBAC when running upgrade jobs)
+  serviceAccount:
+    create: true
+    name: datahub-operator-sa
+    rbac: true  # Create Role and RoleBinding for this ServiceAccount
+  # SQL setup configuration (when enabled, runs database setup as part of system update)
+  sql:
+    # Override IAM authentication for Ebean (SQL) on system-update Jobs only.
+    # Omit `enabled` under iam to follow global.sql.iam.enabled; set enabled: true/false to override for this Job only.
+    iam: {}
+    # Override Ebean credentials for system-update Jobs only (defaults to global.sql.datasource). Host/url/driver stay global.
+    # username: "override-username"
+    # password:
+    #   value: "override-password"
+    #   secretRef: "override-secret-name"
+    #   secretKey: "override-secret-key"
+    # SQL setup within system-update job (replaces legacy mysqlSetupJob/postgresqlSetupJob when IAM is enabled)
+    setup:
+      enabled: true            # Enable SQL database setup
+      createTables: true        # Create DataHub tables
+      createDatabase: true      # Create the database if it doesn't exist
+      createUser: false         # Create SQL user (for non-IAM setups)
+  # Elasticsearch setup configuration (when enabled, runs ES setup as part of system update)
+  elasticsearch:
+    # Optional. ELASTICSEARCH_THREAD_COUNT for system-update / datahub-upgrade jobs only (via datahub.upgrade.env).
+    # threadCount: 8
+    # Override IAM authentication for Elasticsearch on system-update Jobs only.
+    # Omit `enabled` under iam to follow global.elasticsearch.iam.enabled; set enabled: true/false to override for this Job only.
+    iam: {}
+    # Override Elasticsearch credentials for setup flows (defaults to global.elasticsearch.auth).
+    # username: "override-username"
+    # password:
+    #   value: "override-password"
+    #   secretRef: "override-secret-name"
+    #   secretKey: "override-secret-key"
+    # Elasticsearch setup within system-update job
+    setup:
+      enabled: true             # Enable Elasticsearch index setup (BuildIndices)
+      createUser: false         # CREATE_USER_ES env var - create Elasticsearch user
+      createUserIamRoleArn: ""  # CREATE_USER_ES_IAM_ROLE_ARN env var - IAM role ARN to map to the user (only if createUser=true)
   image:
     repository: acryldata/datahub-upgrade
     # tag:
@@ -574,12 +700,15 @@ datahubSystemUpdate:
     # fsGroup: 1000
   securityContext: {}
     # runAsUser: 1000
+  # Pod + container security contexts above apply to both blocking and nonblocking system-update Jobs
+  # (templates/datahub-upgrade/datahub-system-update-job.yml).
   annotations:
     # This is what defines this resource as a hook. Without this line, the
     # job is considered part of the release.
     helm.sh/hook: pre-install,pre-upgrade
     helm.sh/hook-weight: "-4"
     helm.sh/hook-delete-policy: before-hook-creation
+  extraEnvs: *java_kafka_jaas_env
   # !! Requires version v0.13.0 or greater
   # Split the system update into 2 jobs, one that is blocking the rest of
   # the deployment and the other which is non-blocking. Once the blocking
@@ -587,6 +716,8 @@ datahubSystemUpdate:
   # system is starting.
   nonblocking:
     enabled: true
+    # Custom labels to add to the nonblocking Job metadata
+    labels: {}
     # When mode = 'nonblocking' the nonblocking job should not include the above helm.sh/hook annotations
     annotations:
       # This is what defines this resource as a hook. Without this line, the
@@ -664,6 +795,8 @@ global:
   elasticsearch:
     host: "data-governance-eck-es-es-http.data-governance.svc.cluster.local"
     port: "9200"
+    engineType: ELASTICSEARCH_8
+    autoDetect: "false"
     skipcheck: "false"
     insecure: "false"
     useSSL: "false"
@@ -677,12 +810,10 @@ global:
 
     ## The following section controls when and how reindexing of elasticsearch indices are performed
     index:
-      ## Enable reindexing when mappings change based on the data model annotations
+      ## Rebuild search indices on helm upgrade when mappings/settings drift (e.g. after ES restore).
       enableMappingsReindex: true
 
-      ## Enable reindexing when static index settings change.
-      ## Dynamic settings which do not require reindexing are not affected
-      ## Primarily this should be enabled when re-sharding is necessary for scaling/performance.
+      ## Rebuild when static index settings change.
       enableSettingsReindex: true
 
       ## Index settings can be overridden for entity indices or other indices on an index by index basis
@@ -704,7 +835,7 @@ global:
 
       ## The amount of delay between indexing a document and having it returned in queries
       ## Increasing this value can improve performance when ingesting large amounts of data
-      # refreshIntervalSeconds: 1
+      refreshIntervalSeconds: 1
 
       ## The following options control settings for datahub-upgrade job when creating or reindexing indices
       upgrade:
@@ -720,6 +851,10 @@ global:
         ## This setting allows continuing if and only if the cloneIndices setting is also enabled which
         ## ensures a complete backup of the original index is preserved.
         allowDocCountMismatch: false
+
+        ## Only disable for OpenSearch/ElasticSearch clusters with zone awareness, otherwise optimization should be utilized
+        ## Will use full replication during reindexing which will make the process slower
+        reindexOptimizationEnabled: true
 
     ## Search related configuration
     search:
@@ -813,8 +948,12 @@ global:
   kafka:
     bootstrap:
       server: "data-governance-sys-kafka.data-governance.svc.cluster.local:9092"
-    zookeeper:
-      server: "data-governance-sys-zookeeper.data-governance.svc.cluster.local:2181"
+
+    # NOTE: Zookeeper is no longer used with Kafka 3.3 and later.
+    # zookeeper:
+    #   server: "data-governance-sys-zookeeper.data-governance.svc.cluster.local:2181"
+
+    precreateTopics: true
     # This section defines the names for the kafka topics that DataHub depends on, at a global level. Do not override this config
     # at a sub-chart level.
     topics:
@@ -828,11 +967,13 @@ global:
       metadata_change_log_timeseries_topic_name: "MetadataChangeLog_Timeseries_v1"
       platform_event_topic_name: "PlatformEvent_v1"
       datahub_upgrade_history_topic_name: "DataHubUpgradeHistory_v1"
+      cdc_topic_name: "datahub.metadata_aspect_v2"
     consumer_groups:
       datahub_upgrade_history_kafka_consumer_group_id: {}
       #   gms: "<<release-name>>-duhe-consumer-job-client-gms"
       #   mae-consumer: "<<release-name>>-duhe-consumer-job-client-mcl"
       #   mce-consumer: "<<release-name>>-duhe-consumer-job-client-mcp"
+      datahub_actions_doc_propagation_consumer_group_id: "datahub_doc_propagation_action"
       datahub_actions_ingestion_executor_consumer_group_id: "ingestion_executor"
       datahub_actions_slack_consumer_group_id: "datahub_slack_action"
       datahub_actions_teams_consumer_group_id: "datahub_teams_action"
@@ -884,6 +1025,40 @@ global:
       #   region: us-east-1
       #   registry: datahub
 
+      # Optional override on whether to configure schema registry clean up policy.
+      # When schema registry type is set to INTERNAL, AWS_GLUE, the configureCleanupPolicy is always set to false.
+      # This is used *only* if schemaregistry.type is set to KAFKA *and* datahub can create/configure
+      # topics (precreateTopics: true).
+      # When using a schema registry that datahub cannot configure, explicitly set this flag to false.
+      configureCleanupPolicy: true
+
+    # AWS IAM authentication for MSK
+    # When enabled, DataHub will use AWS IAM credentials instead of username/password
+    # Applies to all components that use Kafka (both Java/Spring and Python services).
+    iam:
+      enabled: false  # Sets SPRING_KAFKA_PROPERTIES_SASL_* environment variables for Java services
+                      # and KAFKA_PROPERTIES_* environment variables for Python services
+      awsRegion: ""   # AWS region where MSK cluster is located, e.g. "us-west-2"
+
+  credentialsAndCertsSecrets:
+    name: data-governance-kafka-secrets
+    secureEnv: {}
+
+  springKafkaConfigurationOverrides:
+    partition.assignment.strategy: "org.apache.kafka.clients.consumer.CooperativeStickyAssignor"
+    security.protocol: SASL_PLAINTEXT
+    sasl.mechanism: PLAIN
+
+  pythonKafkaConfigurationOverrides:
+    security.protocol: SASL_PLAINTEXT
+    sasl.mechanism: PLAIN
+    sasl.username: datahub
+
+  pythonKafkaSecretsOverrides:
+    sasl.password:
+      secretRef: data-governance-kafka-secrets
+      secretKey: client-password
+
   neo4j:
     host: "data-governance-neo4j.data-governance.svc.cluster.local:7474"
     uri: "bolt://data-governance-neo4j.data-governance.svc.cluster.local"
@@ -909,8 +1084,33 @@ global:
       extraEnvs:
         - name: "DATAHUB_DB_NAME"
           value: "{{ data_governance_db_name }}"
+
+    # IAM authentication for SQL databases (supports both MySQL and PostgreSQL)
+    # When enabled, DataHub will use IAM credentials instead of username/password
+    # Requires proper IAM roles and policies to be configured
+    iam:
+      enabled: false  # Sets EBEAN_USE_IAM_AUTH and EBEAN_POSTGRES_USE_AWS_IAM_AUTH
+      cloudProvider: "auto"  # Cloud provider: "auto" (detect), "aws", or "gcp"
+      awsRegion: ""  # AWS region for RDS/Aurora IAM authentication
+
   datahub:
     version: {{ data_governance_app_version }}
+{%- raw %}
+    # Consolidated ServiceAccount for application Deployments/Jobs/CronJobs (not system-update operator).
+    # Override per subchart via <subchart>.serviceAccount.name / .create.
+    appServiceAccount:
+      create: true
+      name: datahub-app-sa
+      annotations:
+{%- endraw %}{%- if cloud_provider == "gcp" %}
+{% if monitoring_k8s_sa %}
+          iam.gke.io/gcp-service-account: {{ monitoring_k8s_sa }}
+{%- else %}
+          {}
+{%- endif %}
+{%- else %}
+          {}
+{%- endif %}
 {%- raw %}
     gms:
       protocol: "http"
@@ -926,15 +1126,50 @@ global:
       enablePrometheus: false
       # Set a custom name for the monitoring port
       portName: jmx
+      # Change if using a service like AKS where it uses a different API namespace for monitoring.coreos.com
+      # monitoringApiVersion: "azmonitoring.coreos.com/v1"
+      # Prometheus scrape layout for JMX workloads (GMS, frontend, MAE/MCE consumers).
+      # - legacy: JMX on jmxPort; GMS Spring actuator on main http service port only.
+      # - jmx_and_actuator: JMX with explicit metricsPath on jmxPort; /actuator/prometheus on actuatorPrometheusPort (default; matches v1.6.0 Docker).
+      # - actuator_only: no JMX; /actuator/prometheus only on actuatorPrometheusPort where the app exposes it.
+      # When jmx_and_actuator or actuator_only: MAE/MCE consumers probe /actuator/health on the
+      # prometheus Service/container port (actuatorPrometheusPort); allow that port if you use NetworkPolicy.
+      metricsMode: jmx_and_actuator
+      jmxPort: 4318
+      # Dedicated listener for Spring /actuator/prometheus (non-legacy modes). Independent of jmxPort so JMX can be removed later.
+      actuatorPrometheusPort: 4319
+      jmxExporter:
+        metricsPath: "/metrics"
     mae_consumer:
       port: "9091"
       nodePort: "30002"
 
-    appVersion: "1.0.0"
+    appVersion: "1.6.0"
     systemUpdate:
       ## The following options control settings for datahub-upgrade job which will
       ## managed ES indices and other update related work
       enabled: true
+      # When true: skip legacy elasticsearch/kafka/mysql/postgresql SetupJob hooks; run SQL and Elasticsearch
+      # setup via the system-update job (see datahubSystemUpdate.sql / elasticsearch). Legacy hooks stay off
+      # unless consolidatedUpgrade is set false. Java KubernetesScaleDownStep applies when scaleDown is enabled.
+      consolidatedUpgrade: true
+      # K8 scale-down (available in v1.5.0): when true, Java-based scale-down runs (KubernetesScaleDownStep)
+      # NOTE: scaleDown is automatically disabled when zdu.enable=true
+      scaleDown:
+        enabled: true
+      # Zero Downtime Upgrade (ZDU) group flags — each stage enables a set of individual feature flags.
+      # Individual flags can still be overridden separately (e.g. via global.elasticsearch.index.upgrade).
+      zdu:
+        # ZDU_STAGE_10: group flag for pre-enablement stage.
+        # Enables: CREATE_SCHEMA_VERSION_INDEX (schema version index on metadata_aspect_v2)
+        preEnable: true
+        # ZDU_STAGE_20: group flag for first ZDU release.
+        # Enables: ELASTICSEARCH_BUILD_INDICES_INCREMENTAL_REINDEX_ENABLED,
+        #          ELASTICSEARCH_BUILD_INDICES_ROLLBACK_DUAL_WRITE_ENABLED,
+        #          SYSTEM_UPDATE_MIGRATE_ASPECTS_ENABLED,
+        #          ASPECT_MIGRATION_MUTATOR_ENABLED (GMS runtime)
+        # NOTE: setting enable=true automatically disables scaleDown operations
+        enable: false
 
     encryptionKey:
       secretRef: "data-governance-datahub-encryption-secrets"
@@ -949,7 +1184,7 @@ global:
         #    encryptionKey: <encryption key value>
     managed_ingestion:
       enabled: true
-      defaultCliVersion: "1.0.0"
+      defaultCliVersion: "1.6.0"
 
     metadata_service_authentication:
       enabled: true

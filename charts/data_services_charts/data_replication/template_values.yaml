@@ -217,7 +217,9 @@ version: ""
 ## @section Webapp Parameters
 {%- raw %}
 webapp:
-  enabled: true
+  # 1.8.x serves the web UI from the server component; standalone webapp is retired (chart default: false).
+  # The vendored chart publishes a "<release>-airbyte-webapp-svc" shim (port 80 -> server) for legacy automations.
+  enabled: false
   # -- Number of webapp replicas
   replicaCount: 1
 
@@ -1538,9 +1540,10 @@ temporal-ui:
   podLabels: {}
 
   # -- Security context for the container
+  # Chart bug (≤1.8.5): temporal-ui renders podSecurityContext at container level. fsGroup nulled to
+  # minimise the dropped-field warnings under client-side apply; temporal-ui runs as root anyway.
   podSecurityContext:
-    # gid=1000(temporal-ui)
-    fsGroup: 1000
+    fsGroup: null
 
   containerSecurityContext:
     allowPrivilegeEscalation: false

@@ -837,6 +837,17 @@ class CustomerSecretManager(SingletonBase):
                         datahub_neo4j_username = self.resolve_secret_reference(datahub_neo4j_username_path)
                         datahub_neo4j_password = self.resolve_secret_reference(datahub_neo4j_password_path)
                         secret_value = f"{datahub_neo4j_username}/{datahub_neo4j_password}"
+                    elif secret_value == "datahub_kafka_client_password":
+                        # Reuse the random adminPassword generated for the data-governance root account
+                        admin_pw = self.resolve_secret_reference("data-governance/root-secrets/adminPassword")
+                        secret_value = admin_pw if admin_pw else self.generate_secure_password()
+                    elif secret_value == "datahub_kafka_jaas":
+                        # Build the PLAIN JAAS config using the same shared password
+                        admin_pw = self.resolve_secret_reference("data-governance/root-secrets/adminPassword")
+                        secret_value = (
+                            f'org.apache.kafka.common.security.plain.PlainLoginModule required '
+                            f'username="datahub" password="{admin_pw}";'
+                        )
                     elif secret_value == "customer":
                         secret_value = self.customer
                     elif secret_value == "domain":
