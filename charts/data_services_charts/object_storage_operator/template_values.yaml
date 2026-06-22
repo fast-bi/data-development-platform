@@ -150,7 +150,7 @@ tenant:
       # Docs: https://github.com/kubernetes-sigs/aws-ebs-csi-driver/blob/master/docs/parameters.md
 {% endraw %}
 {%- if cloud_provider == 'gcp' %}
-      storageClassName: standard-rwo
+      storageClassName: standard-rwo-xfs
 {% elif cloud_provider == 'aws' %}
       #storageClassName: standard
 {% elif cloud_provider == 'azure' %}
@@ -568,165 +568,181 @@ ingress:
 # Use an extraResources template section to include additional Kubernetes resources
 # with the Helm deployment.
 extraResources:
-  - apiVersion: v1
-    kind: Secret
-    type: Opaque
-    metadata:
-      name: minio-env-configuration
-    stringData:
-      config.env: |-
-        export MINIO_ROOT_USER="{{ minio_root_user }}"
-        export MINIO_ROOT_PASSWORD="{{ minio_root_password }}"
-        export MINIO_IDENTITY_OPENID_CONFIG_URL="{{ oauth_end_point_host }}"
-        export MINIO_IDENTITY_OPENID_CLIENT_ID="{{ oauth_client_id }}"
-        export MINIO_IDENTITY_OPENID_CLIENT_SECRET="{{ oauth_client_secret }}"
-        export MINIO_IDENTITY_OPENID_SCOPES="openid,profile,email"
-        export MINIO_IDENTITY_OPENID_CLAIM_NAME="groups"
-        export MINIO_IDENTITY_OPENID_CLAIM_USERINFO="on"
-        export MINIO_IDENTITY_OPENID_REDIRECT_URI="{{ oauth_redirect_url }}"
-        export MINIO_IDENTITY_OPENID_DISPLAY_NAME="FastBI-SSO"
-        export MINIO_PROMETHEUS_AUTH_TYPE="public"
-        export MINIO_PROMETHEUS_URL="http://prometheus-server.logging.svc.cluster.local"
-        export MINIO_PROMETHEUS_JOB_ID="minio"
-        export MINIO_STORAGE_CLASS_STANDARD="EC:2"
-        export MINIO_STORAGE_FREE=5
+{%- if cloud_provider == "gcp" %}
+- apiVersion: storage.k8s.io/v1
+  kind: StorageClass
+  metadata:
+    name: standard-rwo-xfs
+    labels:
+      app.kubernetes.io/component: storage
+      app.kubernetes.io/name: minio
+  allowVolumeExpansion: true
+  provisioner: pd.csi.storage.gke.io
+  parameters:
+    type: pd-balanced
+    csi.storage.k8s.io/fstype: xfs
+  reclaimPolicy: Delete
+  volumeBindingMode: WaitForFirstConsumer
+{%- endif %}
+- apiVersion: v1
+  kind: Secret
+  type: Opaque
+  metadata:
+    name: minio-env-configuration
+  stringData:
+    config.env: |-
+      export MINIO_ROOT_USER="{{ minio_root_user }}"
+      export MINIO_ROOT_PASSWORD="{{ minio_root_password }}"
+      export MINIO_IDENTITY_OPENID_CONFIG_URL="{{ oauth_end_point_host }}"
+      export MINIO_IDENTITY_OPENID_CLIENT_ID="{{ oauth_client_id }}"
+      export MINIO_IDENTITY_OPENID_CLIENT_SECRET="{{ oauth_client_secret }}"
+      export MINIO_IDENTITY_OPENID_SCOPES="openid,profile,email"
+      export MINIO_IDENTITY_OPENID_CLAIM_NAME="groups"
+      export MINIO_IDENTITY_OPENID_CLAIM_USERINFO="on"
+      export MINIO_IDENTITY_OPENID_REDIRECT_URI="{{ oauth_redirect_url }}"
+      export MINIO_IDENTITY_OPENID_DISPLAY_NAME="FastBI-SSO"
+      export MINIO_PROMETHEUS_AUTH_TYPE="public"
+      export MINIO_PROMETHEUS_URL="http://prometheus-server.logging.svc.cluster.local"
+      export MINIO_PROMETHEUS_JOB_ID="minio"
+      export MINIO_STORAGE_CLASS_STANDARD="EC:2"
+      export MINIO_STORAGE_FREE=5
 {%- if cloud_provider == "self-managed" %}
-        export MINIO_IDENTITY_TLS_SKIP_VERIFY="on"
+      export MINIO_IDENTITY_TLS_SKIP_VERIFY="on"
 {% endif %}
 {%- if method == "external_infisical" %}
-  - apiVersion: secrets.infisical.com/v1alpha1
-    kind: InfisicalSecret
-    metadata:
-        name: infisicalsecret-airbyte-fast-bi-bucket-admin
-    spec:
-        resyncInterval: 15
-        authentication:
-            universalAuth:
-                secretsScope:
-                    projectSlug: "{{ project_slug }}"
-                    envSlug: prod
-                    secretsPath: "/data-platform-storage/root-buckets-secrets/airbyte-fast-bi-bucket-admin/"
-                credentialsRef:
-                    secretName: universal-auth-credentials
-                    secretNamespace: infisical-operator-system
-        managedSecretReference:
-            secretName: airbyte-fast-bi-bucket-admin
-            secretNamespace: minio
-  - apiVersion: secrets.infisical.com/v1alpha1
-    kind: InfisicalSecret
-    metadata:
-        name: infisicalsecret-airflow-fast-bi-bucket-admin
-    spec:
-        resyncInterval: 15
-        authentication:
-            universalAuth:
-                secretsScope:
-                    projectSlug: "{{ project_slug }}"
-                    envSlug: prod
-                    secretsPath: "/data-platform-storage/root-buckets-secrets/airflow-fast-bi-bucket-admin/"
-                credentialsRef:
-                    secretName: universal-auth-credentials
-                    secretNamespace: infisical-operator-system
-        managedSecretReference:
-            secretName: airflow-fast-bi-bucket-admin
-            secretNamespace: minio
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-airbyte-fast-bi-bucket-admin
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-storage/root-buckets-secrets/airbyte-fast-bi-bucket-admin/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: airbyte-fast-bi-bucket-admin
+          secretNamespace: minio
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-airflow-fast-bi-bucket-admin
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-storage/root-buckets-secrets/airflow-fast-bi-bucket-admin/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: airflow-fast-bi-bucket-admin
+          secretNamespace: minio
 
-  - apiVersion: secrets.infisical.com/v1alpha1
-    kind: InfisicalSecret
-    metadata:
-        name: infisicalsecret-bi-fast-bi-bucket-admin
-    spec:
-        resyncInterval: 15
-        authentication:
-            universalAuth:
-                secretsScope:
-                    projectSlug: "{{ project_slug }}"
-                    envSlug: prod
-                    secretsPath: "/data-platform-storage/root-buckets-secrets/bi-fast-bi-bucket-admin/"
-                credentialsRef:
-                    secretName: universal-auth-credentials
-                    secretNamespace: infisical-operator-system
-        managedSecretReference:
-            secretName: bi-fast-bi-bucket-admin
-            secretNamespace: minio
-  - apiVersion: secrets.infisical.com/v1alpha1
-    kind: InfisicalSecret
-    metadata:
-        name: infisicalsecret-data-fast-bi-bucket-admin
-    spec:
-        resyncInterval: 15
-        authentication:
-            universalAuth:
-                secretsScope:
-                    projectSlug: "{{ project_slug }}"
-                    envSlug: prod
-                    secretsPath: "/data-platform-storage/root-buckets-secrets/data-fast-bi-bucket-admin/"
-                credentialsRef:
-                    secretName: universal-auth-credentials
-                    secretNamespace: infisical-operator-system
-        managedSecretReference:
-            secretName: data-fast-bi-bucket-admin
-            secretNamespace: minio
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-bi-fast-bi-bucket-admin
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-storage/root-buckets-secrets/bi-fast-bi-bucket-admin/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: bi-fast-bi-bucket-admin
+          secretNamespace: minio
+- apiVersion: secrets.infisical.com/v1alpha1
+  kind: InfisicalSecret
+  metadata:
+      name: infisicalsecret-data-fast-bi-bucket-admin
+  spec:
+      resyncInterval: 15
+      authentication:
+          universalAuth:
+              secretsScope:
+                  projectSlug: "{{ project_slug }}"
+                  envSlug: prod
+                  secretsPath: "/data-platform-storage/root-buckets-secrets/data-fast-bi-bucket-admin/"
+              credentialsRef:
+                  secretName: universal-auth-credentials
+                  secretNamespace: infisical-operator-system
+      managedSecretReference:
+          secretName: data-fast-bi-bucket-admin
+          secretNamespace: minio
 {% endif %}
 {%- if method == "local_vault" %}
-  - apiVersion: external-secrets.io/v1
-    kind: ExternalSecret
-    metadata:
-      name: hashicorp-airbyte-fast-bi-bucket-admin
-      namespace: minio
-    spec:
-      refreshInterval: 15s
-      secretStoreRef:
-        name: vault-backend
-        kind: ClusterSecretStore
-      target:
-        name: airbyte-fast-bi-bucket-admin
-      dataFrom:
-        - extract:
-            key: "data-platform-storage/root-buckets-secrets/airbyte-fast-bi-bucket-admin/"
-  - apiVersion: external-secrets.io/v1
-    kind: ExternalSecret
-    metadata:
-      name: hashicorp-airflow-fast-bi-bucket-admin
-      namespace: minio
-    spec:
-      refreshInterval: 15s
-      secretStoreRef:
-        name: vault-backend
-        kind: ClusterSecretStore
-      target:
-        name: airflow-fast-bi-bucket-admin
-      dataFrom:
-        - extract:
-            key: "data-platform-storage/root-buckets-secrets/airflow-fast-bi-bucket-admin/"
-  - apiVersion: external-secrets.io/v1
-    kind: ExternalSecret
-    metadata:
-      name: hashicorp-data-fast-bi-bucket-admin
-      namespace: minio
-    spec:
-      refreshInterval: 15s
-      secretStoreRef:
-        name: vault-backend
-        kind: ClusterSecretStore
-      target:
-        name: data-fast-bi-bucket-admin
-      dataFrom:
-        - extract:
-            key: "data-platform-storage/root-buckets-secrets/data-fast-bi-bucket-admin/"
-  - apiVersion: external-secrets.io/v1
-    kind: ExternalSecret
-    metadata:
-      name: hashicorp-bi-fast-bi-bucket-admin
-      namespace: minio
-    spec: 
-      refreshInterval: 15s
-      secretStoreRef:
-        name: vault-backend
-        kind: ClusterSecretStore
-      target:
-        name: bi-fast-bi-bucket-admin
-      dataFrom:
-        - extract:
-            key: "data-platform-storage/root-buckets-secrets/bi-fast-bi-bucket-admin/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-airbyte-fast-bi-bucket-admin
+    namespace: minio
+  spec:
+    refreshInterval: 15s
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: airbyte-fast-bi-bucket-admin
+    dataFrom:
+      - extract:
+          key: "data-platform-storage/root-buckets-secrets/airbyte-fast-bi-bucket-admin/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-airflow-fast-bi-bucket-admin
+    namespace: minio
+  spec:
+    refreshInterval: 15s
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: airflow-fast-bi-bucket-admin
+    dataFrom:
+      - extract:
+          key: "data-platform-storage/root-buckets-secrets/airflow-fast-bi-bucket-admin/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-fast-bi-bucket-admin
+    namespace: minio
+  spec:
+    refreshInterval: 15s
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-fast-bi-bucket-admin
+    dataFrom:
+      - extract:
+          key: "data-platform-storage/root-buckets-secrets/data-fast-bi-bucket-admin/"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-bi-fast-bi-bucket-admin
+    namespace: minio
+  spec: 
+    refreshInterval: 15s
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: bi-fast-bi-bucket-admin
+    dataFrom:
+      - extract:
+          key: "data-platform-storage/root-buckets-secrets/bi-fast-bi-bucket-admin/"
 {% endif %}

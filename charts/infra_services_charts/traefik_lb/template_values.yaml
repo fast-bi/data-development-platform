@@ -1,4 +1,4 @@
-## Fast.BI Deployment 
+## Fast.BI Deployment
 # Helm deployment values for Service.
 # Helm Chart name: {{ chart_name }}
 # Helm Chart repo: {{ chart_repo }}
@@ -7,11 +7,11 @@
 {% raw %}
 # Default values for Traefik
 image:
-  # -- Traefik image host registry
+  # -- Traefik image host registry. Defaults to docker.io for Traefik Proxy.
   registry: docker.io
-  # -- Traefik image repository
+  # -- Traefik image repository. Defaults to traefik for Traefik Proxy.
   repository: traefik
-  # -- defaults to appVersion
+  # -- defaults to appVersion. Use image.digest to pin by sha256 instead.
   tag: ""
   # -- Traefik image pull policy
   pullPolicy: IfNotPresent
@@ -100,6 +100,10 @@ deployment:
   #   - name: ndots
   #     value: "2"
   #   - name: edns0
+  hostAliases: []
+  hostUsers: null
+  # readinessPath: ""
+  # livenessPath: ""
   # -- Additional imagePullSecrets
   imagePullSecrets: []
   # - name: myRegistryKeySecretName
@@ -128,6 +132,9 @@ ingressClass:
   enabled: true
   isDefaultClass: true
   name: traefik
+# -- Globally use v2 router syntax (chart v41+, deprecated since Traefik v3.4)
+# core:
+#   defaultRuleSyntax: ""
 # Traefik experimental features
 experimental:
   # This value is no longer used, set the image.tag to a semver higher than 3.0, e.g. "v3.0.0-beta3"
@@ -271,8 +278,7 @@ providers:
     enabled: false
     # -- Allows Traefik to automatically watch for file changes
     watch: true
-    # -- File content (YAML format, go template supported) (see https://doc.traefik.io/traefik/providers/file/)
-    content: ""
+    content: {}
     # http:
     #   routers:
     #     router0:
@@ -304,49 +310,50 @@ additionalVolumeMounts: []
 # - name: traefik-logs
 #   mountPath: /var/log/traefik
 
-logs:
-  general:
-    # -- By default, the logs use a text format (common), but you can
-    # also ask for the json format in the format option
-    # format: json
-    # By default, the level is set to ERROR.
-    # -- Alternative logging levels are DEBUG, PANIC, FATAL, ERROR, WARN, and INFO.
-    level: ERROR
-  access:
-    # -- To enable access logs
-    enabled: false
-    ## By default, logs are written using the Common Log Format (CLF) on stdout.
-    ## To write logs in JSON, use json in the format option.
-    ## If the given format is unsupported, the default (CLF) is used instead.
-    # format: json
-    # filePath: "/var/log/traefik/access.log
-    ## To write the logs in an asynchronous fashion, specify a bufferingSize option.
-    ## This option represents the number of log lines Traefik will keep in memory before writing
-    ## them to the selected output. In some cases, this option can greatly help performances.
-    # bufferingSize: 100
-    ## Filtering
-    # -- https://docs.traefik.io/observability/access-logs/#filtering
-    filters: {}
-    # statuscodes: "200,300-302"
-    # retryattempts: true
-    # minduration: 10ms
-    fields:
-      general:
-        # -- Available modes: keep, drop, redact.
-        defaultmode: keep
-        # -- Names of the fields to limit.
-        names: {}
-        ## Examples:
-        # ClientUsername: drop
-      headers:
-        # -- Available modes: keep, drop, redact.
-        defaultmode: drop
-        # -- Names of the headers to limit.
-        names: {}
-        ## Examples:
-        # User-Agent: redact
-        # Authorization: drop
-        # Content-Type: keep
+# -- General (non-access) logging configuration (chart v41+ split from logs:)
+# -- https://doc.traefik.io/traefik/observability/logs-and-accesslogs/
+log:
+  # -- Set [logs format](https://doc.traefik.io/traefik/observability/logs-and-accesslogs/#opt-log-format)
+  # format: json
+  # By default, the level is set to INFO (v41 changed default from ERROR).
+  # -- Alternative logging levels are TRACE, DEBUG, INFO, WARN, ERROR, FATAL, and PANIC.
+  level: ERROR
+
+# -- Access logging configuration (chart v41+ renamed from logs.access:)
+# -- https://doc.traefik.io/traefik/observability/logs-and-accesslogs/
+accessLog:
+  # -- To enable access logs
+  enabled: false
+  ## By default, logs are written using the Common Log Format (CLF) on stdout.
+  ## To write logs in JSON, use json in the format option.
+  ## If the given format is unsupported, the default (CLF) is used instead.
+  # format: json
+  # filePath: "/var/log/traefik/access.log
+  ## To write the logs in an asynchronous fashion, specify a bufferingSize option.
+  # bufferingSize: 100
+  ## Filtering (field names are camelCase in chart v41+)
+  # -- https://doc.traefik.io/traefik/observability/access-logs/#filtering
+  filters: {}
+  # statusCodes: "200,300-302"
+  # retryAttempts: true
+  # minDuration: 10ms
+  fields:
+    general:
+      # -- Available modes: keep, drop, redact. (renamed from lowercase defaultmode in v41+)
+      defaultMode: keep
+      # -- Names of the fields to limit.
+      names: {}
+      ## Examples:
+      # ClientUsername: drop
+    headers:
+      # -- Available modes: keep, drop, redact. (renamed from lowercase defaultmode in v41+)
+      defaultMode: drop
+      # -- Names of the headers to limit.
+      names: {}
+      ## Examples:
+      # User-Agent: redact
+      # Authorization: drop
+      # Content-Type: keep
 metrics:
   ## -- Prometheus is enabled by default.
   ## -- It can be disabled by setting "prometheus: null"
@@ -570,10 +577,10 @@ tracing: {}
 #   secretToken: ""
 #   serviceEnvironment: ""
 
-# -- Global command arguments to be passed to all traefik's pods
-globalArguments:
-  - "--global.checknewversion"
-  - "--global.sendanonymoususage"
+# -- Global configuration applied to all traefik's pods
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: true
 #
 # Configure Traefik static configuration
 # -- Additional arguments to be passed at Traefik's binary
@@ -599,16 +606,6 @@ additionalArguments:
 #  - "--log.level=DEBUG"
 {% endif %}
 {% raw %}
-# -- Environment variables to be passed to Traefik's binary
-env:
-  - name: POD_NAME
-    valueFrom:
-      fieldRef:
-        fieldPath: metadata.name
-  - name: POD_NAMESPACE
-    valueFrom:
-      fieldRef:
-        fieldPath: metadata.namespace
 # - name: SOME_VAR
 #   value: some-var-value
 # - name: SOME_VAR_FROM_CONFIG_MAP
@@ -741,28 +738,29 @@ ports:
     #   trustedIPs: []
     #   insecure: false
     #
-    ## Set TLS at the entrypoint
+    ## Set TLS and middlewares at the entrypoint (moved under `http` in chart v40+)
     ## https://doc.traefik.io/traefik/routing/entrypoints/#tls
-    tls:
-      enabled: true
-      # this is the name of a TLSOption definition
-      options: ""
-      certResolver: ""
-      domains: []
-      # - main: example.com
-      #   sans:
-      #     - foo.example.com
-      #     - bar.example.com
-    #
-    # -- One can apply Middlewares on an entrypoint
-    # https://doc.traefik.io/traefik/middlewares/overview/
-    # https://doc.traefik.io/traefik/routing/entrypoints/#middlewares
-    # -- /!\ It introduces here a link between your static configuration and your dynamic configuration /!\
-    # It follows the provider naming convention: https://doc.traefik.io/traefik/providers/overview/#provider-namespace
-    # middlewares:
-    #   - namespace-name1@kubernetescrd
-    #   - namespace-name2@kubernetescrd
-    middlewares: []
+    http:
+      tls:
+        enabled: true
+        # this is the name of a TLSOption definition
+        options: ""
+        certResolver: ""
+        domains: []
+        # - main: example.com
+        #   sans:
+        #     - foo.example.com
+        #     - bar.example.com
+      #
+      # -- One can apply Middlewares on an entrypoint
+      # https://doc.traefik.io/traefik/middlewares/overview/
+      # https://doc.traefik.io/traefik/routing/entrypoints/#middlewares
+      # -- /!\ It introduces here a link between your static configuration and your dynamic configuration /!\
+      # It follows the provider naming convention: https://doc.traefik.io/traefik/providers/overview/#provider-namespace
+      # middlewares:
+      #   - namespace-name1@kubernetescrd
+      #   - namespace-name2@kubernetescrd
+      middlewares: []
 {% endif %}
 {% raw %}
   metrics:
@@ -831,9 +829,9 @@ service:
   spec:
     loadBalancerIP: "{{ loadBalancerIP }}"
     externalTrafficPolicy: Cluster
+    loadBalancerSourceRanges: {{ loadBalancerSourceRanges | tojson }}
   # loadBalancerIP: "1.2.3.4"
   # clusterIP: "2.3.4.5"
-  loadBalancerSourceRanges: {{ loadBalancerSourceRanges | tojson }}
   # - 192.168.0.1/32
   # - 172.16.0.0/16
   ## -- Class of the load balancer implementation
@@ -903,7 +901,7 @@ persistence:
   # -- Only mount a subpath of the Volume into the pod
   # subPath: ""
 # -- Certificates resolvers configuration
-certResolvers: {}
+certificatesResolvers: {}
 #   letsencrypt:
 #     # for challenge options cf. https://doc.traefik.io/traefik/https/acme/
 #     email: email@example.com
@@ -939,11 +937,6 @@ rbac:
   # Enable user-facing roles
   # https://kubernetes.io/docs/reference/access-authn-authz/rbac/#user-facing-roles
   # aggregateTo: [ "admin" ]
-  # List of Kubernetes secrets that are accessible for Traefik. If empty, then access is granted to every secret.
-  secretResourceNames: []
-# -- Enable to create a PodSecurityPolicy and assign it to the Service Account via RoleBinding or ClusterRoleBinding
-podSecurityPolicy:
-  enabled: false
 # -- The service account the pods will use to interact with the Kubernetes API
 serviceAccount:
   # If set, an existing service account is used

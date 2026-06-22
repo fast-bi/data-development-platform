@@ -944,7 +944,7 @@ spec:
     - name: "ltree"
     ssl:
       enabled: true
-    version: '16.8'
+    version: '16.14'
     flavor: 'vanilla'
 {%- if cloud_provider != "self-managed" %}
   replication:

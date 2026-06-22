@@ -25,7 +25,7 @@ class PlatformUserConsole:
                  secret_manager_client_id=None, secret_manager_client_secret=None,
                  tsb_fastbi_web_core_image_version=None, tsb_dbt_init_core_image_version=None,
                  project_id=None, bq_project_id=None, cluster_name=None, kube_config_path=None,
-                 namespace="user-console", bi_system=None, data_replication_default_destination_type=None, fast_bi_statistics_id=None, dry_run=False):
+                 namespace="user-console", bi_system=None, data_replication_default_destination_type=None, fast_bi_statistics_id=None, git_provider=None, vault_link=None, fastbi_bq_audit="False", fastbi_bq_audit_warehouse_project=None, fastbi_bq_audit_warehouse_dataset=None, dry_run=False):
         # Initialize basic attributes
         self.deployment_environment = "data-services"
         self.external_infisical_host = external_infisical_host
@@ -48,6 +48,15 @@ class PlatformUserConsole:
         
         # Fast.bi Statistics
         self.fast_bi_statistics_id = fast_bi_statistics_id
+
+        # Git provider and Vault link
+        self.git_provider = git_provider
+        self.vault_link = vault_link
+
+        # BigQuery FinOps tab settings
+        self.fastbi_bq_audit = fastbi_bq_audit
+        self.fastbi_bq_audit_warehouse_project = fastbi_bq_audit_warehouse_project
+        self.fastbi_bq_audit_warehouse_dataset = fastbi_bq_audit_warehouse_dataset
 
         # Cloud Provider Specific
         try:
@@ -388,7 +397,12 @@ class PlatformUserConsole:
                 'data_orchestration_db_username': data_orchestration_db_username,
                 'data_orchestration_db_host': data_orchestration_db_host,
                 'data_orchestration_db_port': data_orchestration_db_port,
-                'fast_bi_statistics_id': self.fast_bi_statistics_id
+                'fast_bi_statistics_id': self.fast_bi_statistics_id,
+                'git_provider': self.git_provider,
+                'vault_link': self.vault_link,
+                'fastbi_bq_audit': self.fastbi_bq_audit,
+                'fastbi_bq_audit_warehouse_project': self.fastbi_bq_audit_warehouse_project,
+                'fastbi_bq_audit_warehouse_dataset': self.fastbi_bq_audit_warehouse_dataset
             }
 
             # Ensure output directory exists
@@ -791,7 +805,12 @@ class PlatformUserConsole:
             kube_config_path=args.kube_config_path,
             namespace=args.namespace,
             bi_system=args.bi_system,
-            fast_bi_statistics_id=args.fast_bi_statistics_id
+            fast_bi_statistics_id=args.fast_bi_statistics_id,
+            git_provider=args.git_provider,
+            vault_link=args.vault_link,
+            fastbi_bq_audit=args.fastbi_bq_audit,
+            fastbi_bq_audit_warehouse_project=args.fastbi_bq_audit_warehouse_project,
+            fastbi_bq_audit_warehouse_dataset=args.fastbi_bq_audit_warehouse_dataset
         )
 
 
@@ -922,6 +941,29 @@ if __name__ == "__main__":
     optional_args.add_argument(
         '--fast_bi_statistics_id',
         help='Fast BI statistics ID'
+    )
+    optional_args.add_argument(
+        '--git_provider',
+        choices=['github', 'gitlab', 'bitbucket'],
+        help='Git provider (github, gitlab, bitbucket)'
+    )
+    optional_args.add_argument(
+        '--vault_link',
+        help='External Vault UI URL (e.g. https://vault.data.hautica.io)'
+    )
+    optional_args.add_argument(
+        '--fastbi_bq_audit',
+        default='False',
+        choices=['True', 'False'],
+        help='Enable BigQuery FinOps tab in /stats (default: False)'
+    )
+    optional_args.add_argument(
+        '--fastbi_bq_audit_warehouse_project',
+        help='BigQuery project hosting the dbt-bigquery-monitoring dataset'
+    )
+    optional_args.add_argument(
+        '--fastbi_bq_audit_warehouse_dataset',
+        help='BigQuery dataset name for dbt-bigquery-monitoring'
     )
     
     # Parse arguments

@@ -124,7 +124,10 @@ class PlatformDataReplication:
         
         # Chart repositories
         self.data_replication_chart_repo_name = "airbyte"
-        self.data_replication_chart_name = "airbyte/airbyte"
+        # Vendored, locally-patched Airbyte chart (1.8.5). Patches: empty SEGMENT_WRITE_KEY +
+        # TRACKING_STRATEGY=logging, bundled minio gated on minio.enabled, webapp-svc shim for
+        # retired webapp, temporal-ui TEMPORAL_ADDRESS templated to <release>-temporal.
+        self.data_replication_chart_name = "charts/data_services_charts/data_replication/airbyte_chart/airbyte"
         self.data_replication_chart_repo = "https://airbytehq.github.io/helm-charts"
         
         self.data_replication_oauth_chart_repo_name = "oauth2-proxy"
@@ -150,7 +153,8 @@ class PlatformDataReplication:
         self.data_replication_service_base_webapp_url = f"http://{self.data_replication_deployment_name}-airbyte-webapp-svc.{self.namespace}.svc.cluster.local"
 
         # MetadataCollection
-        self.app_name_data_replication = self.data_replication_chart_name.split('/')[1]
+        # chart_name is now a local path; the app name is always "airbyte".
+        self.app_name_data_replication = "airbyte"
         self.app_name_data_replication_oauth = self.data_replication_oauth_chart_name.split('/')[1]
         self.app_name = {
             "data_replication": self.app_name_data_replication,
@@ -194,15 +198,26 @@ class PlatformDataReplication:
             logger.error(f"Values file not found: {values_path}")
             raise FileNotFoundError(f"Values file not found: {values_path}")
         try:
-            # Properly add and update the Helm repo
-            self.execute_command(["helm", "repo", "add", chart_repo_name, chart_repo])
-            self.execute_command(["helm", "repo", "update", chart_repo_name])
+            # A local chart directory (vendored, patched chart) is installed by path: no repo to
+            # add/update and --version does not apply.
+            is_local_chart = os.path.isdir(chart_name)
+            if not is_local_chart:
+                self.execute_command(["helm", "repo", "add", chart_repo_name, chart_repo])
+                self.execute_command(["helm", "repo", "update", chart_repo_name])
             # Formulate the Helm upgrade command properly as a list
             helm_command = [
                 "helm", "upgrade", "-i", deployment_name, chart_name,
-                "--version", chart_version,
+            ]
+            if not is_local_chart:
+                helm_command += ["--version", chart_version]
+            helm_command += [
                 "--namespace", namespace,
                 "--create-namespace",
+                # Force client-side apply. Helm 4 defaults to server-side apply (strict schema
+                # validation) which rejects upstream Airbyte chart quirks (pod-level fields rendered
+                # at container level in temporal-ui). Client-side apply drops unknown fields as
+                # warnings, matching how this chart deployed under Helm 3.
+                "--server-side=false",
                 "--wait",
                 "--timeout", "30m",
                 "--values", values_path,

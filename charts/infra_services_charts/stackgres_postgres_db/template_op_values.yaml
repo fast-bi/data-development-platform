@@ -273,11 +273,9 @@ collector:
 # Section to configure Operator Installation Jobs
 jobs:
   # Section to configure Operator Installation Jobs image
+  # NOTE: In StackGres 1.18+, only `pullPolicy` is accepted here.
+  # The `name` and `tag` fields were removed from the SGConfig CRD.
   image:
-    # -- Operator Installation Jobs image name
-    name: "stackgres/jobs"
-    # -- Operator Installation Jobs image tag
-    # tag: "1.15.2"
     # -- Operator Installation Jobs image pull policy
     pullPolicy: "IfNotPresent"
   # -- Operator Installation Jobs annotations
@@ -545,12 +543,7 @@ developer:
       volumes: []
       # -- Pod's container volume mounts. See https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#volumemount-v1-core
       volumeMounts: []
-    # Section to define volumes to be used by the jobs container
-    jobs:
-      # -- Pod volumes. See https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#volume-v1-core
-      volumes: []
-      # -- Pod's container volume mounts. See https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#volumemount-v1-core
-      volumeMounts: []
+    # NOTE: `jobs` patch entry was removed in StackGres 1.18 (SGConfig strict schema).
     # Section to define volumes to be used by the cluster controller container
     clusterController:
       # -- Pod volumes. See https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#volume-v1-core

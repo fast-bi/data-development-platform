@@ -796,13 +796,10 @@ extraObjects:
             value: "{{ data_replication_default_destination_type }}"
           - name: GCP_PROJECT_REGION
             value: "{{ gcp_project_region }}"
-            optional: true
           - name: GCP_PROJECT_ID
             value: "{{ gcp_project_id }}"
-            optional: true
           - name: GCP_DATA_REPLICATION_SA_NAME
             value: "{{ data_replication_k8s_sa }}"
-            optional: true
         initContainers:
         - name: wait-for-airbyte
           image: curlimages/curl:latest

@@ -68,7 +68,7 @@ configmapReload:
     ##
     image:
       repository: quay.io/prometheus-operator/prometheus-config-reloader
-      tag: v0.72.0
+      # if not set the chart's pinned config-reloader version is used
       # When digest is set to a non-empty value, images will be pulled by digest (regardless of tag value).
       digest: ""
       pullPolicy: IfNotPresent
@@ -173,7 +173,6 @@ server:
   image:
     repository: quay.io/prometheus/prometheus
     # if not set appVersion field from Chart.yaml is used
-    tag: ""
     # When digest is set to a non-empty value, images will be pulled by digest (regardless of tag value).
     digest: ""
     pullPolicy: IfNotPresent
@@ -1258,6 +1257,9 @@ serverFiles:
         scheme: http
         static_configs:
         - targets: ['minio.minio.svc.cluster.local']
+
+# native Prometheus scrape configs (chart 29+ key); null means none
+scrapeConfigs: null
 
 # adds additional scrape configs to prometheus.yml
 # must be a string so you have to add a | after extraScrapeConfigs:

@@ -21,6 +21,17 @@ crds:
   keep: true
   # -- Annotations to be added to all CRDs
   annotations: {}
+  # -- Use full CRDs with complete OpenAPI schemas. When false, uses minified CRDs with x-kubernetes-preserve-unknown-fields.
+  # Full CRDs are very large and are installed via a pre-install/pre-upgrade hook Job that uses server-side apply.
+  full: true
+  # -- Configuration for the CRD install Job (only used when crds.full=true)
+  upgradeJob:
+    # -- Image for the kubectl container that applies CRDs
+    image:
+      # -- Repository for the kubectl image
+      repository: registry.k8s.io/kubectl
+      # -- Tag for the kubectl image
+      tag: v1.36.1
 
 # -- Create clusterroles that extend existing clusterroles to interact with argo-cd crds
 ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
@@ -63,6 +74,8 @@ workflow:
   serviceAccount:
     # -- Specifies whether a service account should be created
     create: false
+    # -- Specifies whether a secret for each service account should be created
+    createSecret: false
     # -- Labels applied to created service account
     labels: {}
     # -- Annotations applied to created service account
@@ -161,6 +174,9 @@ controller:
     # -- ServiceMonitor will add labels from the service to the Prometheus metric
     ## Ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#servicemonitorspec
     targetLabels: []
+    # -- Manipulate the metrics created by the workflow controller
+    ## Ref: https://argo-workflows.readthedocs.io/en/latest/metrics/#modifiers
+    modifiers: {}
   # -- the controller container's securityContext
   securityContext:
     readOnlyRootFilesystem: true
@@ -202,6 +218,17 @@ controller:
       # sslMode must be one of: disable, require, verify-ca, verify-full
       # you can find more information about those ssl options here: https://godoc.org/github.com/lib/pq
       sslMode: require
+  # -- enable Synchronization to use a database.  Postgres and MySQL (>= 5.7.8) are available.
+  ## Ref: https://argo-workflows.readthedocs.io/en/latest/workflow-controller-configmap/#syncconfig
+  synchronization: {}
+
+  failedPodRestart:
+    # -- Enable to restart of pods that fail before entering Running state.
+    ## This is useful for recovering from transient infrastructure issues like node eviction due to DiskPressure or MemoryPressure without requiring a retryStrategy on every template.
+    ## ref: https://argo-workflows.readthedocs.io/en/latest/pod-restarts/
+    enabled: false
+    # -- Maximum number of automatic restarts per node before giving up.
+    maxRestarts: 3
   # mysql:
   #   host: localhost
   #   port: 3306
@@ -529,6 +556,8 @@ server:
   serviceType: ClusterIP
   # -- Service port for server
   servicePort: 2746
+  # -- Service target port for server
+  serviceTargetPort: 2746
   # -- Service node port
   serviceNodePort: # 32746
   # -- Service port name
@@ -839,6 +868,26 @@ server:
 
   # -- Enables init containers to be added to the server deployment
   extraInitContainers: []
+
+  # Gateway API HTTPRoute configuration
+  # NOTE: Gateway API support is in EXPERIMENTAL status
+  httproute:
+    # -- Enable HTTPRoute resource for Argo Workflows server (Gateway API)
+    enabled: false
+    # -- Additional HTTPRoute labels
+    labels: {}
+    # -- Additional HTTPRoute annotations
+    annotations: {}
+
+  # Gateway API BackendTLSPolicy configuration
+  # NOTE: BackendTLSPolicy support is in EXPERIMENTAL status
+  backendTLSPolicy:
+    # -- Enable BackendTLSPolicy resource for Argo Workflows server (Gateway API)
+    enabled: false
+    # -- Additional BackendTLSPolicy labels
+    labels: {}
+    # -- Additional BackendTLSPolicy annotations
+    annotations: {}
 
 # -- Use static credentials for S3 (eg. when not using AWS IRSA)
 useStaticCredentials: true

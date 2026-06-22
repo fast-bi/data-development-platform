@@ -329,11 +329,18 @@ manifests:
     FLASK_DEBUG: "0"
     FLASK_ENV: "production"
     API_URL: "/api/static/openapi.yml"
+    GIT_PROVIDER: "{{ git_provider }}"
     FASTBI_PLATFORM_DWH: "{{ data_platform_warehouse }}"
 {%- if data_platform_warehouse == "bigquery" %}
     BI_PLATFORM_BQ_ID: "{{ bq_project_id }}"
     BI_PLATFORM_GCP_ID: "{{ gcp_project_id }}"
     GCP_SA_IMPERSONATE_EMAIL: "{{ gcp_sa_impersonate_email }}"
+    # BigQuery FinOps tab (dbt-bigquery-monitoring). When "True", /stats exposes
+    # the "BigQuery FinOps" tab alongside the legacy "Warehouse Stats" view.
+    # Project/region default to the mounted BigQuery secret if left unset.
+    FASTBI_BQ_AUDIT: "{{ fastbi_bq_audit }}"
+    FASTBI_BQ_AUDIT_WAREHOUSE_PROJECT: "{{ fastbi_bq_audit_warehouse_project }}"
+    FASTBI_BQ_AUDIT_WAREHOUSE_DATASET: "{{ fastbi_bq_audit_warehouse_dataset }}"
 {%- endif %}
     AIRFLOW_VARIABLES_FILE_NAME: "dbt_airflow_variables.yml"
     AIRBYTE_LOCAL_K8S_SVC_URL: "{{ airbyte_local_k8s_svc_url }}"
@@ -356,6 +363,7 @@ manifests:
     WIKI_LINK: "{{ wiki_fastbi_endpoint }}"
     IDP_SSO_LINK: "{{ sso_idp_platform_admin_endpoint }}"
     IDP_SSO_USERS_LINK: "{{ sso_idp_platform_users_endpoint }}"
+    VAULT_LINK: "{{ vault_link }}"
     CUSTOMER: "{{ customer }}"
     DOMAIN: "{{ domain }}"
     MINIO_BUCKET_NAME: "{{ dbt_project_archive_bucket }}"
@@ -943,6 +951,10 @@ manifests:
                     name: fastbi-user-console-root-secrets
                     key: DC_DQ_BEARER_TOKEN
               - name: IDP_SSO_CONTROL_MODE
+                value: "disabled"
+              - name: VAULT_UI
+                value: "true"
+              - name: VAULT_CONTROL_MODE
                 value: "disabled"
               - name: AIRBYTE_API_LINK
                 valueFrom:

@@ -55,11 +55,13 @@ class ExternalDNS:
         # Service specific
         self.chart_version = chart_version
         self.deployment_name = "external-dns"
-        self.chart_repo_name = "bitnami"
-        self.chart_name = "oci://registry-1.docker.io/bitnamicharts/external-dns"
-        self.chart_repo = "https://charts.bitnami.com/bitnami"
+        self.chart_repo_name = "external-dns"
+        self.chart_name = "external-dns/external-dns"
+        self.chart_repo = "https://kubernetes-sigs.github.io/external-dns/"
         self.values_path = "charts/infra_services_charts/external_dns/values.yaml"
         self.render_template_values_path = "charts/infra_services_charts/external_dns/template_values.yaml"
+        # Platform domain used for DNS record exclusions (e.g. DKIM TXT records)
+        self.customer_main_domain = f"{self.customer}.{self.domain_name}"
         
         # Cloud Provider Specific
         try:
@@ -128,10 +130,10 @@ class ExternalDNS:
             raise FileNotFoundError(f"Values file not found: {values_path}")
             
         try:
-            # Properly add and update the Helm repo - Bitnami changed the chart name to oci://registry-1.docker.io/bitnamicharts/external-dns
-            # self.execute_command(["helm", "repo", "add", chart_repo_name, chart_repo])
-            # self.execute_command(["helm", "repo", "update", chart_repo_name])
-            
+            # Properly add and update the Helm repo (kubernetes-sigs external-dns is a classic Helm repo)
+            self.execute_command(["helm", "repo", "add", chart_repo_name, chart_repo])
+            self.execute_command(["helm", "repo", "update", chart_repo_name])
+
             # Formulate the Helm upgrade command properly as a list
             helm_command = [
                 "helm", "upgrade", "-i", deployment_name, chart_name,
@@ -230,6 +232,7 @@ class ExternalDNS:
                 'project_id': self.project_id,
                 'external_dns_domain_filters': domain_filters_yaml,
                 'external_dns_k8s_sa': self.external_dns_k8s_sa,
+                'customer_main_domain': self.customer_main_domain,
                 'cloud_provider': self.cloud_provider
             }
             

@@ -118,6 +118,25 @@ class StackgresPostgresqlDeployer:
                 raise FileNotFoundError(f"Template file not found: {template_path}")
             logger.debug(f"Template file validated: {template_path}")
 
+    def _resolve_chart_source(self, chart_version, chart_name):
+        """Resolve Helm chart reference for stable vs pre-release versions.
+
+        Pre-release versions (e.g. 1.19.0-rc1) are not indexed in the StackGres
+        Helm repo and must be installed from a direct tarball URL.
+        """
+        if "rc" in chart_version.lower():
+            chart_ref = (
+                f"https://stackgres.io/downloads/stackgres-k8s/stackgres/"
+                f"{chart_version}/helm/stackgres-operator.tgz"
+            )
+            logger.info(
+                f"Pre-release chart version detected ({chart_version}); "
+                f"using direct chart URL: {chart_ref}"
+            )
+            return chart_ref, False
+
+        return chart_name, True
+
     def deploy_service(self, chart_repo_name, chart_repo, deployment_name, chart_name, chart_version, namespace, values_path):
         """Deploy a Helm chart service"""
         logger.info(f"Deploying {deployment_name} in namespace {namespace}")
@@ -128,20 +147,23 @@ class StackgresPostgresqlDeployer:
             raise FileNotFoundError(f"Values file not found: {values_path}")
             
         try:
-            # Properly add and update the Helm repo
-            self.execute_command(["helm", "repo", "add", chart_repo_name, chart_repo])
-            self.execute_command(["helm", "repo", "update", chart_repo_name])
+            chart_ref, use_helm_repo = self._resolve_chart_source(chart_version, chart_name)
+
+            if use_helm_repo:
+                self.execute_command(["helm", "repo", "add", chart_repo_name, chart_repo])
+                self.execute_command(["helm", "repo", "update", chart_repo_name])
             
-            # Formulate the Helm upgrade command properly as a list
             helm_command = [
-                "helm", "upgrade", "-i", deployment_name, chart_name,
-                "--version", chart_version,
+                "helm", "upgrade", "-i", deployment_name, chart_ref,
                 "--namespace", namespace,
                 "--create-namespace",
                 "--wait",
                 "--values", values_path,
                 "--kubeconfig", self.kube_config
             ]
+            if use_helm_repo:
+                helm_command.extend(["--version", chart_version])
+
             self.execute_command(helm_command)
             logger.info(f"Successfully deployed {deployment_name} in namespace {namespace}")
         except Exception as e:

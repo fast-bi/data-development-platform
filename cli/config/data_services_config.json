@@ -23,13 +23,13 @@
     },
     "3.0_data_cicd_workflows": {
       "name": "Argo Workflows",
-      "chart_version": "0.45.22",
+      "chart_version": "1.0.15",
       "namespace": "cicd-workflows",
       "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "project_id"]
     },
     "4.0_data_replication": {
       "name": "Data Replication",
-      "chart_version": "1.7.2",
+      "chart_version": "1.8.5",
       "namespace": "data-replication",
       "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "data_replication_default_destination_type", "region", "project_id"]
     },
@@ -42,8 +42,8 @@
     },
     "6.0_data_modeling": {
       "name": "Data Modeling",
-      "chart_version": "4.2.0",
-      "app_version": "0.1.0",
+      "chart_version": "4.3.5",
+      "app_version": "0.2.1",
       "namespace": "data-modeling",
       "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "app_version", "project_id"]
     },
@@ -62,41 +62,41 @@
       "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "bi_system", "app_version", "project_id"],
       "bi_systems": {
         "superset": {
-          "chart_version": "0.15.0",
-          "app_version": "5.0.0"
+          "chart_version": "0.16.2",
+          "app_version": "6.1.0"
         },
         "lightdash": {
-          "chart_version": "1.8.0",
-          "app_version": "0.2026.4"
+          "chart_version": "2.9.0",
+          "app_version": "0.2248.0"
         },
         "metabase": {
-          "chart_version": "2.22.0",
-          "app_version": "v0.56.2.x"
+          "chart_version": "2.27.4",
+          "app_version": "v0.61.1.x"
         }
       }
     },
     "9.0_data_governance": {
       "name": "Data Governance",
-      "prerequest_chart_version": "0.1.15",
-      "chart_version": "0.6.17",
-      "app_version": "v1.2.0",
+      "prerequest_chart_version": "0.3.0",
+      "chart_version": "1.0.0",
+      "app_version": "v1.6.0",
       "namespace": "data-governance",
       "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "eck_es_chart_version", "eck_es_app_version", "eck_es_op_chart_version", "vault_secrets", "project_id"],
       "deployment_phases": [
         "elasticsearch_operator",
-        "elasticsearch_cluster", 
+        "elasticsearch_cluster",
         "datahub_prerequisites",
         "datahub"
       ],
-      "eck_es_chart_version": "0.16.0",
+      "eck_es_chart_version": "0.19.0",
       "eck_es_app_version": "8.17.0",
-      "eck_es_op_chart_version": "3.1.0"
+      "eck_es_op_chart_version": "3.4.0"
     },
     "10.0_user_console": {
       "name": "Data Platform User Console",
       "chart_version": "0.1.1",
       "namespace": "user-console",
-      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "tsb_fastbi_web_core_image_version", "tsb_dbt_init_core_image_version", "project_id"]
+      "required_params": ["customer", "domain_name", "cloud_provider", "cluster_name", "kube_config_path", "method", "git_provider", "vault_link", "fastbi_bq_audit", "fastbi_bq_audit_warehouse_project", "fastbi_bq_audit_warehouse_dataset", "tsb_fastbi_web_core_image_version", "tsb_dbt_init_core_image_version", "project_id"]
     }
   }
 } 

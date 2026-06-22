@@ -1,0 +1,25 @@
+{{- /*
+  Compatibility shim: in Airbyte 1.8.x the standalone webapp is retired and the UI is
+  served by the server component. Existing FastBI automations still target
+  "<release>-airbyte-webapp-svc:80", so when the webapp subchart is disabled we publish
+  that service name ourselves, fronting the server pods on port 80.
+*/ -}}
+{{- if not .Values.webapp.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-airbyte-webapp-svc
+  labels:
+    {{- include "airbyte.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: server
+    app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}

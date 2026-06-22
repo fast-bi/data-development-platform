@@ -90,9 +90,9 @@ class IdpSsoManager:
         # Service specific
         self.chart_version = chart_version
         self.deployment_name = "idp-sso-manager"
-        self.chart_repo_name = "bitnami"
-        self.chart_name = "oci://registry-1.docker.io/bitnamicharts/keycloak"
-        self.chart_repo = "https://charts.bitnami.com/bitnami"
+        self.chart_repo_name = "cloudpirates"
+        self.chart_name = "oci://registry-1.docker.io/cloudpirates/keycloak"
+        self.chart_repo = "https://charts.cloudpirates.com/cloudpirates"
         self.values_path = "charts/infra_services_charts/idp_sso_manager/values.yaml"
         self.render_template_values_path = "charts/infra_services_charts/idp_sso_manager/template_values.yaml"
         self.realm_template_path = "charts/infra_services_charts/idp_sso_manager/realm_teamplate.json"

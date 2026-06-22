@@ -120,6 +120,24 @@ manifests:
         managedSecretReference:
             secretName: data-governance-datahub-root-secrets
             secretNamespace: "{{ namespace }}"
+  - apiVersion: secrets.infisical.com/v1alpha1
+    kind: InfisicalSecret
+    metadata:
+        name: infisicalsecret-data-governance-kafka-secrets
+    spec:
+        resyncInterval: 15
+        authentication:
+            universalAuth:
+                secretsScope:
+                    projectSlug: "{{ project_slug }}"
+                    envSlug: prod
+                    secretsPath: "/data-governance/kafka-secrets/"
+                credentialsRef:
+                    secretName: universal-auth-credentials
+                    secretNamespace: infisical-operator-system
+        managedSecretReference:
+            secretName: data-governance-kafka-secrets
+            secretNamespace: "{{ namespace }}"
 {%- endif %}
 {%- if method == "local_vault" %}
 {%- if local_postgresql != true %}
@@ -214,7 +232,98 @@ manifests:
     dataFrom:
       - extract:
           key: "data-governance/root-secrets"
+- apiVersion: external-secrets.io/v1
+  kind: ExternalSecret
+  metadata:
+    name: hashicorp-data-governance-kafka-secrets
+    namespace: "{{ namespace }}"
+  spec:
+    refreshInterval: 24h
+    secretStoreRef:
+      name: vault-backend
+      kind: ClusterSecretStore
+    target:
+      name: data-governance-kafka-secrets
+    dataFrom:
+      - extract:
+          key: "data-governance/kafka-secrets"
 {%- endif %}
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: data-governance-actions-kafka-config
+    namespace: "{{ namespace }}"
+  data:
+{%- raw %}
+    doc_propagation_action.yaml: |
+      name: ${DATAHUB_ACTIONS_DOC_PROPAGATION_CONSUMER_GROUP_ID:-datahub_doc_propagation_action}
+      enabled: ${DATAHUB_ACTIONS_DOC_PROPAGATION_ENABLED:-true}
+      source:
+        type: 'kafka'
+        config:
+          connection:
+            bootstrap: ${KAFKA_BOOTSTRAP_SERVER:-localhost:9092}
+            schema_registry_url: ${SCHEMA_REGISTRY_URL:-http://localhost:8081}
+            consumer_config:
+              max.poll.interval.ms: ${MAX_POLL_INTERVAL_MS:-60000}
+              security.protocol: ${KAFKA_PROPERTIES_SECURITY_PROTOCOL:-SASL_PLAINTEXT}
+              sasl.mechanism: ${KAFKA_PROPERTIES_SASL_MECHANISM:-PLAIN}
+              sasl.username: ${KAFKA_PROPERTIES_SASL_USERNAME}
+              sasl.password: ${KAFKA_PROPERTIES_SASL_PASSWORD}
+              partition.assignment.strategy: cooperative-sticky
+          topic_routes:
+            mcl: ${METADATA_CHANGE_LOG_VERSIONED_TOPIC_NAME:-MetadataChangeLog_Versioned_v1}
+            pe: ${PLATFORM_EVENT_TOPIC_NAME:-PlatformEvent_v1}
+      action:
+        type: doc_propagation
+        config:
+          columns_enabled: ${DATAHUB_ACTIONS_DOC_PROPAGATION_COLUMNS_ENABLED:-true}
+          max_propagation_depth: ${DATAHUB_ACTIONS_DOC_PROPAGATION_MAX_PROPAGATION_DEPTH:-5}
+          max_propagation_fanout: ${DATAHUB_ACTIONS_DOC_PROPAGATION_MAX_PROPAGATION_FANOUT:-1000}
+          max_propagation_time_millis: ${DATAHUB_ACTIONS_DOC_PROPAGATION_MAX_PROPAGATION_TIME_MILLIS:-3600000}
+          rate_limit_propagated_writes: ${DATAHUB_ACTIONS_DOC_PROPAGATION_RATE_LIMIT_PROPAGATED_WRITES:-1500}
+          rate_limit_propagated_writes_period: ${DATAHUB_ACTIONS_DOC_PROPAGATION_RATE_LIMIT_PROPAGATED_WRITES_PERIOD:-15}
+      datahub:
+        server: 'http://${DATAHUB_GMS_HOST:-localhost}:${DATAHUB_GMS_PORT:-8080}'
+        extra_headers:
+          Authorization: 'Basic ${DATAHUB_SYSTEM_CLIENT_ID:-__datahub_system}:${DATAHUB_SYSTEM_CLIENT_SECRET:-JohnSnowKnowsNothing}'
+    executor.yaml: |
+      name: ${DATAHUB_ACTIONS_INGESTION_EXECUTOR_CONSUMER_GROUP_ID:-ingestion_executor}
+      source:
+        type: "kafka"
+        config:
+          connection:
+            bootstrap: ${KAFKA_BOOTSTRAP_SERVER:-localhost:9092}
+            schema_registry_url: ${SCHEMA_REGISTRY_URL:-http://localhost:8081}
+            consumer_config:
+              security.protocol: ${KAFKA_PROPERTIES_SECURITY_PROTOCOL:-SASL_PLAINTEXT}
+              sasl.mechanism: ${KAFKA_PROPERTIES_SASL_MECHANISM:-PLAIN}
+              sasl.username: ${KAFKA_PROPERTIES_SASL_USERNAME}
+              sasl.password: ${KAFKA_PROPERTIES_SASL_PASSWORD}
+              partition.assignment.strategy: cooperative-sticky
+          topic_routes:
+            mcl: ${METADATA_CHANGE_LOG_VERSIONED_TOPIC_NAME:-MetadataChangeLog_Versioned_v1}
+            pe: ${PLATFORM_EVENT_TOPIC_NAME:-PlatformEvent_v1}
+      filter:
+        event_type: "MetadataChangeLogEvent_v1"
+        event:
+          entityType: "dataHubExecutionRequest"
+          changeType: "UPSERT"
+          aspectName:
+            - "dataHubExecutionRequestInput"
+            - "dataHubExecutionRequestSignal"
+          aspect:
+            value:
+              executorId: "${EXECUTOR_ID:-default}"
+      action:
+        type: "executor"
+        config:
+          executor_id: "${EXECUTOR_ID:-default}"
+      datahub:
+        server: "${DATAHUB_GMS_PROTOCOL:-http}://${DATAHUB_GMS_HOST:-localhost}:${DATAHUB_GMS_PORT:-8080}"
+        extra_headers:
+          Authorization: "Basic ${DATAHUB_SYSTEM_CLIENT_ID:-__datahub_system}:${DATAHUB_SYSTEM_CLIENT_SECRET:-JohnSnowKnowsNothing}"
+{%- endraw %}
 {%- if cloud_provider == "self-managed" %}
 # Step 1: Create a job to transform the certificate into a Java truststore
 - apiVersion: batch/v1
