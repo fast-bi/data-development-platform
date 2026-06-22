@@ -49,3 +49,6 @@ cli/state/deployment_state.json
 .local/
 # Ignore new_values.yaml files in any nested directory
 **/new_values.yaml
+!charts/data_services_charts/data_replication/airbyte_chart/
+!charts/data_services_charts/data_replication/airbyte_chart/**
+!charts/data_services_charts/data_replication/airbyte_chart/**/values.yaml
